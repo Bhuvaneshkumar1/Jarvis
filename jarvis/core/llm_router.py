@@ -2,6 +2,7 @@ from typing import Dict, Any, Optional
 from jarvis.core.privacy import PrivacyEngine
 from jarvis.core.config import get_settings
 
+
 class LLMRouter:
     """
     LLM Router Interface enforcing local/cloud privacy routing (Rule 14 & Rule 17).

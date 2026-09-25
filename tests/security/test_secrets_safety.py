@@ -1,5 +1,6 @@
 import os
 
+
 def test_dot_env_not_tracked_in_git():
     """Verify .env is excluded by .gitignore and not tracked by Git."""
     gitignore_path = ".gitignore"
@@ -7,6 +8,7 @@ def test_dot_env_not_tracked_in_git():
     with open(gitignore_path, "r") as f:
         content = f.read()
     assert ".env" in content
+
 
 def test_env_example_contains_no_secrets():
     """Verify .env.example contains variable names only without actual secret values."""

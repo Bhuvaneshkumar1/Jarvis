@@ -3,11 +3,13 @@ from pydantic import BaseModel
 from jarvis.core.policy import PolicyEngine, ActionRequest, ActionType, RiskLevel
 from jarvis.core.audit_log import AuditLogger
 
+
 class ToolDefinition(BaseModel):
     name: str
     description: str
     action_type: ActionType
     risk_level: RiskLevel = RiskLevel.LOW
+
 
 class ToolExecutionResult(BaseModel):
     success: bool
@@ -17,6 +19,7 @@ class ToolExecutionResult(BaseModel):
     policy_allowed: bool = True
     verified: bool = False
     verification_details: Dict[str, Any] = {}
+
 
 class ToolRegistry:
     """

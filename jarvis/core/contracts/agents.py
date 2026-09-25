@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import AgentStatus, MemoryScope
 
+
 class AgentContract(BaseModel):
     agent_id: str = Field(default_factory=lambda: f"agent-{uuid.uuid4().hex[:12]}")
     parent_agent_id: Optional[str] = None
@@ -27,6 +28,7 @@ class AgentContract(BaseModel):
         if not v or not v.strip():
             raise ValueError("ID cannot be empty or whitespace.")
         return v
+
 
 class AgentContextContract(BaseModel):
     agent_id: str

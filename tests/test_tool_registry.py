@@ -3,6 +3,7 @@ from jarvis.core.tool_registry import ToolRegistry
 from jarvis.core.policy import ActionType, RiskLevel
 from jarvis.core.verification import VerificationEngine
 
+
 def test_tool_registration_and_execution(temp_dir):
     registry = ToolRegistry()
 

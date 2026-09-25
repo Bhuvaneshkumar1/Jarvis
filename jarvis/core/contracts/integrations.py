@@ -7,6 +7,7 @@ from typing import Dict, Any
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import IntegrationStatus
 
+
 class IntegrationContract(BaseModel):
     integration_id: str = Field(default_factory=lambda: f"integ-{uuid.uuid4().hex[:12]}")
     provider: str = Field(..., min_length=1)

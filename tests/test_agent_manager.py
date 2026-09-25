@@ -1,5 +1,6 @@
 from jarvis.core.agent_manager import AgentManager, AgentStatus
 
+
 def test_spawn_and_list_agents():
     mgr = AgentManager()
     agent = mgr.spawn_agent(role="TestRole", task_id="task-123")
@@ -12,6 +13,7 @@ def test_spawn_and_list_agents():
 
     mgr.terminate_agent(agent.config.agent_id)
     assert len(mgr.list_agents()) == 0
+
 
 def test_agent_execution_success():
     mgr = AgentManager()

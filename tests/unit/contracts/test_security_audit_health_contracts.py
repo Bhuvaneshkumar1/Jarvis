@@ -7,6 +7,7 @@ from jarvis.core.contracts.integrations import IntegrationContract
 from jarvis.core.contracts.health import HealthStatusContract
 from jarvis.core.enums import PolicyDecisionType, RiskLevel, ApprovalStatus, VerificationResultStatus, AuditSeverity, IntegrationStatus, HealthState
 
+
 def test_security_contracts():
     policy = PolicyDecisionContract(
         action="GIT_PUSH",
@@ -23,6 +24,7 @@ def test_security_contracts():
     )
     assert approval.approval_id.startswith("appr-")
 
+
 def test_verification_contract_immutability():
     ver = VerificationContract(
         task_id="task-10",
@@ -34,6 +36,7 @@ def test_verification_contract_immutability():
     with pytest.raises(ValidationError):
         ver.result = VerificationResultStatus.FAILED
 
+
 def test_audit_event_immutability():
     evt = AuditEventContract(
         component="PolicyEngine",
@@ -43,6 +46,7 @@ def test_audit_event_immutability():
     assert evt.event_id.startswith("evt-")
     with pytest.raises(ValidationError):
         evt.action = "MUTATED"
+
 
 def test_integration_and_health_contracts():
     integ = IntegrationContract(provider="GitHub", capability="CODE_COMMIT", status=IntegrationStatus.CONNECTED)

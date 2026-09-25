@@ -9,6 +9,7 @@ from config.settings import get_settings
 from jarvis.core.logging import JarvisLogger
 from jarvis.core.exceptions import JarvisError
 
+
 def main() -> int:
     try:
         # 1. Initialize Configuration
@@ -44,6 +45,7 @@ def main() -> int:
     except Exception as ex:
         print(f"Unexpected Fatal Error during startup: {str(ex)}", file=sys.stderr)
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

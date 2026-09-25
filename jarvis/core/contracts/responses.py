@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import ResponseStatus, OutputType
 
+
 class ResponseContract(BaseModel):
     response_id: str = Field(default_factory=lambda: f"res-{uuid.uuid4().hex[:12]}")
     request_id: str

@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from jarvis.core.audit_log import AuditLogger
 
+
 def test_daily_log_filename(temp_dir):
     logger = AuditLogger(log_dir=temp_dir)
     now = datetime(2026, 9, 25, 12, 0, 0, tzinfo=timezone.utc)
@@ -15,6 +16,7 @@ def test_daily_log_filename(temp_dir):
     expected_filename = "20260925_log.txt"
     assert os.path.basename(filepath) == expected_filename
     assert os.path.exists(filepath)
+
 
 def test_sensitive_data_redaction(temp_dir):
     logger = AuditLogger(log_dir=temp_dir)

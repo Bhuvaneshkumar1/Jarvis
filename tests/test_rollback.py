@@ -1,6 +1,7 @@
 import os
 from jarvis.core.rollback import RollbackManager
 
+
 def test_rollback_file_modification(temp_dir):
     mgr = RollbackManager()
     target_file = os.path.join(temp_dir, "original.txt")
@@ -24,6 +25,7 @@ def test_rollback_file_modification(temp_dir):
     assert content == "Initial state"
 
     mgr.cleanup()
+
 
 def test_rollback_file_creation(temp_dir):
     mgr = RollbackManager()

@@ -3,6 +3,7 @@ from typing import Dict, Any
 from pydantic import BaseModel
 from jarvis.core.config import get_settings
 
+
 class ActionType(str, Enum):
     READ = "READ"
     CREATE = "CREATE"
@@ -15,11 +16,13 @@ class ActionType(str, Enum):
     EXTERNAL_API_CALL = "EXTERNAL_API_CALL"
     SYSTEM_CONTROL = "SYSTEM_CONTROL"
 
+
 class RiskLevel(str, Enum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
     CRITICAL = "CRITICAL"
+
 
 class ActionRequest(BaseModel):
     action_type: ActionType
@@ -29,11 +32,13 @@ class ActionRequest(BaseModel):
     user_approved: bool = False
     task_has_explicit_modify_approval: bool = False
 
+
 class PolicyDecision(BaseModel):
     allowed: bool
     requires_user_approval: bool = False
     reason: str
     risk_level: RiskLevel
+
 
 class PolicyEngine:
     """

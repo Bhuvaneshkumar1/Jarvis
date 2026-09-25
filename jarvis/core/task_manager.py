@@ -3,6 +3,7 @@ import time
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
+
 class TaskState(str):
     CREATED = "CREATED"
     PLANNING = "PLANNING"
@@ -11,6 +12,7 @@ class TaskState(str):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     ROLLED_BACK = "ROLLED_BACK"
+
 
 class TaskRecord(BaseModel):
     task_id: str
@@ -22,6 +24,7 @@ class TaskRecord(BaseModel):
     result: Optional[Any] = None
     error: Optional[str] = None
     verification_state: str = "UNVERIFIED"
+
 
 class TaskManager:
     """

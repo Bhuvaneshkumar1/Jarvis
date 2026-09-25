@@ -3,6 +3,7 @@ from pydantic import ValidationError
 from jarvis.core.contracts.llm import ChatMessage, LLMRequestContract, LLMResponseContract
 from jarvis.core.enums import MessageRole
 
+
 def test_llm_contracts_serialization():
     msg = ChatMessage(role=MessageRole.USER, content="Hello JARVIS")
     req = LLMRequestContract(
@@ -22,6 +23,7 @@ def test_llm_contracts_serialization():
     dumped = res.model_dump()
     reconstructed = LLMResponseContract.model_validate(dumped)
     assert reconstructed.latency == 0.45
+
 
 def test_llm_response_immutability():
     res = LLMResponseContract(request_id="llmreq-1", provider="local", model="llama")

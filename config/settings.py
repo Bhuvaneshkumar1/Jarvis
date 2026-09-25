@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 from jarvis.core.exceptions import ConfigurationError
 
+
 class Settings:
     """
     Provider-neutral typed configuration access foundation (Section 10).
@@ -66,7 +67,9 @@ class Settings:
             "github_token_configured": bool(self.github_token),
         }
 
+
 _settings_instance: Optional[Settings] = None
+
 
 def get_settings(env_file: Optional[str] = ".env", force_reload: bool = False) -> Settings:
     global _settings_instance

@@ -2,6 +2,7 @@ import os
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
+
 class Settings:
     """
     JARVIS System Configuration loaded from environment / .env.
@@ -44,7 +45,9 @@ class Settings:
                 d[k] = "[NOT_SET]"
         return d
 
+
 _global_settings: Optional[Settings] = None
+
 
 def get_settings(env_file: Optional[str] = ".env", force_reload: bool = False) -> Settings:
     global _global_settings

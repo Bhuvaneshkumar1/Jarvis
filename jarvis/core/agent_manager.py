@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
 from jarvis.core.resource_monitor import ResourceMonitor
 
+
 class AgentStatus(str):
     INITIALIZING = "INITIALIZING"
     RUNNING = "RUNNING"
@@ -11,12 +12,14 @@ class AgentStatus(str):
     FAILED = "FAILED"
     TERMINATED = "TERMINATED"
 
+
 class TemporaryAgentConfig(BaseModel):
     agent_id: str
     role: str
     task_id: str
     memory_limit_mb: int = 1024
     created_at: float
+
 
 class TemporaryAgent:
     """
@@ -54,6 +57,7 @@ class TemporaryAgent:
     def terminate(self):
         if self.status not in [AgentStatus.COMPLETED, AgentStatus.FAILED]:
             self.status = AgentStatus.TERMINATED
+
 
 class AgentManager:
     """

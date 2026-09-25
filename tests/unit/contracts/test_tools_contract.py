@@ -3,6 +3,7 @@ from pydantic import ValidationError
 from jarvis.core.contracts.tools import ToolRequestContract, ToolResultContract
 from jarvis.core.enums import ToolResultStatus, VerificationResultStatus
 
+
 def test_tool_contracts_serialization():
     req = ToolRequestContract(
         task_id="task-001",
@@ -21,6 +22,7 @@ def test_tool_contracts_serialization():
     dumped = res.model_dump()
     reconstructed = ToolResultContract.model_validate(dumped)
     assert reconstructed.execution_time == 0.015
+
 
 def test_tool_result_immutability():
     res = ToolResultContract(call_id="call-123", status=ToolResultStatus.SUCCESS)

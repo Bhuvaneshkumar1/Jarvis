@@ -7,12 +7,14 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import ToolResultStatus, VerificationResultStatus
 
+
 class ToolSpecContract(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = Field(..., min_length=1)
     input_schema: Dict[str, Any] = Field(default_factory=dict)
     required_permission: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
 
 class ToolRequestContract(BaseModel):
     call_id: str = Field(default_factory=lambda: f"call-{uuid.uuid4().hex[:12]}")
@@ -30,6 +32,7 @@ class ToolRequestContract(BaseModel):
         if not v or not v.strip():
             raise ValueError("ID cannot be empty or whitespace.")
         return v
+
 
 class ToolResultContract(BaseModel, frozen=True):
     call_id: str

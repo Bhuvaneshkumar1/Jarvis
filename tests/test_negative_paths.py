@@ -2,6 +2,7 @@ import os
 from jarvis.core.orchestrator import Orchestrator
 from jarvis.core.verification import PostconditionResult
 
+
 def test_negative_policy_denial():
     orchestrator = Orchestrator()
     # Requesting deletion without approval
@@ -9,6 +10,7 @@ def test_negative_policy_denial():
     # Default settings require approval for modify when user_approved is False
     assert res["status"] == "DENIED"
     assert res["requires_approval"] is True
+
 
 def test_negative_execution_failure_triggers_rollback(temp_dir):
     orchestrator = Orchestrator()
@@ -31,6 +33,7 @@ def test_negative_execution_failure_triggers_rollback(temp_dir):
     assert "Simulated crash" in res["error"]
     # Verify rollback cleaned up created file
     assert not os.path.exists(created_file)
+
 
 def test_negative_postcondition_verification_failure(temp_dir):
     orchestrator = Orchestrator()

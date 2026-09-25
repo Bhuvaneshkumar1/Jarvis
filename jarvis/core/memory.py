@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Optional
 
+
 class MemoryRetrievalEngine:
     """
     Selective Memory Retrieval Engine interface.
@@ -11,11 +12,13 @@ class MemoryRetrievalEngine:
         self._memory_store: List[Dict[str, Any]] = []
 
     def store_memory(self, key: str, content: str, tags: Optional[List[str]] = None):
-        self._memory_store.append({
-            "key": key,
-            "content": content,
-            "tags": tags or [],
-        })
+        self._memory_store.append(
+            {
+                "key": key,
+                "content": content,
+                "tags": tags or [],
+            }
+        )
 
     def retrieve_memory(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         results = []

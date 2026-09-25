@@ -1,0 +1,2288 @@
+# JARVIS — BATCH 1
+
+# REPOSITORY INITIALIZATION & ENGINEERING FOUNDATION
+
+## EXECUTION MODE
+
+You are starting the JARVIS project from scratch.
+
+This is Batch 1 of a controlled 60-batch production engineering program.
+
+Do NOT attempt to build JARVIS in this batch.
+
+Do NOT implement agents, LLM routing, memory, voice, OCR, screen monitoring, automation, Telegram, cybersecurity, browser control, or autonomous behavior yet.
+
+The objective of this batch is to create the engineering foundation on which every later batch will depend.
+
+---
+
+# 1. ABSOLUTE ENGINEERING RULES
+
+You must follow these rules throughout this batch.
+
+## 1.1 No sugar coating
+
+Never claim something is:
+
+* complete
+* production-ready
+* robust
+* secure
+* reliable
+* fully implemented
+* verified
+
+unless executable evidence supports the claim.
+
+Use these statuses:
+
+```text
+IMPLEMENTED
+TESTED
+VERIFIED
+PARTIAL
+STUB
+MOCK
+UNIMPLEMENTED
+BROKEN
+BLOCKED
+UNKNOWN
+```
+
+---
+
+## 1.2 No fake implementation
+
+Do NOT create placeholder functionality and report it as implemented.
+
+Do NOT use:
+
+```python
+pass
+```
+
+as a substitute for required behavior.
+
+Do NOT create fake API responses.
+
+Do NOT create fake tests that merely test mocks.
+
+Do NOT create empty modules simply to make the architecture appear complete.
+
+---
+
+## 1.3 Do not implement future batches
+
+This batch is ONLY repository and engineering foundation.
+
+Do not implement:
+
+* LLM
+* agents
+* memory
+* voice
+* TTS
+* STT
+* OCR
+* vision
+* screen monitoring
+* browser automation
+* Windows automation
+* cybersecurity
+* Telegram
+* business integrations
+* autonomous planning
+* tool execution
+* scheduler
+* health monitoring
+
+Only create the infrastructure required to support those systems later.
+
+---
+
+# 2. TARGET ENVIRONMENT
+
+Primary target:
+
+```text
+Operating System:
+Windows 11
+
+Primary language:
+Python 3.x
+
+Architecture:
+Windows-first
+
+Future:
+Cloud/mobile expansion may be supported later.
+
+Current phone interface:
+Telegram
+
+MCP:
+NOT USED
+```
+
+Do not introduce cross-platform abstractions unless they are genuinely required by the architecture.
+
+---
+
+# 3. CREATE THE INITIAL REPOSITORY
+
+Create the project with this structure:
+
+```text
+jarvis/
+│
+├── core/
+├── agents/
+├── llm/
+├── memory/
+├── knowledge/
+├── tools/
+├── security/
+├── verification/
+├── voice/
+├── vision/
+├── ocr/
+├── system/
+├── browser/
+├── telegram/
+├── integrations/
+├── business/
+├── cybersecurity/
+├── automation/
+├── health/
+├── database/
+│
+├── config/
+├── data/
+├── logs/
+├── tests/
+├── scripts/
+├── docs/
+│
+├── main.py
+├── pyproject.toml
+├── requirements.txt
+├── requirements-dev.txt
+├── .env
+├── .env.example
+├── .gitignore
+├── README.md
+└── LICENSE
+```
+
+At this stage, directories that have no implementation should remain clearly identified as future subsystem directories.
+
+Do not populate them with fake implementations.
+
+---
+
+# 4. PYTHON PROJECT CONFIGURATION
+
+Configure the project using `pyproject.toml`.
+
+It must define:
+
+* project metadata
+* Python version requirement
+* runtime dependencies
+* development dependencies where appropriate
+* pytest configuration
+* linting configuration
+* formatting configuration
+* type-checking configuration
+
+Use a modern Python project structure.
+
+Avoid unnecessary dependencies.
+
+Before adding a dependency, determine whether the Python standard library or an existing dependency already provides the required capability.
+
+---
+
+# 5. PYTHON VERSION
+
+Determine the installed Python version on the development machine.
+
+Run:
+
+```powershell
+python --version
+```
+
+and:
+
+```powershell
+py --version
+```
+
+Use the actual installed version when defining the development environment.
+
+Do NOT invent a Python version.
+
+If the installed Python version is incompatible with the planned project baseline, document the incompatibility rather than silently assuming another version.
+
+---
+
+# 6. VIRTUAL ENVIRONMENT
+
+Create a project virtual environment.
+
+Use:
+
+```text
+.venv/
+```
+
+Do not commit it.
+
+Verify that:
+
+```powershell
+python
+pip
+pytest
+```
+
+resolve to the project environment where applicable.
+
+Record the exact environment information in the batch report.
+
+---
+
+# 7. GIT INITIALIZATION
+
+Initialize Git if the repository is not already a Git repository.
+
+Create an initial repository state.
+
+Configure `.gitignore`.
+
+At minimum exclude:
+
+```text
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+*.log
+logs/
+data/runtime/
+*.sqlite3
+*.db
+secrets/
+dist/
+build/
+*.egg-info/
+```
+
+Do not blindly ignore the entire `data/` directory if future application data must be versioned.
+
+Define precise rules.
+
+---
+
+# 8. ENVIRONMENT VARIABLE FOUNDATION
+
+Create:
+
+```text
+.env
+.env.example
+```
+
+`.env.example` must contain variable names only.
+
+Do NOT place real credentials in `.env.example`.
+
+Prepare placeholders for future services:
+
+```text
+# LLM
+NVIDIA_API_KEY=
+OPENROUTER_API_KEY=
+OPENAI_API_KEY=
+
+# Voice
+GOOGLE_SPEECH_API_KEY=
+
+# Telegram
+TELEGRAM_BOT_TOKEN=
+
+# Google
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REFRESH_TOKEN=
+
+# GitHub
+GITHUB_TOKEN=
+
+# Search
+SEARCH_API_KEY=
+
+# Weather
+WEATHER_API_KEY=
+```
+
+Do not assume every service will definitely be used.
+
+Document which variables are currently unused because their subsystem has not yet been implemented.
+
+---
+
+# 9. SECRETS SAFETY
+
+Implement only the minimum configuration validation required for Batch 1.
+
+Do NOT implement the full secrets manager yet.
+
+However:
+
+* `.env` must be ignored by Git.
+* No credentials may appear in source code.
+* No credentials may appear in README.
+* No credentials may appear in tests.
+* No credentials may appear in logs.
+* No credentials may appear in the batch report.
+
+If `.env` already contains real credentials, never print them.
+
+If you inspect the file, report only:
+
+```text
+PRESENT
+MISSING
+INVALID FORMAT
+```
+
+Never report the value.
+
+---
+
+# 10. BASIC CONFIGURATION MODULE
+
+Create a minimal configuration foundation.
+
+Suggested location:
+
+```text
+config/settings.py
+```
+
+Requirements:
+
+* load environment variables
+* validate basic configuration structure
+* provide typed configuration access
+* distinguish required and optional variables
+* never print secrets
+* fail clearly for malformed configuration
+
+Do NOT implement provider-specific clients yet.
+
+The configuration layer must remain provider-neutral.
+
+---
+
+# 11. LOGGING FOUNDATION
+
+Create the logging foundation only.
+
+Suggested:
+
+```text
+core/logging.py
+```
+
+The eventual logging system will use daily files such as:
+
+```text
+25092026_log.txt
+26092026_log.txt
+27092026_log.txt
+```
+
+Do not create:
+
+```text
+log1.txt
+log2.txt
+log3.txt
+```
+
+For Batch 1, implement only the reusable logging interface.
+
+Required information:
+
+```text
+timestamp
+level
+component
+message
+correlation_id where available
+```
+
+Sensitive values must be redacted.
+
+Do not implement the complete audit subsystem yet.
+
+That belongs to later security batches.
+
+---
+
+# 12. ERROR HANDLING FOUNDATION
+
+Create a centralized exception hierarchy.
+
+Suggested:
+
+```text
+core/exceptions.py
+```
+
+Define categories appropriate for the architecture.
+
+For example:
+
+```text
+JarvisError
+ConfigurationError
+AuthenticationError
+AuthorizationError
+ToolError
+AgentError
+MemoryError
+IntegrationError
+VerificationError
+TaskError
+ResourceLimitError
+```
+
+Do not create dozens of unnecessary exception classes.
+
+Keep the hierarchy small and meaningful.
+
+---
+
+# 13. TYPE SAFETY
+
+Use type hints throughout new code.
+
+Configure a type checker.
+
+Do not blindly suppress type errors.
+
+Do not use:
+
+```python
+# type: ignore
+```
+
+unless there is a documented reason.
+
+Every suppression must have a justification.
+
+---
+
+# 14. CODE QUALITY
+
+Configure a formatter/linter.
+
+The exact tooling may be selected based on the installed environment.
+
+Do not install multiple overlapping tools that perform the same function.
+
+The project should have deterministic formatting and linting.
+
+---
+
+# 15. TEST FOUNDATION
+
+Create:
+
+```text
+tests/
+├── unit/
+├── integration/
+├── e2e/
+├── security/
+├── performance/
+└── fixtures/
+```
+
+Do not create fake tests for future features.
+
+Create only foundation tests for:
+
+* configuration
+* environment handling
+* logging
+* exception hierarchy
+* project initialization
+
+---
+
+# 16. TESTING RULE
+
+Run the tests before implementation.
+
+Record the baseline.
+
+Then implement the foundation.
+
+Then run:
+
+```powershell
+pytest
+```
+
+Run the configured linting and type checking.
+
+Record exact commands and results.
+
+---
+
+# 17. BASIC HEALTH CHECK
+
+Create a minimal development health check that confirms:
+
+```text
+Python environment
+Configuration loading
+Logging initialization
+Database directory availability
+Required directories
+```
+
+Do not implement the full JARVIS health-monitoring subsystem.
+
+That belongs to Batch 57.
+
+---
+
+# 18. MAIN ENTRY POINT
+
+Create:
+
+```text
+main.py
+```
+
+It must NOT pretend to be a complete JARVIS assistant.
+
+It should only:
+
+1. initialize configuration
+2. initialize logging
+3. perform startup validation
+4. report that the foundation initialized successfully
+5. exit cleanly
+
+Do not create fake conversational behavior.
+
+Do not create a fake AI response.
+
+Do not create a fake autonomous loop.
+
+---
+
+# 19. DATABASE
+
+Do not implement the complete database schema in Batch 1.
+
+Create only the database foundation directory and configuration required for later batches.
+
+Do not prematurely define tables for:
+
+* agents
+* tasks
+* memory
+* users
+* approvals
+* integrations
+
+Those schemas will be designed in the appropriate batches.
+
+---
+
+# 20. DOCUMENTATION
+
+Create:
+
+```text
+docs/
+├── architecture.md
+├── development.md
+├── security.md
+├── testing.md
+└── current_state.md
+```
+
+### `architecture.md`
+
+Document the intended high-level architecture:
+
+```text
+User
+ ↓
+Gateway
+ ↓
+Core
+ ↓
+Planner
+ ↓
+Agent Manager
+ ↓
+Tools / Memory / LLM
+ ↓
+Verification
+ ↓
+Audit
+```
+
+Clearly mark future components as:
+
+```text
+PLANNED
+```
+
+Do not claim they exist.
+
+---
+
+# 21. ARCHITECTURE RULE
+
+The project must have ONE authoritative implementation for each future subsystem:
+
+```text
+Runtime
+Orchestrator
+Planner
+Task Manager
+Agent Manager
+Memory Manager
+LLM Router
+Policy Engine
+Verification Engine
+Tool Registry
+Authentication
+Audit Logger
+```
+
+Do not create duplicate classes with names such as:
+
+```text
+AdvancedOrchestrator
+UniversalOrchestrator
+EnhancedOrchestrator
+FinalOrchestrator
+ProductionOrchestrator
+```
+
+unless there is an explicit architectural reason.
+
+Avoid naming inflation.
+
+---
+
+# 22. README
+
+Create a concise but accurate README.
+
+It must state:
+
+```text
+Project status:
+FOUNDATION / NOT PRODUCTION READY
+```
+
+Do not claim JARVIS is implemented.
+
+Document:
+
+* purpose
+* current scope
+* architecture
+* development setup
+* test commands
+* security rules
+* current limitations
+
+---
+
+# 23. SECURITY BASELINE
+
+Perform an initial security inspection.
+
+Check for:
+
+* hard-coded secrets
+* accidental `.env` tracking
+* unsafe subprocess defaults
+* arbitrary code execution
+* unsafe file permissions where relevant
+* insecure logging
+* dependency issues
+* exposed credentials
+
+If no application logic exists yet, state:
+
+```text
+Security status:
+FOUNDATION REVIEW ONLY
+```
+
+Do not claim the future JARVIS security model has been implemented.
+
+---
+
+# 24. NEGATIVE TESTING
+
+Test at least:
+
+### Configuration
+
+* missing `.env`
+* malformed environment value
+* missing optional variable
+* missing required variable where applicable
+
+### Logging
+
+* malformed log message
+* secret-like value redaction
+* invalid log directory
+
+### Startup
+
+* missing directory
+* invalid configuration
+* initialization failure
+
+Verify failures are explicit and controlled.
+
+---
+
+# 25. DO NOT OVERENGINEER
+
+Do not add:
+
+* distributed systems
+* message brokers
+* Kubernetes
+* Redis unless required
+* Kafka
+* Celery unless later justified
+* microservices
+* REST API
+* WebSocket server
+* cloud deployment
+* container orchestration
+
+JARVIS is initially a local Windows application.
+
+Keep the architecture modular without turning it into unnecessary distributed infrastructure.
+
+---
+
+# 26. RESOURCE REQUIREMENT
+
+The target machine has:
+
+```text
+RAM: 16 GB
+```
+
+The eventual JARVIS budget is:
+
+```text
+Idle:
+2–3 GB
+
+Maximum:
+8 GB
+```
+
+Batch 1 must not introduce background processes that consume significant resources.
+
+---
+
+# 27. ACCEPTANCE CRITERIA
+
+Batch 1 is successful only if ALL are true:
+
+1. Repository structure exists.
+2. Git is initialized/configured correctly.
+3. `.env` is not tracked.
+4. `.env.example` exists.
+5. Python environment is reproducible.
+6. `pyproject.toml` is valid.
+7. Dependencies install successfully.
+8. Configuration module works.
+9. Logging foundation works.
+10. Exception hierarchy works.
+11. Type checking is configured.
+12. Linting/formatting is configured.
+13. Pytest is configured.
+14. Foundation tests pass.
+15. Negative configuration tests pass.
+16. README accurately states project status.
+17. Architecture documentation exists.
+18. No fake JARVIS functionality exists.
+19. No MCP code exists.
+20. No hard-coded secrets exist.
+21. No future subsystem is falsely marked as implemented.
+
+---
+
+# 28. REQUIRED COMMAND VERIFICATION
+
+Run the appropriate commands for the environment.
+
+At minimum:
+
+```powershell
+python --version
+pip --version
+pytest
+```
+
+Also run the configured:
+
+```text
+formatter check
+linter
+type checker
+```
+
+Run a startup check:
+
+```powershell
+python main.py
+```
+
+Capture the actual result.
+
+---
+
+# 29. REGRESSION REQUIREMENT
+
+After all implementation:
+
+1. run all tests
+2. run linting
+3. run type checking
+4. run startup
+5. inspect Git status
+6. inspect tracked files
+7. verify `.env` is not tracked
+8. verify no secrets were printed
+9. verify no unexpected files were created
+
+---
+
+# 30. FINAL SELF-AUDIT
+
+Before declaring the batch complete, inspect your own implementation for:
+
+* unused files
+* duplicate modules
+* placeholder implementations
+* dead code
+* unnecessary dependencies
+* fake tests
+* ignored errors
+* suppressed type errors
+* hard-coded values
+* accidental secrets
+* undocumented behavior
+* architecture drift
+
+Fix issues found within the scope of this batch.
+
+Do not expand scope.
+
+---
+
+# 31. MANDATORY FINAL REPORT
+
+Return the following exact structure:
+
+```text
+========================================
+JARVIS BATCH 1 REPORT
+========================================
+
+BATCH:
+1
+
+OBJECTIVE:
+Repository Initialization & Engineering Foundation
+
+BASELINE:
+[exact baseline result]
+
+ENVIRONMENT:
+OS:
+Python:
+pip:
+Virtual Environment:
+
+FILES CREATED:
+[list]
+
+FILES MODIFIED:
+[list]
+
+FILES DELETED:
+[list]
+
+DEPENDENCIES ADDED:
+[list with justification]
+
+IMPLEMENTED:
+[list]
+
+NOT IMPLEMENTED:
+[list]
+
+STUBS:
+[list or NONE]
+
+MOCKS:
+[list or NONE]
+
+TESTS ADDED:
+[list]
+
+TEST COMMANDS:
+[list exact commands]
+
+TEST RESULTS:
+[exact results]
+
+LINT RESULTS:
+[exact results]
+
+TYPE CHECK RESULTS:
+[exact results]
+
+STARTUP TEST:
+[exact command and result]
+
+SECURITY REVIEW:
+[findings]
+
+SECRETS REVIEW:
+[findings]
+
+GIT REVIEW:
+[status]
+
+RESOURCE REVIEW:
+[observed resource usage]
+
+KNOWN DEFECTS:
+[list]
+
+BLOCKERS:
+[list]
+
+ARCHITECTURE DEVIATIONS:
+[list or NONE]
+
+EVIDENCE:
+[actual command outputs / test IDs / observed behavior]
+
+FINAL STATUS:
+PASS / PARTIAL / FAIL / BLOCKED
+
+CONFIDENCE:
+Do not provide a percentage.
+Explain exactly what was verified and what remains unverified.
+========================================
+```
+
+---
+
+# 32. FINAL RULE
+
+Do NOT proceed to Batch 2 automatically.
+
+Complete Batch 1.
+
+Produce the evidence report.
+
+Stop.
+
+The next batch will only be provided after the Batch 1 result is reviewed.
+
+# JARVIS — BATCH 2
+
+# ARCHITECTURAL CONTRACTS & CORE INTERFACES
+
+## EXECUTION MODE
+
+This is Batch 2 of the 60-batch JARVIS production program.
+
+Batch 1 established the repository and engineering foundation.
+
+This batch establishes the **formal contracts between JARVIS subsystems**.
+
+Do NOT implement actual AI behavior.
+
+Do NOT implement LLM providers.
+
+Do NOT implement agents.
+
+Do NOT implement memory.
+
+Do NOT implement voice.
+
+Do NOT implement OCR.
+
+Do NOT implement screen monitoring.
+
+Do NOT implement Telegram.
+
+Do NOT implement browser automation.
+
+Do NOT implement cybersecurity functionality.
+
+Do NOT implement autonomous execution.
+
+Do NOT introduce MCP.
+
+The purpose of this batch is to prevent architectural drift during the remaining 58 batches.
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Create the authoritative interfaces/data contracts for:
+
+```text
+Runtime
+Request
+Response
+Task
+TaskStep
+Agent
+AgentContext
+Tool
+ToolRequest
+ToolResult
+Memory
+MemoryQuery
+MemoryResult
+LLM
+LLMRequest
+LLMResponse
+Policy
+Permission
+Approval
+Verification
+AuditEvent
+Integration
+HealthStatus
+```
+
+These contracts become the boundaries used by future batches.
+
+There must be ONE authoritative definition for each concept.
+
+---
+
+# 2. ARCHITECTURE
+
+The intended architecture is:
+
+```text
+USER
+  │
+  ▼
+GATEWAY
+  │
+  ▼
+JARVIS CORE
+  │
+  ├── Planner
+  ├── Task Manager
+  ├── Agent Manager
+  ├── Policy Engine
+  │
+  ├── LLM Router
+  ├── Memory
+  ├── Tool Engine
+  ├── Verification
+  └── Audit
+```
+
+Future subsystems depend on contracts, not on each other's internal implementation.
+
+Example:
+
+```text
+Orchestrator
+      ↓
+Tool interface
+      ↓
+Filesystem implementation
+```
+
+NOT:
+
+```text
+Orchestrator
+      ↓
+direct filesystem implementation
+      ↓
+Windows-specific internals
+```
+
+---
+
+# 3. DIRECTORY STRUCTURE
+
+Create or refine:
+
+```text
+core/
+├── contracts/
+│   ├── __init__.py
+│   ├── requests.py
+│   ├── responses.py
+│   ├── tasks.py
+│   ├── agents.py
+│   ├── tools.py
+│   ├── memory.py
+│   ├── llm.py
+│   ├── security.py
+│   ├── verification.py
+│   ├── audit.py
+│   ├── integrations.py
+│   └── health.py
+│
+├── enums.py
+├── exceptions.py
+└── logging.py
+```
+
+If Batch 1 created a different but equivalent structure, do not blindly rename files.
+
+Inspect the existing structure first.
+
+Preserve useful existing work.
+
+Avoid duplicate definitions.
+
+---
+
+# 4. CONTRACT DESIGN RULE
+
+Contracts must contain:
+
+* typed fields
+* validation
+* explicit status
+* timestamps where necessary
+* IDs where necessary
+* serialization support where necessary
+
+Contracts must NOT contain business logic.
+
+Bad:
+
+```python
+class Task:
+    def execute(self):
+        ...
+```
+
+Good:
+
+```python
+class Task:
+    task_id: str
+    description: str
+    status: TaskStatus
+```
+
+Execution belongs to the appropriate runtime/service.
+
+---
+
+# 5. IDENTIFIERS
+
+Define consistent identifiers.
+
+At minimum:
+
+```text
+RequestID
+TaskID
+TaskStepID
+AgentID
+ToolCallID
+MemoryID
+ApprovalID
+VerificationID
+CorrelationID
+SessionID
+```
+
+Use a consistent ID strategy.
+
+Do not create multiple incompatible ID formats across modules.
+
+IDs must be serializable.
+
+---
+
+# 6. REQUEST CONTRACT
+
+Define the normalized internal request.
+
+Conceptually:
+
+```text
+Request
+├── request_id
+├── session_id
+├── correlation_id
+├── user_id
+├── source
+├── input_type
+├── content
+├── timestamp
+├── context
+└── metadata
+```
+
+Possible sources:
+
+```text
+VOICE
+TELEGRAM
+LOCAL_UI
+SYSTEM
+SCHEDULE
+AGENT
+```
+
+Possible input types:
+
+```text
+TEXT
+VOICE
+IMAGE
+FILE
+EVENT
+SYSTEM
+```
+
+Do not implement voice or Telegram.
+
+Only define their future contract.
+
+---
+
+# 7. RESPONSE CONTRACT
+
+Define:
+
+```text
+Response
+├── response_id
+├── request_id
+├── status
+├── content
+├── output_type
+├── actions
+├── errors
+├── timestamp
+└── metadata
+```
+
+Statuses should distinguish:
+
+```text
+SUCCESS
+PARTIAL
+FAILED
+BLOCKED
+REQUIRES_APPROVAL
+TIMEOUT
+CANCELLED
+```
+
+Do not allow a generic "success" response to hide partial execution.
+
+---
+
+# 8. TASK CONTRACT
+
+Define a persistent task model.
+
+Required conceptual fields:
+
+```text
+Task
+├── task_id
+├── parent_task_id
+├── description
+├── objective
+├── status
+├── priority
+├── source
+├── created_at
+├── updated_at
+├── deadline
+├── assigned_agent_id
+├── approval_state
+├── verification_state
+├── retry_count
+└── metadata
+```
+
+Task statuses:
+
+```text
+CREATED
+PLANNED
+WAITING_APPROVAL
+READY
+RUNNING
+WAITING
+VERIFYING
+COMPLETED
+PARTIAL
+FAILED
+ROLLED_BACK
+CANCELLED
+BLOCKED
+```
+
+Do not implement the database persistence yet.
+
+That belongs to later batches.
+
+---
+
+# 9. TASK STEP CONTRACT
+
+A large task may contain multiple steps.
+
+Example:
+
+```text
+Task
+│
+├── Step 1: inspect repository
+├── Step 2: analyze dependencies
+├── Step 3: modify code
+├── Step 4: run tests
+└── Step 5: verify
+```
+
+Define:
+
+```text
+TaskStep
+├── step_id
+├── task_id
+├── sequence
+├── description
+├── dependencies
+├── assigned_agent_id
+├── status
+├── required_permission
+├── result
+└── verification_id
+```
+
+The contract must support dependency ordering.
+
+---
+
+# 10. AGENT CONTRACT
+
+Define the lifecycle state.
+
+```text
+Agent
+├── agent_id
+├── parent_agent_id
+├── task_id
+├── role
+├── status
+├── created_at
+├── started_at
+├── finished_at
+├── permissions
+├── resource_limits
+└── metadata
+```
+
+Agent statuses:
+
+```text
+CREATED
+INITIALIZING
+READY
+RUNNING
+WAITING
+VERIFYING
+COMPLETED
+FAILED
+TERMINATED
+```
+
+---
+
+# 11. AGENT CONTEXT
+
+Define a strict execution context:
+
+```text
+AgentContext
+├── agent_id
+├── task_id
+├── parent_task_id
+├── role
+├── allowed_tools
+├── allowed_paths
+├── allowed_integrations
+├── memory_scope
+├── permissions
+├── resource_limits
+├── timeout
+└── metadata
+```
+
+This is critical.
+
+Future agents must NOT receive unrestricted access by default.
+
+---
+
+# 12. TOOL CONTRACT
+
+Define the universal tool interface.
+
+Conceptually:
+
+```python
+class Tool:
+    name
+    description
+    input_schema
+
+    validate()
+    execute()
+    verify()
+    rollback()
+```
+
+Do not implement actual tools.
+
+The contract must support:
+
+```text
+validation
+execution
+verification
+rollback
+```
+
+---
+
+# 13. TOOL REQUEST
+
+Define:
+
+```text
+ToolRequest
+├── call_id
+├── task_id
+├── agent_id
+├── tool_name
+├── arguments
+├── permission
+├── timeout
+└── correlation_id
+```
+
+---
+
+# 14. TOOL RESULT
+
+Define:
+
+```text
+ToolResult
+├── call_id
+├── status
+├── output
+├── error
+├── execution_time
+├── verification_state
+├── rollback_available
+└── metadata
+```
+
+Statuses:
+
+```text
+SUCCESS
+FAILED
+TIMEOUT
+DENIED
+CANCELLED
+PARTIAL
+```
+
+---
+
+# 15. MEMORY CONTRACT
+
+Define the abstraction only.
+
+```text
+MemoryQuery
+├── query
+├── scope
+├── project
+├── task
+├── user
+├── limit
+├── relevance_threshold
+└── metadata
+```
+
+Memory result:
+
+```text
+MemoryResult
+├── memory_id
+├── content
+├── source
+├── relevance
+├── timestamp
+├── scope
+└── metadata
+```
+
+Do not implement vector databases or Obsidian retrieval yet.
+
+---
+
+# 16. MEMORY SCOPES
+
+Define:
+
+```text
+WORKING
+CONVERSATION
+EPISODIC
+SEMANTIC
+PROJECT
+PERSONAL
+PREFERENCE
+BUSINESS
+TECHNICAL
+```
+
+Future retrieval must support selective context.
+
+The entire knowledge base must never be assumed to belong in every LLM request.
+
+---
+
+# 17. LLM CONTRACT
+
+Define provider-neutral interfaces.
+
+```text
+LLMRequest
+├── request_id
+├── model
+├── messages
+├── system_context
+├── tools
+├── temperature/configuration
+├── timeout
+└── metadata
+```
+
+Response:
+
+```text
+LLMResponse
+├── request_id
+├── provider
+├── model
+├── content
+├── tool_calls
+├── usage
+├── finish_reason
+├── latency
+└── metadata
+```
+
+Do NOT implement NVIDIA, OpenRouter, OpenAI, or local providers.
+
+Those belong to the LLM phase.
+
+---
+
+# 18. POLICY CONTRACT
+
+Define policy decisions.
+
+```text
+PolicyDecision
+├── action
+├── decision
+├── reason
+├── required_approval
+├── required_authentication
+├── risk_level
+└── metadata
+```
+
+Possible decisions:
+
+```text
+ALLOW
+DENY
+REQUIRE_APPROVAL
+REQUIRE_AUTHENTICATION
+REQUIRE_AUTHORIZATION
+BLOCK
+```
+
+Risk levels:
+
+```text
+LOW
+MEDIUM
+HIGH
+CRITICAL
+```
+
+---
+
+# 19. APPROVAL CONTRACT
+
+Define:
+
+```text
+Approval
+├── approval_id
+├── task_id
+├── requested_action
+├── requested_by
+├── approved_by
+├── scope
+├── created_at
+├── expires_at
+├── status
+└── metadata
+```
+
+Statuses:
+
+```text
+PENDING
+APPROVED
+DENIED
+EXPIRED
+REVOKED
+```
+
+The contract must support scoped approvals.
+
+Example:
+
+```text
+Approve modifications to this project
+```
+
+must not automatically mean:
+
+```text
+Approve deletion
+Approve git push
+Approve financial actions
+```
+
+---
+
+# 20. VERIFICATION CONTRACT
+
+Define:
+
+```text
+Verification
+├── verification_id
+├── task_id
+├── step_id
+├── expected_state
+├── observed_state
+├── result
+├── verifier
+├── timestamp
+└── evidence
+```
+
+Results:
+
+```text
+PASSED
+FAILED
+PARTIAL
+NOT_VERIFIED
+```
+
+This contract is essential because JARVIS must never treat LLM output as proof of success.
+
+---
+
+# 21. AUDIT CONTRACT
+
+Define:
+
+```text
+AuditEvent
+├── event_id
+├── timestamp
+├── correlation_id
+├── task_id
+├── agent_id
+├── component
+├── action
+├── result
+├── severity
+└── metadata
+```
+
+Severity:
+
+```text
+DEBUG
+INFO
+WARNING
+ERROR
+CRITICAL
+SECURITY
+```
+
+Do not implement the final immutable audit logger yet.
+
+Only establish the contract.
+
+---
+
+# 22. INTEGRATION CONTRACT
+
+External services must use adapters.
+
+Define:
+
+```text
+Integration
+├── integration_id
+├── provider
+├── capability
+├── status
+├── authentication_state
+└── metadata
+```
+
+Future examples:
+
+```text
+Gmail
+Google Calendar
+GitHub
+Telegram
+Spotify
+Google Drive
+```
+
+Do not implement these services yet.
+
+---
+
+# 23. HEALTH CONTRACT
+
+Define:
+
+```text
+HealthStatus
+├── component
+├── status
+├── timestamp
+├── latency
+├── resource_usage
+├── error
+└── metadata
+```
+
+Statuses:
+
+```text
+HEALTHY
+DEGRADED
+UNHEALTHY
+OFFLINE
+UNKNOWN
+```
+
+Do not implement the health-monitoring engine yet.
+
+---
+
+# 24. ENUM DESIGN
+
+Centralize shared enums where practical.
+
+Do not create duplicate enum definitions.
+
+For example:
+
+```text
+core/enums.py
+```
+
+may contain:
+
+```text
+TaskStatus
+AgentStatus
+ToolStatus
+ApprovalStatus
+VerificationStatus
+RiskLevel
+PolicyDecision
+HealthState
+```
+
+Keep the enum set minimal.
+
+---
+
+# 25. SERIALIZATION
+
+Contracts must support safe serialization.
+
+Test:
+
+```text
+object
+ ↓
+dictionary / JSON
+ ↓
+object
+```
+
+Requirements:
+
+* deterministic field names
+* explicit types
+* safe handling of optional fields
+* timestamps serialized consistently
+* enum values serialized consistently
+
+Do not serialize secrets.
+
+---
+
+# 26. IMMUTABILITY
+
+Where a contract represents an event/result that should not be mutated after creation, prefer immutable models.
+
+Examples:
+
+```text
+AuditEvent
+Verification
+ToolResult
+LLMResponse
+```
+
+Do not make everything immutable without reason.
+
+---
+
+# 27. VALIDATION
+
+Invalid objects must fail clearly.
+
+Test:
+
+```text
+missing required ID
+invalid status
+invalid timestamp
+invalid enum
+negative timeout
+invalid resource limit
+empty required description
+invalid dependency reference
+```
+
+Do not silently normalize invalid values.
+
+---
+
+# 28. CONTRACT TESTS
+
+Create tests specifically for the contracts.
+
+Directory:
+
+```text
+tests/unit/contracts/
+```
+
+Test:
+
+* construction
+* validation
+* serialization
+* deserialization
+* invalid input
+* optional fields
+* enum behavior
+* immutable behavior where applicable
+
+---
+
+# 29. CONTRACT VERSIONING
+
+Design contracts so future fields can be added without breaking existing serialization unnecessarily.
+
+Do NOT build a complex schema-versioning framework yet.
+
+Use a simple version field only where it is genuinely necessary.
+
+Do not overengineer.
+
+---
+
+# 30. DEPENDENCY RULE
+
+Contracts must have minimal dependencies.
+
+Do not make:
+
+```text
+core/contracts/
+```
+
+depend on:
+
+```text
+LLM SDKs
+Telegram SDK
+browser libraries
+Windows libraries
+OCR libraries
+database drivers
+```
+
+Contracts belong to the core.
+
+Providers belong to their own subsystems.
+
+---
+
+# 31. CIRCULAR DEPENDENCY RULE
+
+Do not create circular imports.
+
+Required direction:
+
+```text
+contracts
+    ↓
+core services
+    ↓
+providers/adapters
+```
+
+Not:
+
+```text
+contracts
+ ↔
+providers
+```
+
+If circular dependency appears, stop and redesign the dependency boundary.
+
+Do not solve architectural problems using arbitrary import hacks.
+
+---
+
+# 32. TESTING REQUIREMENT
+
+Before changes:
+
+```text
+Run full existing test suite.
+```
+
+Record baseline.
+
+After changes:
+
+```text
+Run full test suite.
+Run contract tests.
+Run lint.
+Run type checker.
+```
+
+---
+
+# 33. NEGATIVE TESTING
+
+Explicitly test:
+
+* invalid task
+* invalid task step
+* invalid agent context
+* invalid tool request
+* invalid tool result
+* invalid memory query
+* invalid LLM request
+* invalid policy decision
+* invalid approval
+* invalid verification
+* invalid audit event
+* invalid health status
+
+Every failure must be controlled and descriptive.
+
+---
+
+# 34. NO IMPLEMENTATION LEAKAGE
+
+During review, search for:
+
+```text
+requests
+```
+
+that directly invoke:
+
+```text
+NVIDIA
+OpenRouter
+Telegram
+Windows
+filesystem
+browser
+OCR
+voice
+database
+```
+
+from contracts.
+
+If found, remove the coupling.
+
+---
+
+# 35. ARCHITECTURAL REVIEW
+
+After implementation, inspect imports.
+
+Produce a dependency view:
+
+```text
+contracts
+  ↓
+core
+  ↓
+adapters/providers
+```
+
+Identify any violation.
+
+Fix violations within this batch.
+
+---
+
+# 36. ACCEPTANCE CRITERIA
+
+Batch 2 is PASS only if:
+
+1. All required core contracts exist.
+2. Each concept has exactly one authoritative definition.
+3. Contracts are provider-neutral.
+4. Contracts contain no subsystem-specific implementation.
+5. IDs are consistent.
+6. Status enums are consistent.
+7. Serialization works.
+8. Deserialization works.
+9. Invalid input is rejected.
+10. Contract tests pass.
+11. Existing Batch 1 tests pass.
+12. Lint passes.
+13. Type checking passes.
+14. No circular imports exist.
+15. No MCP code exists.
+16. No provider SDK is imported by core contracts.
+17. No fake functionality exists.
+18. No future subsystem is falsely marked implemented.
+
+---
+
+# 37. REQUIRED SELF-AUDIT
+
+Before final report, search the repository for:
+
+```text
+TODO
+FIXME
+pass
+NotImplemented
+mock
+fake
+placeholder
+MCP
+mcp
+```
+
+Do not automatically remove legitimate documentation references.
+
+Inspect every result.
+
+Classify each result:
+
+```text
+LEGITIMATE
+PROBLEM
+FUTURE WORK
+```
+
+If a fake implementation exists:
+
+remove it or explicitly mark it as STUB.
+
+---
+
+# 38. REQUIRED FINAL REPORT
+
+Return exactly:
+
+```text
+========================================
+JARVIS BATCH 2 REPORT
+========================================
+
+BATCH:
+2
+
+OBJECTIVE:
+Architectural Contracts & Core Interfaces
+
+BASELINE:
+...
+
+CONTRACTS CREATED:
+...
+
+FILES CREATED:
+...
+
+FILES MODIFIED:
+...
+
+FILES DELETED:
+...
+
+ENUMS CREATED:
+...
+
+DEPENDENCIES ADDED:
+...
+
+IMPLEMENTED:
+...
+
+NOT IMPLEMENTED:
+...
+
+STUBS:
+...
+
+MOCKS:
+...
+
+CONTRACT TESTS:
+...
+
+TEST COMMANDS:
+...
+
+TEST RESULTS:
+...
+
+LINT RESULTS:
+...
+
+TYPE CHECK RESULTS:
+...
+
+SERIALIZATION RESULTS:
+...
+
+NEGATIVE TEST RESULTS:
+...
+
+CIRCULAR DEPENDENCY REVIEW:
+...
+
+ARCHITECTURE REVIEW:
+...
+
+MCP SEARCH:
+PASS / FAIL
+
+SECURITY REVIEW:
+...
+
+KNOWN DEFECTS:
+...
+
+BLOCKERS:
+...
+
+EVIDENCE:
+...
+
+FINAL STATUS:
+PASS / PARTIAL / FAIL / BLOCKED
+
+UNVERIFIED CLAIMS:
+...
+
+========================================
+```
+
+Do not report PASS if any acceptance criterion failed.
+
+Do not proceed to Batch 3 automatically.
+
+STOP after producing the report.

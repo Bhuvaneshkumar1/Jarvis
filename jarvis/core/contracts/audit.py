@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import AuditSeverity
 
+
 class AuditEventContract(BaseModel, frozen=True):
     event_id: str = Field(default_factory=lambda: f"evt-{uuid.uuid4().hex[:12]}")
     timestamp: float = Field(default_factory=time.time)

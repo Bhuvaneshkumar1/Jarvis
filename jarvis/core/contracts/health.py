@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import HealthState
 
+
 class HealthStatusContract(BaseModel):
     component: str = Field(..., min_length=1)
     status: HealthState = HealthState.HEALTHY

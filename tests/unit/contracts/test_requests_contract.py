@@ -2,6 +2,7 @@ import pytest
 from jarvis.core.contracts.requests import RequestContract
 from jarvis.core.enums import RequestSource, InputType
 
+
 def test_request_contract_construction_and_serialization():
     req = RequestContract(
         content="Analyze workspace baseline",
@@ -19,6 +20,7 @@ def test_request_contract_construction_and_serialization():
     # Deserialization test
     reconstructed = RequestContract.model_validate(dumped)
     assert reconstructed.request_id == req.request_id
+
 
 def test_request_contract_invalid_empty_id():
     with pytest.raises(ValueError):

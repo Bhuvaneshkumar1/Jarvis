@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 
+
 class BaseAdapter(ABC):
     """
     Base Adapter interface enforcing Rule 17.

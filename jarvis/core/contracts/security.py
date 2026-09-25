@@ -8,10 +8,12 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import PolicyDecisionType, RiskLevel, ApprovalStatus
 
+
 class PermissionContract(BaseModel):
     name: str = Field(..., min_length=1)
     scope: str = Field(default="workspace")
     description: Optional[str] = None
+
 
 class PolicyDecisionContract(BaseModel):
     action: str = Field(..., min_length=1)
@@ -21,6 +23,7 @@ class PolicyDecisionContract(BaseModel):
     required_authentication: bool = False
     risk_level: RiskLevel = RiskLevel.LOW
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
 
 class ApprovalContract(BaseModel):
     approval_id: str = Field(default_factory=lambda: f"appr-{uuid.uuid4().hex[:12]}")

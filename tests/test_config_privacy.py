@@ -1,11 +1,13 @@
 from jarvis.core.config import Settings
 from jarvis.core.privacy import PrivacyEngine
 
+
 def test_config_redacted_dict():
     settings = Settings()
     redacted = settings.get_redacted_dict()
     assert redacted["telegram_bot_token"] in ["[CONFIGURED_SECRET]", "[NOT_SET]"]
     assert redacted["openai_api_key"] in ["[CONFIGURED_SECRET]", "[NOT_SET]"]
+
 
 def test_privacy_filter():
     engine = PrivacyEngine()

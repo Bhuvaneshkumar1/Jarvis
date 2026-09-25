@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import TaskStatus, TaskPriority, RequestSource, ApprovalStatus, VerificationResultStatus, StepStatus
 
+
 class TaskStepContract(BaseModel):
     step_id: str = Field(default_factory=lambda: f"step-{uuid.uuid4().hex[:12]}")
     task_id: str
@@ -26,6 +27,7 @@ class TaskStepContract(BaseModel):
         if not v or not v.strip():
             raise ValueError("ID cannot be empty or whitespace.")
         return v
+
 
 class TaskContract(BaseModel):
     task_id: str = Field(default_factory=lambda: f"task-{uuid.uuid4().hex[:12]}")

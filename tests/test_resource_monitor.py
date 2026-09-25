@@ -1,5 +1,6 @@
 from jarvis.core.resource_monitor import ResourceMonitor
 
+
 def test_resource_monitor_health():
     info = ResourceMonitor.get_system_memory_info()
     assert "total_mb" in info

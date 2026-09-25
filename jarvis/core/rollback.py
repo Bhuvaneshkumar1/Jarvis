@@ -3,11 +3,13 @@ import shutil
 import tempfile
 from typing import List, Dict, Any, Optional
 
+
 class RollbackAction:
     def __init__(self, action_type: str, target: str, backup_path: Optional[str] = None):
         self.action_type = action_type  # e.g., 'RESTORE_FILE', 'DELETE_CREATED_FILE', 'CUSTOM'
         self.target = target
         self.backup_path = backup_path
+
 
 class RollbackManager:
     """
@@ -30,14 +32,10 @@ class RollbackManager:
     def register_file_modification(self, filepath: str):
         backup_path = self.create_file_backup(filepath)
         if backup_path:
-            self.rollback_stack.append(
-                RollbackAction(action_type="RESTORE_FILE", target=filepath, backup_path=backup_path)
-            )
+            self.rollback_stack.append(RollbackAction(action_type="RESTORE_FILE", target=filepath, backup_path=backup_path))
 
     def register_file_creation(self, filepath: str):
-        self.rollback_stack.append(
-            RollbackAction(action_type="DELETE_CREATED_FILE", target=filepath)
-        )
+        self.rollback_stack.append(RollbackAction(action_type="DELETE_CREATED_FILE", target=filepath))
 
     def execute_rollback(self) -> Dict[str, Any]:
         """

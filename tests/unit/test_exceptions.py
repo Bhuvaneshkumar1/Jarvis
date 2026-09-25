@@ -6,6 +6,7 @@ from jarvis.core.exceptions import (
     ResourceLimitError,
 )
 
+
 def test_exception_hierarchy():
     err = ConfigurationError("Config value missing")
     assert isinstance(err, JarvisError)

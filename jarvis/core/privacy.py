@@ -1,6 +1,7 @@
 import re
 from typing import Dict, Any, Tuple
 
+
 class PrivacyEngine:
     """
     Privacy Filter & Sensitive Information Sanitizer enforcing Rule 14.
@@ -18,10 +19,7 @@ class PrivacyEngine:
     ]
 
     def __init__(self):
-        self.compiled_patterns = [
-            (re.compile(pattern, re.IGNORECASE), replacement)
-            for pattern, replacement in self.DEFAULT_SENSITIVE_PATTERNS
-        ]
+        self.compiled_patterns = [(re.compile(pattern, re.IGNORECASE), replacement) for pattern, replacement in self.DEFAULT_SENSITIVE_PATTERNS]
 
     def filter_text(self, text: str) -> Tuple[str, bool]:
         """

@@ -7,10 +7,12 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import MessageRole
 
+
 class ChatMessage(BaseModel):
     role: MessageRole
     content: str
     name: Optional[str] = None
+
 
 class LLMRequestContract(BaseModel):
     request_id: str = Field(default_factory=lambda: f"llmreq-{uuid.uuid4().hex[:12]}")
@@ -28,6 +30,7 @@ class LLMRequestContract(BaseModel):
         if not v or not v.strip():
             raise ValueError("request_id cannot be empty or whitespace.")
         return v
+
 
 class LLMResponseContract(BaseModel, frozen=True):
     request_id: str

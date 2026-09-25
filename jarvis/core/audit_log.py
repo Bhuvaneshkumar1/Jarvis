@@ -12,6 +12,7 @@ DEFAULT_REDACTION_PATTERNS = [
     r"secret\s*=\s*['\"]?([^'\"\s]+)['\"]?",
 ]
 
+
 class AuditLogger:
     """
     Immutable Daily Audit Logger enforcing Rule 18 & Rule 19.

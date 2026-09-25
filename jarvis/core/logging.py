@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 SENSITIVE_PATTERNS = [
     r"sk-or-v1-[a-zA-Z0-9]+",
     r"sk-[a-zA-Z0-9]{20,}",
-    r"ghp_[a-zA-Z0-9]{30,}",
+    r"ghp_[a-zA-Z0-9_]{30,}",
     r"github_pat_[a-zA-Z0-9_]+",
     r"xox[e|-][a-zA-Z0-9\.\-]+",
     r"cfut_[a-zA-Z0-9]+",
@@ -21,6 +21,7 @@ SENSITIVE_PATTERNS = [
 
 _compiled_regexes = [re.compile(p, re.IGNORECASE) for p in SENSITIVE_PATTERNS]
 
+
 def redact_sensitive_data(text: str) -> str:
     """Sanitizes text strings by replacing credential matches with redaction placeholders."""
     if not text:
@@ -30,12 +31,14 @@ def redact_sensitive_data(text: str) -> str:
         sanitized = regex.sub("[REDACTED_SECRET]", sanitized)
     return sanitized
 
+
 class RedactingFormatter(logging.Formatter):
     """Logging Formatter that automatically sanitizes log records."""
 
     def format(self, record: logging.LogRecord) -> str:
         original_msg = super().format(record)
         return redact_sensitive_data(original_msg)
+
 
 class JarvisLogger:
     """
@@ -57,10 +60,7 @@ class JarvisLogger:
         log_filepath = os.path.join(self.log_dir, filename)
 
         file_handler = logging.FileHandler(log_filepath, encoding="utf-8")
-        formatter = RedactingFormatter(
-            fmt="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
-            datefmt="%Y-%m-%dT%H:%M:%SZ"
-        )
+        formatter = RedactingFormatter(fmt="%(asctime)s [%(levelname)s] [%(name)s] %(message)s", datefmt="%Y-%m-%dT%H:%M:%SZ")
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 

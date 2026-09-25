@@ -2,15 +2,18 @@ import os
 from typing import Any, Dict, Optional
 from pydantic import BaseModel
 
+
 class PreconditionResult(BaseModel):
     passed: bool
     reason: str
     details: Dict[str, Any] = {}
 
+
 class PostconditionResult(BaseModel):
     passed: bool
     reason: str
     details: Dict[str, Any] = {}
+
 
 class VerificationResult(BaseModel):
     verified: bool
@@ -18,6 +21,7 @@ class VerificationResult(BaseModel):
     reason: str
     precondition_result: Optional[PreconditionResult] = None
     postcondition_result: Optional[PostconditionResult] = None
+
 
 class VerificationEngine:
     """

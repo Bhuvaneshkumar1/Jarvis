@@ -1,26 +1,33 @@
-# JARVIS Development Environment Guide — Batch 1
+# JARVIS Development Environment Guide — Batch 3
 
-## Prerequisites & Environment Setup
+## Prerequisites & Supported Target Environment
 
-- **Target OS**: Windows 11 (Windows-First)
-- **Python Version**: Python 3.12.8
+- **OS**: Windows 11 (Windows-First)
+- **Supported Python Version**: Python 3.12.8
 
-### Setup Steps:
+## Environment Setup
 
 1. **Activate Virtual Environment**:
    ```powershell
    .\.venv\Scripts\Activate.ps1
    ```
 
-2. **Install Editable Package & Dependencies**:
+2. **Install Editable Package & Development Dependencies**:
    ```powershell
    python -m pip install -e .[dev]
    ```
 
-3. **Verify Environment Variables**:
-   Copy `.env.example` to `.env` if not present. `.env` is ignored by Git.
-
-4. **Run System Startup Check**:
+3. **Local Quality Gate Runner**:
+   Execute the single authoritative local quality gate script to run compilation, import check, linting, format check, type checking, security scanning, secret scanning, and test coverage:
    ```powershell
-   python main.py
+   python scripts/quality_gate.py
    ```
+
+4. **Individual Validation Commands**:
+   - **Compilation**: `python -m compileall -q -x "\.venv|\.git|build|dist" .`
+   - **Imports**: `python -c "import main; import config; import jarvis; import jarvis.core; import jarvis.core.contracts"`
+   - **Linter**: `ruff check .`
+   - **Formatter Check**: `ruff format --check .`
+   - **Type Checker**: `mypy main.py config jarvis/core`
+   - **Security Scan**: `bandit -r jarvis/ config/ main.py -q -ll`
+   - **Tests & Coverage**: `pytest --cov=jarvis --cov=config --cov-report=term-missing`

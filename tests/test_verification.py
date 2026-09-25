@@ -2,6 +2,7 @@ import os
 import time
 from jarvis.core.verification import VerificationEngine
 
+
 def test_verify_file_created(temp_dir):
     test_file = os.path.join(temp_dir, "created.txt")
 
@@ -17,6 +18,7 @@ def test_verify_file_created(temp_dir):
     assert res_after.passed is True
     assert res_after.details["size"] == 11
 
+
 def test_verify_file_modified(temp_dir):
     test_file = os.path.join(temp_dir, "mod.txt")
     with open(test_file, "w") as f:
@@ -30,6 +32,7 @@ def test_verify_file_modified(temp_dir):
 
     res = VerificationEngine.verify_file_modified(test_file, original_mtime=orig_mtime)
     assert res.passed is True
+
 
 def test_verify_command_result():
     res_success = VerificationEngine.verify_command_result(exit_code=0)

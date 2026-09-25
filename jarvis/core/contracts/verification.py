@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import VerificationResultStatus
 
+
 class VerificationContract(BaseModel, frozen=True):
     verification_id: str = Field(default_factory=lambda: f"ver-{uuid.uuid4().hex[:12]}")
     task_id: str

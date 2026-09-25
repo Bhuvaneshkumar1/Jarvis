@@ -9,6 +9,7 @@ from jarvis.core.memory import MemoryRetrievalEngine
 from jarvis.core.audit_log import AuditLogger
 from jarvis.core.resource_monitor import ResourceMonitor
 
+
 class Orchestrator:
     """
     Central JARVIS Orchestrator.
@@ -93,9 +94,7 @@ class Orchestrator:
             policy_decision = self.policy_engine.evaluate(action_req)
 
             if not policy_decision.allowed:
-                self.task_manager.update_state(
-                    task_id, TaskState.FAILED, error=policy_decision.reason, verification_state="POLICY_DENIED"
-                )
+                self.task_manager.update_state(task_id, TaskState.FAILED, error=policy_decision.reason, verification_state="POLICY_DENIED")
                 self.audit_logger.log_event(
                     component="Orchestrator",
                     action="POLICY_CHECK",
@@ -114,9 +113,7 @@ class Orchestrator:
 
             # 6. DELEGATE (Spawn dynamic temporary agent)
             self.task_manager.update_state(task_id, TaskState.EXECUTING)
-            temp_agent = self.agent_manager.spawn_agent(
-                role="ExecutionSubagent", task_id=task_id, memory_limit_mb=1024
-            )
+            temp_agent = self.agent_manager.spawn_agent(role="ExecutionSubagent", task_id=task_id, memory_limit_mb=1024)
             agent_id = temp_agent.config.agent_id
 
             self.audit_logger.log_event(
@@ -152,14 +149,10 @@ class Orchestrator:
                 raise RuntimeError(f"Postcondition verification failed: {verification_reason}")
 
             # 9. REMEMBER
-            self.memory_engine.store_memory(
-                key=f"task-{task_id}", content=f"Request: {request_text} | Result: {str(execution_output)[:100]}"
-            )
+            self.memory_engine.store_memory(key=f"task-{task_id}", content=f"Request: {request_text} | Result: {str(execution_output)[:100]}")
 
             # 10. REPORT
-            self.task_manager.update_state(
-                task_id, TaskState.COMPLETED, result=execution_output, verification_state="VERIFIED"
-            )
+            self.task_manager.update_state(task_id, TaskState.COMPLETED, result=execution_output, verification_state="VERIFIED")
             self.audit_logger.log_event(
                 component="Orchestrator",
                 action="PIPELINE_COMPLETE",
@@ -193,9 +186,7 @@ class Orchestrator:
             )
             rollback_res = rollback_mgr.execute_rollback()
 
-            self.task_manager.update_state(
-                task_id, TaskState.ROLLED_BACK, error=err_msg, verification_state="ROLLED_BACK"
-            )
+            self.task_manager.update_state(task_id, TaskState.ROLLED_BACK, error=err_msg, verification_state="ROLLED_BACK")
 
             self.audit_logger.log_event(
                 component="Orchestrator",

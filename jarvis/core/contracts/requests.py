@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, field_validator
 from jarvis.core.enums import RequestSource, InputType
 
+
 class RequestContract(BaseModel):
     request_id: str = Field(default_factory=lambda: f"req-{uuid.uuid4().hex[:12]}")
     session_id: Optional[str] = None
