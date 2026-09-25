@@ -1,0 +1,277 @@
+"""
+Authoritative JARVIS Application Runtime & Lifecycle Kernel.
+"""
+
+import asyncio
+import signal
+import sys
+import time
+from typing import Dict, List, Optional, Set, Any
+from config.settings import Settings, get_settings
+from jarvis.core.enums import RuntimeState, HealthState
+from jarvis.core.logging import JarvisLogger
+from jarvis.core.runtime.lifecycle import LifecycleComponent
+from jarvis.core.runtime.context import RuntimeContext
+from jarvis.core.runtime.registry import ComponentRegistry
+from jarvis.core.exceptions import (
+    InvalidStateTransitionError,
+    ComponentInitializationError,
+    ComponentStartError,
+)
+
+
+class JarvisApplication:
+    """
+    Authoritative owner of JARVIS runtime lifecycle, component orchestration,
+    health inspection, and process signal handling.
+    """
+
+    VALID_TRANSITIONS: Dict[RuntimeState, Set[RuntimeState]] = {
+        RuntimeState.STOPPED: {RuntimeState.STARTING},
+        RuntimeState.STARTING: {RuntimeState.INITIALIZING, RuntimeState.FAILED},
+        RuntimeState.INITIALIZING: {
+            RuntimeState.RUNNING,
+            RuntimeState.FAILED,
+            RuntimeState.STOPPING,
+        },
+        RuntimeState.RUNNING: {RuntimeState.STOPPING, RuntimeState.FAILED},
+        RuntimeState.STOPPING: {RuntimeState.STOPPED, RuntimeState.FAILED},
+        RuntimeState.FAILED: {RuntimeState.STOPPING, RuntimeState.STOPPED},
+    }
+
+    def __init__(
+        self,
+        settings: Optional[Settings] = None,
+        logger: Optional[JarvisLogger] = None,
+        init_timeout: float = 10.0,
+        start_timeout: float = 10.0,
+        shutdown_timeout: float = 10.0,
+    ) -> None:
+        self.settings: Settings = settings or get_settings()
+        self.logger: JarvisLogger = logger or JarvisLogger(component="Runtime")
+        self.registry: ComponentRegistry = ComponentRegistry()
+        self.context: RuntimeContext = RuntimeContext(settings=self.settings, logger=self.logger)
+
+        self._state: RuntimeState = RuntimeState.STOPPED
+        self.init_timeout: float = init_timeout
+        self.start_timeout: float = start_timeout
+        self.shutdown_timeout: float = shutdown_timeout
+
+        self.shutdown_reason: Optional[str] = None
+        self._initialized_components: List[LifecycleComponent] = []
+        self._started_components: List[LifecycleComponent] = []
+        self._failed_stop_components: List[str] = []
+        self._shutdown_lock: asyncio.Lock = asyncio.Lock()
+        self._shutdown_task: Optional[asyncio.Task] = None
+
+    @property
+    def state(self) -> RuntimeState:
+        """Current runtime state."""
+        return self._state
+
+    def register_component(self, component: LifecycleComponent) -> None:
+        """Register a lifecycle component with the application runtime."""
+        self.registry.register(component)
+        self.logger.info(
+            f"Registered runtime component: '{component.name}'",
+            extra={"component_name": component.name},
+        )
+
+    def _transition_to(self, new_state: RuntimeState) -> None:
+        """Validate and execute state transition."""
+        allowed = self.VALID_TRANSITIONS.get(self._state, set())
+        if new_state not in allowed:
+            raise InvalidStateTransitionError(f"Invalid runtime state transition from '{self._state.value}' to '{new_state.value}'.")
+        old_state = self._state
+        self._state = new_state
+        self.logger.info(
+            f"Runtime state transition: {old_state.value} -> {new_state.value}",
+            extra={"old_state": old_state.value, "new_state": new_state.value},
+        )
+
+    async def start(self) -> None:
+        """
+        Execute application startup: validate dependencies, initialize components,
+        and start components in deterministic order.
+        """
+        if self._state != RuntimeState.STOPPED:
+            raise InvalidStateTransitionError(f"Cannot start runtime when in state '{self._state.value}'.")
+
+        self._transition_to(RuntimeState.STARTING)
+        self.context.startup_timestamp = time.time()
+        self.logger.info("JARVIS Application Runtime starting...")
+
+        # 1. Validate dependencies
+        try:
+            self.registry.validate_dependencies()
+        except Exception as e:
+            self._transition_to(RuntimeState.FAILED)
+            self.logger.error(f"Startup dependency validation failed: {str(e)}")
+            raise
+
+        # 2. Initialize components
+        self._transition_to(RuntimeState.INITIALIZING)
+        init_order = self.registry.get_initialization_order()
+
+        for comp in init_order:
+            self.logger.info(f"Initializing component: '{comp.name}'")
+            try:
+                await asyncio.wait_for(comp.initialize(self.context), timeout=self.init_timeout)
+                self._initialized_components.append(comp)
+                self.logger.info(f"Initialized component cleanly: '{comp.name}'")
+            except Exception as e:
+                self.logger.error(f"Component '{comp.name}' initialization failed: {str(e)}")
+                self._transition_to(RuntimeState.FAILED)
+                await self._cleanup_on_startup_failure()
+                raise ComponentInitializationError(f"Initialization failed for component '{comp.name}': {str(e)}") from e
+
+        # 3. Start components
+        self._transition_to(RuntimeState.RUNNING)
+        for comp in init_order:
+            self.logger.info(f"Starting component: '{comp.name}'")
+            try:
+                await asyncio.wait_for(comp.start(), timeout=self.start_timeout)
+                self._started_components.append(comp)
+                self.logger.info(f"Started component cleanly: '{comp.name}'")
+            except Exception as e:
+                self.logger.error(f"Component '{comp.name}' start failed: {str(e)}")
+                self._transition_to(RuntimeState.FAILED)
+                await self._cleanup_on_startup_failure()
+                raise ComponentStartError(f"Start failed for component '{comp.name}': {str(e)}") from e
+
+        self.logger.info("JARVIS Application Runtime is RUNNING.")
+
+    async def _cleanup_on_startup_failure(self) -> None:
+        """Stop already-started or initialized components during startup failure."""
+        self.logger.warning("Executing cleanup for components due to startup failure...")
+        # Teardown started components in reverse order
+        for comp in reversed(self._started_components):
+            try:
+                await asyncio.wait_for(comp.stop(), timeout=self.shutdown_timeout)
+            except Exception as ex:
+                self.logger.error(f"Error stopping component '{comp.name}' during startup failure cleanup: {str(ex)}")
+        # Teardown initialized but not started components
+        unstarted = [c for c in self._initialized_components if c not in self._started_components]
+        for comp in reversed(unstarted):
+            try:
+                await asyncio.wait_for(comp.stop(), timeout=self.shutdown_timeout)
+            except Exception as ex:
+                self.logger.error(f"Error stopping initialized component '{comp.name}' during startup failure cleanup: {str(ex)}")
+
+    async def shutdown(self, reason: str = "Graceful shutdown requested") -> None:
+        """
+        Gracefully stop all components in reverse dependency order.
+        Idempotent: safe to call repeatedly.
+        """
+        async with self._shutdown_lock:
+            if self._state in (RuntimeState.STOPPING, RuntimeState.STOPPED):
+                self.logger.info(f"Shutdown requested but runtime is already in '{self._state.value}' state.")
+                return
+
+            self.shutdown_reason = reason
+            self.logger.info(f"Initiating shutdown: {reason}")
+            self.context.cancellation_event.set()
+
+            # Transition to STOPPING
+            self._transition_to(RuntimeState.STOPPING)
+
+            # Components to stop: started ones first, then initialized ones
+            to_stop: List[LifecycleComponent] = []
+            for comp in reversed(self._started_components):
+                if comp not in to_stop:
+                    to_stop.append(comp)
+            for comp in reversed(self._initialized_components):
+                if comp not in to_stop:
+                    to_stop.append(comp)
+
+            for comp in to_stop:
+                self.logger.info(f"Stopping component: '{comp.name}'")
+                try:
+                    await asyncio.wait_for(comp.stop(), timeout=self.shutdown_timeout)
+                    self.logger.info(f"Stopped component cleanly: '{comp.name}'")
+                except Exception as e:
+                    self.logger.error(f"Error stopping component '{comp.name}': {str(e)}")
+                    self._failed_stop_components.append(comp.name)
+
+            self._transition_to(RuntimeState.STOPPED)
+            self.logger.info("JARVIS Application Runtime has STOPPED.")
+
+    async def get_health(self) -> Dict[str, Any]:
+        """Aggregate health statuses across all registered components."""
+        results: Dict[str, Any] = {
+            "runtime_state": self._state.value,
+            "overall_status": HealthState.HEALTHY.value,
+            "components": {},
+        }
+
+        overall_unhealthy = False
+        overall_degraded = False
+
+        for comp in self.registry.all_components():
+            try:
+                h = await comp.health()
+                results["components"][comp.name] = h.model_dump()
+                if h.status == HealthState.UNHEALTHY:
+                    overall_unhealthy = True
+                elif h.status == HealthState.DEGRADED:
+                    overall_degraded = True
+            except Exception as e:
+                results["components"][comp.name] = {
+                    "component": comp.name,
+                    "status": HealthState.UNHEALTHY.value,
+                    "error": str(e),
+                }
+                overall_unhealthy = True
+
+        if overall_unhealthy:
+            results["overall_status"] = HealthState.UNHEALTHY.value
+        elif overall_degraded:
+            results["overall_status"] = HealthState.DEGRADED.value
+
+        return results
+
+    def get_status(self) -> Dict[str, Any]:
+        """Return serializable runtime status metrics."""
+        return {
+            "state": self._state.value,
+            "uptime_seconds": round(self.context.get_uptime(), 2),
+            "app_id": self.context.app_id,
+            "session_id": self.context.session_id,
+            "total_components": self.registry.count(),
+            "initialized_components": [c.name for c in self._initialized_components],
+            "started_components": [c.name for c in self._started_components],
+            "failed_stop_components": list(self._failed_stop_components),
+            "shutdown_reason": self.shutdown_reason,
+        }
+
+    def setup_signal_handlers(self) -> None:
+        """Register process signal handlers for SIGINT and SIGTERM where supported."""
+        loop = asyncio.get_event_loop()
+
+        def signal_handler(sig_name: str) -> None:
+            self.logger.info(f"Received process signal: {sig_name}")
+            asyncio.create_task(self.shutdown(reason=f"Received signal {sig_name}"))
+
+        if sys.platform != "win32":
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                try:
+                    loop.add_signal_handler(sig, lambda s=sig: signal_handler(s.name))
+                except NotImplementedError:
+                    pass
+
+    async def run_until_shutdown(self, run_duration: Optional[float] = None) -> None:
+        """
+        Helper method to run application until shutdown event or specified duration.
+        """
+        await self.start()
+        self.setup_signal_handlers()
+
+        try:
+            if run_duration is not None:
+                await asyncio.wait_for(self.context.cancellation_event.wait(), timeout=run_duration)
+            else:
+                await self.context.cancellation_event.wait()
+        except asyncio.TimeoutError:
+            self.logger.info("Run duration expired, initiating shutdown.")
+        finally:
+            await self.shutdown(reason="Application execution completed")

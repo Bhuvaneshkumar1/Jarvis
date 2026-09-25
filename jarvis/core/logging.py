@@ -78,11 +78,32 @@ class JarvisLogger:
         lvl = getattr(logging, level.upper(), logging.INFO)
         self.logger.log(lvl, formatted_message)
 
-    def info(self, message: str, correlation_id: Optional[str] = None):
-        self.log("INFO", message, correlation_id=correlation_id)
+    def info(
+        self,
+        message: str,
+        correlation_id: Optional[str] = None,
+        extra_fields: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ):
+        ef = extra_fields or (kwargs if kwargs else None)
+        self.log("INFO", message, correlation_id=correlation_id, extra_fields=ef)
 
-    def warning(self, message: str, correlation_id: Optional[str] = None):
-        self.log("WARNING", message, correlation_id=correlation_id)
+    def warning(
+        self,
+        message: str,
+        correlation_id: Optional[str] = None,
+        extra_fields: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ):
+        ef = extra_fields or (kwargs if kwargs else None)
+        self.log("WARNING", message, correlation_id=correlation_id, extra_fields=ef)
 
-    def error(self, message: str, correlation_id: Optional[str] = None):
-        self.log("ERROR", message, correlation_id=correlation_id)
+    def error(
+        self,
+        message: str,
+        correlation_id: Optional[str] = None,
+        extra_fields: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ):
+        ef = extra_fields or (kwargs if kwargs else None)
+        self.log("ERROR", message, correlation_id=correlation_id, extra_fields=ef)

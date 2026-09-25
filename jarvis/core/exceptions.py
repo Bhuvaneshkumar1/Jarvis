@@ -67,3 +67,51 @@ class ResourceLimitError(JarvisError):
     """Raised when memory, CPU, or process resource budgets are exceeded."""
 
     pass
+
+
+class RuntimeLifecycleError(JarvisError):
+    """Base class for runtime lifecycle errors."""
+
+    pass
+
+
+class ComponentInitializationError(RuntimeLifecycleError):
+    """Raised when component initialization fails or times out."""
+
+    pass
+
+
+class ComponentStartError(RuntimeLifecycleError):
+    """Raised when starting a component fails or times out."""
+
+    pass
+
+
+class ComponentStopError(RuntimeLifecycleError):
+    """Raised when stopping a component fails or times out."""
+
+    pass
+
+
+class DependencyCycleError(RuntimeLifecycleError):
+    """Raised when a circular dependency is detected between components."""
+
+    pass
+
+
+class MissingDependencyError(RuntimeLifecycleError):
+    """Raised when a component depends on a non-existent component."""
+
+    pass
+
+
+class DuplicateComponentError(RuntimeLifecycleError):
+    """Raised when attempting to register a component with a duplicate name."""
+
+    pass
+
+
+class InvalidStateTransitionError(RuntimeLifecycleError):
+    """Raised when an invalid runtime state transition is requested."""
+
+    pass

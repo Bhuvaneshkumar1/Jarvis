@@ -1,52 +1,42 @@
-# JARVIS Architecture Documentation — Batch 1 Foundation
+# JARVIS Architecture Documentation — Batch 4 Application Kernel Baseline
 
 ## Target High-Level System Architecture
 
 ```text
-User
+User / Signal
  ↓
-Gateway [PLANNED]
+Main Entry Point (main.py)
  ↓
-Core (Configuration, Logging, Exception Hierarchy) [IMPLEMENTED]
+JarvisApplication Runtime Kernel [IMPLEMENTED - BATCH 4]
+ ├── RuntimeState (STOPPED -> STARTING -> INITIALIZING -> RUNNING -> STOPPING -> STOPPED / FAILED)
+ ├── ComponentRegistry (Dependency validation, topological ordering, cycle detection)
+ ├── RuntimeContext (Shared app_id, session_id, settings, logger, cancellation_event)
+ └── LifecycleComponent Contracts (initialize, start, stop, health)
  ↓
-Planner [PLANNED]
+Core Contracts & Config Baseline [IMPLEMENTED - BATCH 2]
  ↓
-Agent Manager [PLANNED]
- ↓
-Tools / Memory / LLM [PLANNED]
- ↓
-Verification [PLANNED]
- ↓
-Audit [PLANNED]
+Planner / Agent Manager / LLM Router [PLANNED - FUTURE BATCHES]
 ```
 
 ## Subsystem Implementation Status Matrix
 
-| Subsystem Directory | Component Purpose | Batch 1 Status |
+| Subsystem Directory | Component Purpose | Current Status |
 |---|---|---|
-| `jarvis/core` | Core exception hierarchy, daily audit logger, config foundation | IMPLEMENTED |
-| `config/` | Environment & typed settings validation | IMPLEMENTED |
+| `jarvis/core/runtime` | Authoritative Application Runtime Kernel & Lifecycle Manager | IMPLEMENTED AND VERIFIED |
+| `jarvis/core` | Core exception hierarchy, daily audit logger, config foundation, contracts | IMPLEMENTED AND VERIFIED |
+| `config/` | Environment & typed settings validation | IMPLEMENTED AND VERIFIED |
+| `scripts/` | Quality gate local runner (`quality_gate.py`) | IMPLEMENTED AND VERIFIED |
+| `.github/workflows/` | Automated CI pipeline (`ci.yml`) | IMPLEMENTED AND VERIFIED |
 | `jarvis/agents/` | Dynamic subagent spawning & lifecycle management | PLANNED |
 | `jarvis/llm/` | Multi-provider LLM routing & privacy filtering | PLANNED |
 | `jarvis/memory/` | Context indexing & selective retrieval | PLANNED |
-| `jarvis/knowledge/` | Project knowledge base management | PLANNED |
 | `jarvis/tools/` | Tool registry & execution wrappers | PLANNED |
 | `jarvis/security/` | Security policy engine & approval controls | PLANNED |
 | `jarvis/verification/` | Empirical precondition & postcondition verification | PLANNED |
-| `jarvis/voice/` | STT / TTS voice interaction pipeline | PLANNED |
-| `jarvis/vision/` | Computer vision & screen monitoring | PLANNED |
-| `jarvis/ocr/` | Text extraction from images/screenshots | PLANNED |
-| `jarvis/system/` | Windows system control & automation | PLANNED |
-| `jarvis/browser/` | Browser control & automation | PLANNED |
-| `jarvis/telegram/` | Telegram remote bot interface | PLANNED |
-| `jarvis/integrations/` | Service adapters (Slack, GitHub, Shodan, etc.) | PLANNED |
-| `jarvis/business/` | Project & business management workflows | PLANNED |
-| `jarvis/cybersecurity/` | Security assessment & monitoring | PLANNED |
-| `jarvis/automation/` | Persistent task scheduling & execution | PLANNED |
-| `jarvis/health/` | Health monitoring & automatic recovery | PLANNED |
-| `jarvis/database/` | Database persistence engine | PLANNED |
 
 ## Subsystem Single Authoritative Implementation Rule (Section 21)
 
-Every subsystem defined in future batches will maintain **EXACTLY ONE** authoritative implementation.
-Duplicate variant implementations (e.g. `AdvancedOrchestrator`, `UniversalOrchestrator`) are prohibited to prevent architectural drift.
+Every subsystem defined maintains **EXACTLY ONE** authoritative implementation.
+`jarvis.core.runtime.application.JarvisApplication` is the sole authoritative runtime application manager in the repository.
+Duplicate variant implementations (e.g. `AdvancedOrchestrator`, `UniversalOrchestrator`) are strictly prohibited to prevent architectural drift.
+

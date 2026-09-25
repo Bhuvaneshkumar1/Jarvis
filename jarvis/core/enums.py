@@ -169,3 +169,12 @@ class HealthState(str, Enum):
     UNHEALTHY = "UNHEALTHY"
     OFFLINE = "OFFLINE"
     UNKNOWN = "UNKNOWN"
+
+
+class RuntimeState(str, Enum):
+    STARTING = "STARTING"
+    INITIALIZING = "INITIALIZING"
+    RUNNING = "RUNNING"
+    STOPPING = "STOPPING"
+    STOPPED = "STOPPED"
+    FAILED = "FAILED"

@@ -2286,3 +2286,1245 @@ Do not report PASS if any acceptance criterion failed.
 Do not proceed to Batch 3 automatically.
 
 STOP after producing the report.
+
+# JARVIS — BATCH 3
+
+## CI BASELINE, QUALITY GATES & REGRESSION ENFORCEMENT
+
+You are implementing Batch 3 of the JARVIS project.
+
+This is an engineering task, not a documentation task and not a demo-generation task.
+
+The repository must become capable of automatically detecting regressions and refusing to claim quality when the evidence does not support it.
+
+Do NOT implement future JARVIS functionality in this batch.
+
+Do NOT implement:
+
+* voice
+* wake word
+* LLM providers
+* agents
+* autonomous execution
+* memory
+* Windows automation
+* browser automation
+* cybersecurity operations
+* Telegram
+* vision
+* OCR
+* scheduling
+* external integrations
+* MCP
+* cloud deployment
+
+Those belong to later batches.
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Create a reliable CI and local quality-gate system that can answer:
+
+1. Does the project install?
+2. Does the project import?
+3. Does the project compile?
+4. Does static type checking pass?
+5. Does linting pass?
+6. Does formatting validation pass?
+7. Do tests pass?
+8. Are security-sensitive coding mistakes detected?
+9. Are secrets accidentally committed?
+10. Are dependency problems detected?
+11. Does the repository contain prohibited fake/stub/MCP remnants?
+12. Does the project still pass after modifications?
+13. Can CI reproduce the same validation locally?
+
+The CI pipeline must fail when mandatory quality gates fail.
+
+Never convert a failed quality gate into a warning merely to obtain a green CI result.
+
+---
+
+# 2. ANTI-SUGAR-COATING RULE
+
+Antigravity frequently reports successful implementation without sufficient evidence.
+
+Do NOT do that here.
+
+Never report:
+
+* "CI is ready"
+* "production quality"
+* "fully validated"
+* "all checks pass"
+* "secure"
+* "complete"
+
+unless the corresponding command was actually executed and its output supports the statement.
+
+If a tool is unavailable, report:
+
+`BLOCKED — TOOL UNAVAILABLE`
+
+If a check cannot be executed:
+
+`NOT_VERIFIED — COMMAND NOT EXECUTED`
+
+If something is intentionally deferred:
+
+`DEFERRED — FUTURE BATCH`
+
+If something fails:
+
+`FAILED`
+
+Do not downgrade failures to warnings just to obtain a passing report.
+
+---
+
+# 3. FIRST STEP — ESTABLISH BASELINE
+
+Before changing anything:
+
+Run the existing validation commands.
+
+At minimum determine:
+
+* Python version
+* operating system
+* repository Git status
+* installed package state
+* test count
+* test result
+* import status
+* compile status
+* lint status if already configured
+* type-check status if already configured
+
+Record the baseline.
+
+Do not modify code before the baseline is captured.
+
+If Batch 1 or Batch 2 is incomplete, identify the exact defect.
+
+Do not silently repair unrelated architecture.
+
+---
+
+# 4. PYTHON VERSION POLICY
+
+Use the Python version already selected by the project unless there is a documented reason to change it.
+
+Do not randomly upgrade or downgrade Python.
+
+The selected Python version must be documented in:
+
+* pyproject.toml
+* development documentation
+* CI configuration
+
+Avoid version ambiguity.
+
+CI and local development should target the same supported version for this phase.
+
+If multiple Python versions are intentionally supported, explicitly configure and test them.
+
+Do not claim multi-version support without actually testing it.
+
+---
+
+# 5. PYPROJECT CONFIGURATION
+
+Inspect the existing `pyproject.toml`.
+
+Create a clean configuration for:
+
+* pytest
+* Ruff
+* Black or an equivalent formatter
+* MyPy or equivalent type checker
+* coverage
+* security scanning where practical
+
+Do not introduce unnecessary tools simply to make the project look sophisticated.
+
+Every tool must have a purpose.
+
+Avoid duplicate linters that check the same thing unless there is a documented reason.
+
+Prefer a small deterministic toolchain.
+
+---
+
+# 6. LINTING
+
+Configure Ruff or the already-selected equivalent.
+
+The linter must detect meaningful problems including:
+
+* unused imports
+* undefined names
+* dangerous patterns
+* incorrect imports
+* obvious logic mistakes
+* malformed code
+* unnecessary complexity where practical
+
+Do not blindly disable rules until the repository becomes green.
+
+If existing code violates a rule:
+
+1. Fix the actual problem.
+2. If the rule is genuinely inappropriate, document the exception.
+3. Do not globally disable large categories merely to obtain a green result.
+
+Do not use:
+
+```text
+# noqa
+```
+
+as a mass workaround.
+
+Every exception must be justified.
+
+---
+
+# 7. FORMATTING
+
+Configure a deterministic formatter.
+
+Preferred:
+
+* Black
+
+or use Ruff formatter if that is the chosen project standard.
+
+The repository must have one authoritative formatting standard.
+
+Add a CI check equivalent to:
+
+```bash
+formatter --check .
+```
+
+The check must fail if files are not formatted.
+
+Do not automatically rewrite unrelated files merely for cosmetic reasons without recording the scope of the change.
+
+---
+
+# 8. STATIC TYPE CHECKING
+
+Configure MyPy or the selected equivalent.
+
+Type-check:
+
+* core contracts
+* core modules
+* foundation modules
+* test-support modules where practical
+
+Do not claim the entire project is strongly typed if significant areas are excluded.
+
+Avoid:
+
+```python
+Any
+```
+
+as a blanket escape hatch.
+
+Do not add type-ignore comments simply to suppress failures.
+
+If a type-ignore is necessary, document why.
+
+---
+
+# 9. PYTHON COMPILATION CHECK
+
+Add a deterministic syntax/compilation validation.
+
+At minimum validate that Python source files compile.
+
+Example:
+
+```bash
+python -m compileall .
+```
+
+However, avoid compiling generated environments such as:
+
+* `.venv`
+* `venv`
+* build directories
+* cache directories
+
+Configure the validation appropriately.
+
+A syntax error must fail CI.
+
+---
+
+# 10. IMPORT VALIDATION
+
+Create a lightweight test that validates the actual project modules can be imported.
+
+Do not simply test:
+
+```python
+import jarvis
+```
+
+if the architecture does not expose everything through one package.
+
+Test the actual modules created in Batch 1 and Batch 2.
+
+Import validation must detect:
+
+* circular imports
+* missing modules
+* invalid imports
+* missing dependencies
+* import-time exceptions
+
+Do not add fake modules solely to make imports pass.
+
+---
+
+# 11. TEST FRAMEWORK
+
+Use pytest.
+
+Establish:
+
+```text
+tests/
+├── unit/
+├── integration/
+├── security/
+├── regression/
+└── fixtures/
+```
+
+Do not create empty test files just to make the structure look complete.
+
+Only create directories that are actually useful.
+
+Batch 3 should primarily test the foundation and contracts already implemented.
+
+---
+
+# 12. TEST MARKERS
+
+Define meaningful pytest markers if required.
+
+Potential categories:
+
+* unit
+* integration
+* security
+* regression
+* slow
+
+Do not create meaningless markers.
+
+Do not mark tests as skipped merely to produce a clean run.
+
+If a test is not applicable yet, document that fact.
+
+---
+
+# 13. COVERAGE
+
+Configure pytest coverage.
+
+Establish a baseline coverage measurement.
+
+Do NOT invent an arbitrary high coverage number and claim success.
+
+The goal in this batch is:
+
+1. establish measurement
+2. understand current coverage
+3. prevent accidental regression
+
+If a minimum threshold is practical for the current foundation, enforce it.
+
+Otherwise document:
+
+`Coverage threshold: NOT YET ENFORCED`
+
+Do not create useless tests solely to increase the percentage.
+
+Coverage percentage is evidence of executed lines, not proof of correctness.
+
+---
+
+# 14. SECURITY STATIC ANALYSIS
+
+Add practical Python security scanning.
+
+Possible tools:
+
+* Bandit
+* Ruff security rules
+* pip-audit
+* another deterministic dependency/security scanner
+
+Use only tools that can actually execute in the project environment.
+
+Security checks should detect issues such as:
+
+* dangerous subprocess usage
+* unsafe shell execution patterns
+* insecure temporary-file usage
+* hard-coded passwords
+* suspicious cryptographic usage
+* dependency vulnerabilities where database information is available
+
+Do not claim the project is secure because a scanner reports zero findings.
+
+Security scanning is only one layer of security.
+
+---
+
+# 15. SECRET DETECTION
+
+Implement a repository secret-detection mechanism.
+
+It must detect likely secrets such as:
+
+* API keys
+* tokens
+* passwords
+* private keys
+* cloud credentials
+* provider credentials
+
+Use a real scanner where practical.
+
+At minimum inspect:
+
+* source files
+* configuration files
+* scripts
+* test files
+* documentation where secrets could accidentally appear
+
+Do not put real secrets into:
+
+* `.env.example`
+* tests
+* documentation
+* source code
+* CI files
+
+Use placeholders such as:
+
+```text
+YOUR_API_KEY_HERE
+```
+
+or environment-variable references.
+
+The scanner must not flag normal placeholders unnecessarily.
+
+---
+
+# 16. .ENV VALIDATION
+
+Verify that:
+
+```text
+.env
+.env.example
+```
+
+are correctly handled.
+
+`.env` must NOT be committed.
+
+`.gitignore` must protect secrets.
+
+`.env.example` may contain variable names and safe placeholder values.
+
+Do not place actual credentials into `.env.example`.
+
+Do not place real credentials into the repository even temporarily.
+
+If `.env` is tracked by Git, fix this immediately.
+
+---
+
+# 17. DEPENDENCY AUDIT
+
+Inspect:
+
+* requirements.txt
+* requirements-dev.txt
+* pyproject.toml
+* lock files if present
+
+Identify:
+
+* duplicate dependencies
+* unnecessary dependencies
+* conflicting versions
+* unpinned dependencies where deterministic builds require pinning
+* unused dependencies where identifiable
+* vulnerable dependencies
+
+Do not randomly pin every package without understanding compatibility.
+
+Do not add packages simply because they may be useful later.
+
+Only dependencies required by the current implementation should be present.
+
+Future integrations belong to future batches.
+
+---
+
+# 18. CI PLATFORM
+
+Create a CI workflow appropriate for the repository.
+
+If GitHub is the selected repository platform, use:
+
+```text
+.github/workflows/ci.yml
+```
+
+The CI workflow should perform, in a deterministic order:
+
+1. checkout
+2. Python setup
+3. dependency installation
+4. syntax/compile validation
+5. lint
+6. format check
+7. type check
+8. security scan
+9. secret scan
+10. tests
+11. coverage
+12. final status
+
+Do not run unnecessary services.
+
+Do not require external APIs for the foundation CI.
+
+CI must work without:
+
+* NVIDIA API
+* OpenRouter API
+* OpenAI API
+* Telegram
+* Google APIs
+* browser credentials
+* cloud credentials
+
+Those are future integrations.
+
+---
+
+# 19. CI MUST BE DETERMINISTIC
+
+CI must not depend on:
+
+* personal machine paths
+* local `.env`
+* personal credentials
+* locally installed applications
+* manually configured environment variables unless explicitly documented
+* private API keys
+
+Do not make CI call external LLMs.
+
+Do not make CI call Telegram.
+
+Do not make CI call cloud services.
+
+Foundation tests must run offline.
+
+---
+
+# 20. LOCAL QUALITY COMMAND
+
+Create one authoritative command for local validation.
+
+For example:
+
+```bash
+python scripts/quality_gate.py
+```
+
+or an equivalent project command.
+
+It should execute the relevant checks in deterministic order.
+
+Example conceptual sequence:
+
+```text
+compile
+↓
+lint
+↓
+format check
+↓
+type check
+↓
+security scan
+↓
+secret scan
+↓
+tests
+↓
+coverage
+↓
+final result
+```
+
+The command must return a non-zero exit code if a mandatory check fails.
+
+Do not swallow subprocess failures.
+
+Do not print "SUCCESS" if one mandatory step failed.
+
+---
+
+# 21. QUALITY GATE OUTPUT
+
+Make the quality gate readable.
+
+Example:
+
+```text
+JARVIS QUALITY GATE
+===================
+
+[PASS] Python version
+[PASS] Compilation
+[PASS] Lint
+[PASS] Formatting
+[PASS] Type checking
+[PASS] Security scan
+[PASS] Secret scan
+[PASS] Tests
+[PASS] Coverage
+
+RESULT: PASS
+```
+
+Failure example:
+
+```text
+[PASS] Compilation
+[FAIL] Type checking
+[PASS] Tests
+
+RESULT: FAIL
+BLOCKERS:
+- mypy found 3 errors
+```
+
+Do not hide the original command output.
+
+The summary is supplemental evidence, not a replacement for actual logs.
+
+---
+
+# 22. NO FALSE-GREEN CI
+
+This is mandatory.
+
+CI must fail if:
+
+* tests fail
+* lint fails
+* type checking fails when configured as mandatory
+* security scan fails when configured as mandatory
+* secret scan fails
+* formatting fails when configured as mandatory
+* compilation fails
+* dependency installation fails
+
+Never use:
+
+```bash
+|| true
+```
+
+to hide failures.
+
+Never use:
+
+```bash
+continue-on-error: true
+```
+
+for mandatory quality gates.
+
+Never redirect errors away merely to produce clean output.
+
+Never modify test expectations simply to make CI pass.
+
+---
+
+# 23. REGRESSION PROTECTION
+
+Add at least a small regression suite for Batch 1 and Batch 2.
+
+Verify:
+
+* configuration foundation
+* logging foundation
+* exception hierarchy
+* core contracts
+* serialization/deserialization
+* validation
+* enum behavior
+* contract immutability where specified
+* no circular imports
+* no MCP remnants
+* no accidental API credentials
+* project startup/import behavior
+
+The regression suite must test actual behavior.
+
+Do not create tests such as:
+
+```python
+assert True
+```
+
+or tests that only check that a class exists.
+
+---
+
+# 24. NEGATIVE TESTS
+
+Add meaningful negative tests.
+
+At minimum test:
+
+### Invalid contract data
+
+Expected:
+
+* validation failure
+
+### Invalid enum values
+
+Expected:
+
+* rejected
+
+### Invalid serialization payload
+
+Expected:
+
+* rejected
+
+### Missing required field
+
+Expected:
+
+* rejected
+
+### Malformed input
+
+Expected:
+
+* controlled validation error
+
+### Unexpected extra data
+
+Expected:
+
+* behavior explicitly defined and tested
+
+### Circular import risk
+
+Expected:
+
+* imports succeed without recursion/import failure
+
+### Secret detection
+
+Expected:
+
+* intentionally inserted test fixture secret is detected
+
+Ensure the test secret is not a real credential.
+
+---
+
+# 25. TEST ISOLATION
+
+Tests must not:
+
+* modify the user's actual files
+* modify `.env`
+* delete the repository
+* commit to Git
+* push to GitHub
+* contact external services
+* modify real Windows settings
+* launch destructive commands
+
+Use temporary directories and test fixtures.
+
+Foundation tests must be safe to run repeatedly.
+
+---
+
+# 26. TEST DISCIPLINE
+
+Never modify production code merely to satisfy a broken test unless the production behavior is actually wrong.
+
+Never modify a test merely because the implementation fails.
+
+Determine first whether:
+
+```text
+implementation is wrong
+```
+
+or
+
+```text
+test expectation is wrong
+```
+
+Then make the smallest correct change.
+
+---
+
+# 27. GIT VALIDATION
+
+Verify Git state.
+
+Run checks equivalent to:
+
+```bash
+git status
+git diff
+git diff --check
+```
+
+Ensure:
+
+* no unexpected generated files
+* no `.env`
+* no credentials
+* no cache directories
+* no virtual environment committed
+* no build artifacts
+* no huge binaries
+
+Do not automatically commit.
+
+Do not push.
+
+Git commit/push always requires explicit user approval in the future architecture.
+
+---
+
+# 28. REPOSITORY HYGIENE
+
+Search the repository for:
+
+```text
+TODO
+FIXME
+pass
+NotImplemented
+mock
+fake
+placeholder
+stub
+MCP
+mcp
+```
+
+Do not blindly delete these terms.
+
+Classify every meaningful occurrence:
+
+```text
+REAL IMPLEMENTATION
+INTENTIONAL FUTURE WORK
+TEST FIXTURE
+DOCUMENTATION
+UNSAFE STUB
+UNIMPLEMENTED
+```
+
+Remove only genuinely invalid remnants.
+
+Do not remove valid documentation references.
+
+There must be zero actual MCP architecture/components.
+
+---
+
+# 29. DOCUMENTATION
+
+Update:
+
+```text
+docs/development.md
+docs/testing.md
+docs/security.md
+docs/current_state.md
+README.md
+```
+
+Document:
+
+* supported Python version
+* installation
+* development environment
+* local quality command
+* individual validation commands
+* test command
+* CI behavior
+* security scanning
+* secret handling
+* known limitations
+* intentionally deferred components
+
+Do not claim future components exist.
+
+---
+
+# 30. CI FAILURE REPORTING
+
+When a CI check fails, the repository documentation must make it clear how to reproduce the failure locally.
+
+Example:
+
+```text
+CI failure:
+mypy
+
+Local reproduction:
+python -m mypy core
+```
+
+Do not provide generic advice such as:
+
+"Try reinstalling dependencies."
+
+Give the actual failing command.
+
+---
+
+# 31. PERFORMANCE REQUIREMENT
+
+Batch 3 tooling must remain practical.
+
+Do not introduce huge or unnecessary dependencies.
+
+Do not create a CI workflow that consumes excessive resources for trivial foundation checks.
+
+Measure execution time where useful.
+
+Record the approximate local quality-gate duration.
+
+Do not optimize prematurely.
+
+---
+
+# 32. REQUIRED FILES
+
+Create or update only what is necessary.
+
+Likely files include:
+
+```text
+.github/
+└── workflows/
+    └── ci.yml
+
+scripts/
+└── quality_gate.py
+
+tests/
+├── unit/
+├── integration/
+├── security/
+├── regression/
+└── fixtures/
+
+pyproject.toml
+requirements.txt
+requirements-dev.txt
+.gitignore
+
+docs/development.md
+docs/testing.md
+docs/security.md
+docs/current_state.md
+
+README.md
+```
+
+Do not create unnecessary architecture.
+
+---
+
+# 33. BATCH 3 TEST MATRIX
+
+Execute and report:
+
+### Environment
+
+* Python version
+* OS
+* Git status
+
+### Installation
+
+* dependency installation
+
+### Compilation
+
+* compileall or equivalent
+
+### Imports
+
+* foundation imports
+
+### Lint
+
+* Ruff or selected linter
+
+### Formatting
+
+* formatter check
+
+### Type checking
+
+* MyPy or selected checker
+
+### Security
+
+* Bandit/Ruff security checks
+* dependency audit where practical
+
+### Secret detection
+
+* repository secret scan
+
+### Tests
+
+* pytest
+
+### Coverage
+
+* actual coverage result
+
+### CI
+
+* local reproduction of CI steps
+
+### Regression
+
+* Batch 1 + Batch 2 tests
+
+### Negative tests
+
+* invalid input
+* malformed data
+* secret detection
+* import failure scenarios where practical
+
+---
+
+# 34. REQUIRED EVIDENCE
+
+Your final report MUST include actual evidence.
+
+For each command provide:
+
+```text
+COMMAND:
+<exact command>
+
+RESULT:
+PASS / FAIL / BLOCKED / NOT VERIFIED
+
+IMPORTANT OUTPUT:
+<relevant actual output>
+
+EXIT CODE:
+<number>
+```
+
+Do not replace this with:
+
+"Everything passed."
+
+---
+
+# 35. REQUIRED FINAL REPORT
+
+At the end produce exactly this structure:
+
+## BATCH 3 RESULT
+
+### 1. Baseline
+
+* Python:
+* OS:
+* Git status:
+* Initial tests:
+* Initial failures:
+
+### 2. Files Created
+
+List exact files.
+
+### 3. Files Modified
+
+List exact files.
+
+### 4. CI Implementation
+
+Explain exactly what CI executes.
+
+### 5. Local Quality Gate
+
+Give the exact command.
+
+### 6. Static Analysis
+
+Report:
+
+* lint
+* formatting
+* type checking
+
+### 7. Security Validation
+
+Report:
+
+* security scanner
+* dependency audit
+* secret detection
+
+### 8. Tests
+
+Report:
+
+* total collected
+* passed
+* failed
+* skipped
+* errors
+* coverage
+
+### 9. Negative Tests
+
+List each negative test and actual result.
+
+### 10. Regression
+
+Explain whether Batch 1 and Batch 2 functionality still works.
+
+### 11. Repository Hygiene
+
+Report:
+
+* `.env` status
+* generated files
+* MCP remnants
+* TODO/FIXME/stub findings
+* unexpected artifacts
+
+### 12. CI Evidence
+
+Provide actual CI/local command results.
+
+### 13. Known Defects
+
+List every unresolved issue.
+
+### 14. Blockers
+
+List anything preventing completion.
+
+### 15. Unverified Items
+
+Explicitly list anything that was not actually tested.
+
+### 16. Final Status
+
+Use EXACTLY one:
+
+```text
+IMPLEMENTED AND VERIFIED
+```
+
+or
+
+```text
+PARTIALLY IMPLEMENTED
+```
+
+or
+
+```text
+BLOCKED
+```
+
+or
+
+```text
+FAILED
+```
+
+or
+
+```text
+NOT VERIFIED
+```
+
+Do not use:
+
+* production ready
+* almost complete
+* 95% complete
+* highly reliable
+* excellent
+* confident
+* should work
+
+No percentage confidence.
+
+---
+
+# 36. STOP CONDITION
+
+STOP after Batch 3.
+
+Do NOT begin Batch 4.
+
+Do NOT implement runtime lifecycle.
+
+Do NOT implement background service behavior.
+
+Do NOT implement event bus.
+
+Do NOT implement task manager.
+
+Do NOT implement orchestration.
+
+Those belong to Batch 4 onward.
+
+The objective is to leave the repository with a trustworthy automated engineering baseline that future batches cannot silently bypass.
+
+If a mandatory quality gate cannot be established, report the exact blocker instead of pretending the batch succeeded.

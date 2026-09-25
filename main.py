@@ -1,50 +1,58 @@
 """
-JARVIS AI OS — Batch 1 Foundation Entry Point.
-Initializes system configuration, logging, and startup validation. Exits cleanly.
+JARVIS AI OS — Main Application Kernel Entry Point.
+Constructs and executes the authoritative JarvisApplication runtime.
 """
 
 import sys
-import os
-from config.settings import get_settings
-from jarvis.core.logging import JarvisLogger
+import asyncio
+import argparse
+from typing import Optional
+from jarvis.core.runtime import JarvisApplication
 from jarvis.core.exceptions import JarvisError
 
 
-def main() -> int:
+async def run_app(duration: Optional[float] = None) -> int:
+    app = JarvisApplication()
     try:
-        # 1. Initialize Configuration
-        settings = get_settings()
-
-        # 2. Initialize Logging
-        logger = JarvisLogger(component="Main", log_dir=settings.log_dir)
-        logger.info("Initializing JARVIS Engineering Foundation Baseline...")
-
-        # 3. Perform Startup Validation
-        required_dirs = [settings.log_dir, "data", "config"]
-        for d in required_dirs:
-            if not os.path.exists(d):
-                os.makedirs(d, exist_ok=True)
-                logger.info(f"Created required directory: {d}")
-
-        summary = settings.get_sanitized_summary()
-        logger.info(f"Configuration loaded cleanly: {summary}")
-
-        # 4. Report foundation initialization success
+        await app.run_until_shutdown(run_duration=duration)
+        status = app.get_status()
         print("==================================================")
-        print("JARVIS ENGINEERING FOUNDATION INITIALIZED CLEANLY")
-        print("Status: FOUNDATION BASELINE / NOT PRODUCTION READY")
-        print(f"Environment: {settings.env} | Host: {settings.host}:{settings.port}")
+        print("JARVIS APPLICATION RUNTIME EXECUTION COMPLETED")
+        print(f"State: {status['state']} | Uptime: {status['uptime_seconds']}s")
+        print(f"Components Registered: {status['total_components']}")
         print("==================================================")
-
-        # 5. Exit cleanly
         return 0
-
     except JarvisError as e:
-        print(f"JARVIS Initialization Error: {str(e)}", file=sys.stderr)
+        print(f"JARVIS Runtime Error: {str(e)}", file=sys.stderr)
         return 1
     except Exception as ex:
-        print(f"Unexpected Fatal Error during startup: {str(ex)}", file=sys.stderr)
+        print(f"Unexpected Fatal Error during runtime execution: {str(ex)}", file=sys.stderr)
         return 1
+
+
+def main(argv: Optional[list] = None) -> int:
+    parser = argparse.ArgumentParser(description="JARVIS AI OS Application Kernel")
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=0.1,
+        help="Run duration in seconds before initiating graceful shutdown",
+    )
+    parser.add_argument(
+        "--test-run",
+        action="store_true",
+        help="Run startup and immediate graceful shutdown",
+    )
+
+    if argv is not None:
+        parsed_args = parser.parse_args(argv)
+    elif len(sys.argv) > 0 and sys.argv[0].endswith("main.py"):
+        parsed_args = parser.parse_args(sys.argv[1:])
+    else:
+        parsed_args = parser.parse_args(["--test-run"])
+
+    run_duration = 0.05 if parsed_args.test_run else parsed_args.duration
+    return asyncio.run(run_app(duration=run_duration))
 
 
 if __name__ == "__main__":

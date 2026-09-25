@@ -1,4 +1,4 @@
-# JARVIS Development Environment Guide — Batch 3
+# JARVIS Development Environment Guide — Batch 4
 
 ## Prerequisites & Supported Target Environment
 
@@ -17,17 +17,28 @@
    python -m pip install -e .[dev]
    ```
 
-3. **Local Quality Gate Runner**:
+3. **Running the Application Kernel**:
+   - **Test Run (Startup & Immediate Graceful Shutdown)**:
+     ```powershell
+     python main.py --test-run
+     ```
+   - **Timed Run**:
+     ```powershell
+     python main.py --duration 5.0
+     ```
+
+4. **Local Quality Gate Runner**:
    Execute the single authoritative local quality gate script to run compilation, import check, linting, format check, type checking, security scanning, secret scanning, and test coverage:
    ```powershell
    python scripts/quality_gate.py
    ```
 
-4. **Individual Validation Commands**:
+5. **Individual Validation Commands**:
    - **Compilation**: `python -m compileall -q -x "\.venv|\.git|build|dist" .`
-   - **Imports**: `python -c "import main; import config; import jarvis; import jarvis.core; import jarvis.core.contracts"`
+   - **Imports**: `pytest tests/unit/test_imports.py`
    - **Linter**: `ruff check .`
    - **Formatter Check**: `ruff format --check .`
-   - **Type Checker**: `mypy main.py config jarvis/core`
+   - **Type Checker**: `mypy main.py config jarvis/core scripts`
    - **Security Scan**: `bandit -r jarvis/ config/ main.py -q -ll`
    - **Tests & Coverage**: `pytest --cov=jarvis --cov=config --cov-report=term-missing`
+
