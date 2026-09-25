@@ -49,7 +49,7 @@ class PrivacyEngine:
         if not is_cloud:
             return payload
 
-        sanitized_payload = {}
+        sanitized_payload: Dict[str, Any] = {}
         for key, val in payload.items():
             if isinstance(val, str):
                 cleaned, _ = self.filter_text(val)

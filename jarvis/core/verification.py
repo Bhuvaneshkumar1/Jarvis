@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 from pydantic import BaseModel
 
 class PreconditionResult(BaseModel):

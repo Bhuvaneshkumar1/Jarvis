@@ -1,37 +1,76 @@
 # JARVIS — Personal Autonomous AI Assistant (Windows-First)
 
-Production-grade autonomous AI assistant for Windows built strictly adhering to the Master Engineering Control Directive.
+```text
+Project status:
+FOUNDATION / NOT PRODUCTION READY
+```
 
-## Installation & Setup
+## Purpose
 
-1. **Clone repository & navigate to root directory**:
-   ```powershell
-   cd d:\jarvis_v2
-   ```
+JARVIS is a Windows-first personal autonomous AI assistant engineering project built following strict production guidelines.
 
-2. **Activate Virtual Environment**:
+## Current Scope (Batch 1 Foundation)
+
+Batch 1 establishes the baseline software repository, directory structure, logging, configuration, exception hierarchy, static analysis tooling, and test infrastructure.
+
+**Note**: High-level subsystems (Agents, LLM routing, memory, voice, vision, Telegram, system automation, health monitoring) are **PLANNED / UNIMPLEMENTED** and will be built in subsequent batches.
+
+## Architecture Overview
+
+```text
+User
+ ↓
+Gateway [PLANNED]
+ ↓
+Core (Configuration, Logging, Exceptions) [IMPLEMENTED]
+ ↓
+Planner [PLANNED]
+ ↓
+Agent Manager [PLANNED]
+ ↓
+Tools / Memory / LLM [PLANNED]
+ ↓
+Verification [PLANNED]
+ ↓
+Audit [PLANNED]
+```
+
+## Development Setup
+
+1. **Environment Requirements**:
+   - OS: Windows 11
+   - Python: 3.12.8
+
+2. **Installation**:
    ```powershell
    .\.venv\Scripts\Activate.ps1
-   ```
-
-3. **Install Package & Dependencies**:
-   ```powershell
    python -m pip install -e .[dev]
    ```
 
-4. **Environment Variables**:
-   Copy `.env.example` to `.env` and fill in local configuration values.
+3. **Running Foundation Verification**:
    ```powershell
-   cp .env.example .env
+   python main.py
    ```
 
-## Running Tests
+## Test Commands
 
-Execute full test suite with coverage:
 ```powershell
-.\.venv\Scripts\pytest --cov=jarvis --cov-report=term-missing
+# Run Unit & Foundation Test Suite
+pytest
+
+# Run Test Coverage
+pytest --cov=jarvis --cov=config --cov-report=term-missing
+
+# Run Static Type Checker
+mypy main.py config/ jarvis/core/
+
+# Run Linter
+ruff check .
 ```
 
-## Evidence & Verification
+## Security Rules Baseline
 
-Refer to `EVIDENCE_BATCH_1.md` for batch status, test logs, execution evidence, and negative path verification reports.
+- `.env` contains local secrets and is excluded from Git tracking.
+- `.env.example` contains variable names only.
+- Daily audit log files automatically sanitize credential patterns.
+- No hard-coded credentials or fake placeholder APIs.

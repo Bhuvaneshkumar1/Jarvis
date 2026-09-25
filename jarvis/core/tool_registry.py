@@ -1,7 +1,6 @@
 from typing import Callable, Dict, Any, Optional
 from pydantic import BaseModel
 from jarvis.core.policy import PolicyEngine, ActionRequest, ActionType, RiskLevel
-from jarvis.core.verification import VerificationEngine
 from jarvis.core.audit_log import AuditLogger
 
 class ToolDefinition(BaseModel):
@@ -131,7 +130,7 @@ class ToolRegistry:
 
         # 3. Postcondition Verification (Rule 11)
         verified = True
-        ver_details = {}
+        ver_details: Dict[str, Any] = {}
         if postcondition_verifier:
             ver_res = postcondition_verifier(output)
             if hasattr(ver_res, "passed"):

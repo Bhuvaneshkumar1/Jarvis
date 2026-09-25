@@ -18,7 +18,7 @@ class ResourceMonitor:
     def get_current_process_memory_mb(cls) -> float:
         process = psutil.Process(os.getpid())
         mem_bytes = process.memory_info().rss
-        return mem_bytes / (1024 * 1024)
+        return float(mem_bytes / (1024 * 1024))
 
     @classmethod
     def get_system_memory_info(cls) -> Dict[str, Any]:

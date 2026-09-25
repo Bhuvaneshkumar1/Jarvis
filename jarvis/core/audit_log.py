@@ -38,7 +38,7 @@ class AuditLogger:
         return redacted
 
     def _redact_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        cleaned = {}
+        cleaned: Dict[str, Any] = {}
         for key, value in data.items():
             key_lower = key.lower()
             if any(k in key_lower for k in ["key", "secret", "password", "token", "auth", "credential"]):

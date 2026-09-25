@@ -2,7 +2,6 @@ from typing import Dict, Any, Optional, Callable
 from jarvis.core.task_manager import TaskManager, TaskState
 from jarvis.core.agent_manager import AgentManager
 from jarvis.core.policy import PolicyEngine, ActionRequest, ActionType, RiskLevel
-from jarvis.core.verification import VerificationEngine
 from jarvis.core.rollback import RollbackManager
 from jarvis.core.tool_registry import ToolRegistry
 from jarvis.core.llm_router import LLMRouter
