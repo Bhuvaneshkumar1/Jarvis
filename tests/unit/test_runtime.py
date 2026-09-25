@@ -220,7 +220,7 @@ async def test_application_successful_lifecycle():
 
     status = app.get_status()
     assert status["state"] == "RUNNING"
-    assert status["total_components"] == 2
+    assert status["total_components"] == 3  # EventBus, db, service
 
     await app.shutdown("Test complete")
     assert app.state == RuntimeState.STOPPED

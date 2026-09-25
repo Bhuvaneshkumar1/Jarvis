@@ -115,3 +115,33 @@ class InvalidStateTransitionError(RuntimeLifecycleError):
     """Raised when an invalid runtime state transition is requested."""
 
     pass
+
+
+class EventBusError(JarvisError):
+    """Base exception class for internal event bus errors."""
+
+    pass
+
+
+class EventPublishError(EventBusError):
+    """Raised when publishing an event fails or is attempted after event bus shutdown."""
+
+    pass
+
+
+class EventDeliveryError(EventBusError):
+    """Raised when event delivery to a subscriber fails."""
+
+    pass
+
+
+class EventSubscriptionError(EventBusError):
+    """Raised when subscribing or unsubscribing from the event bus fails."""
+
+    pass
+
+
+class QueueOverflowError(EventBusError):
+    """Raised when event bus queue capacity is exceeded and backpressure policy rejects event."""
+
+    pass

@@ -1,4 +1,4 @@
-# JARVIS Architecture Documentation — Batch 4 Application Kernel Baseline
+# JARVIS Architecture Documentation — Batch 5 Event Bus Baseline
 
 ## Target High-Level System Architecture
 
@@ -11,7 +11,11 @@ JarvisApplication Runtime Kernel [IMPLEMENTED - BATCH 4]
  ├── RuntimeState (STOPPED -> STARTING -> INITIALIZING -> RUNNING -> STOPPING -> STOPPED / FAILED)
  ├── ComponentRegistry (Dependency validation, topological ordering, cycle detection)
  ├── RuntimeContext (Shared app_id, session_id, settings, logger, cancellation_event)
- └── LifecycleComponent Contracts (initialize, start, stop, health)
+ └── EventBus Infrastructure [IMPLEMENTED - BATCH 5]
+      ├── Priority Queue & Worker Dispatch Loop (Async + Sync Handlers)
+      ├── Subscriptions (Typed Events, Wildcard '*', Retry Policy, Timeout)
+      ├── Diagnostic Ring Buffer (Bounded event history)
+      └── Health & Audit Integration
  ↓
 Core Contracts & Config Baseline [IMPLEMENTED - BATCH 2]
  ↓
@@ -22,6 +26,7 @@ Planner / Agent Manager / LLM Router [PLANNED - FUTURE BATCHES]
 
 | Subsystem Directory | Component Purpose | Current Status |
 |---|---|---|
+| `jarvis/core/events` | Authoritative Internal Event Bus & Messaging Infrastructure | IMPLEMENTED AND VERIFIED |
 | `jarvis/core/runtime` | Authoritative Application Runtime Kernel & Lifecycle Manager | IMPLEMENTED AND VERIFIED |
 | `jarvis/core` | Core exception hierarchy, daily audit logger, config foundation, contracts | IMPLEMENTED AND VERIFIED |
 | `config/` | Environment & typed settings validation | IMPLEMENTED AND VERIFIED |
@@ -33,6 +38,7 @@ Planner / Agent Manager / LLM Router [PLANNED - FUTURE BATCHES]
 | `jarvis/tools/` | Tool registry & execution wrappers | PLANNED |
 | `jarvis/security/` | Security policy engine & approval controls | PLANNED |
 | `jarvis/verification/` | Empirical precondition & postcondition verification | PLANNED |
+
 
 ## Subsystem Single Authoritative Implementation Rule (Section 21)
 

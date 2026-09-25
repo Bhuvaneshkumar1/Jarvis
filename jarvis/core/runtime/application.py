@@ -20,6 +20,22 @@ from jarvis.core.exceptions import (
 )
 
 
+from jarvis.core.events import (
+    EventBus,
+    RuntimeStartingEvent,
+    RuntimeStartedEvent,
+    RuntimeStoppingEvent,
+    RuntimeStoppedEvent,
+    RuntimeFailedEvent,
+    ComponentRegisteredEvent,
+    ComponentInitializingEvent,
+    ComponentInitializedEvent,
+    ComponentStartedEvent,
+    ComponentStoppedEvent,
+    ComponentFailedEvent,
+)
+
+
 class JarvisApplication:
     """
     Authoritative owner of JARVIS runtime lifecycle, component orchestration,
@@ -43,12 +59,14 @@ class JarvisApplication:
         self,
         settings: Optional[Settings] = None,
         logger: Optional[JarvisLogger] = None,
+        event_bus: Optional[EventBus] = None,
         init_timeout: float = 10.0,
         start_timeout: float = 10.0,
         shutdown_timeout: float = 10.0,
     ) -> None:
         self.settings: Settings = settings or get_settings()
         self.logger: JarvisLogger = logger or JarvisLogger(component="Runtime")
+        self.event_bus: EventBus = event_bus or EventBus(logger=JarvisLogger(component="EventBus"))
         self.registry: ComponentRegistry = ComponentRegistry()
         self.context: RuntimeContext = RuntimeContext(settings=self.settings, logger=self.logger)
 
@@ -64,6 +82,9 @@ class JarvisApplication:
         self._shutdown_lock: asyncio.Lock = asyncio.Lock()
         self._shutdown_task: Optional[asyncio.Task] = None
 
+        # Automatically register EventBus into registry
+        self.register_component(self.event_bus)
+
     @property
     def state(self) -> RuntimeState:
         """Current runtime state."""
@@ -76,6 +97,21 @@ class JarvisApplication:
             f"Registered runtime component: '{component.name}'",
             extra={"component_name": component.name},
         )
+        self._safe_publish(
+            ComponentRegisteredEvent(
+                source="runtime",
+                correlation_id=self.context.app_id,
+                payload={"component_name": component.name},
+            )
+        )
+
+    def _safe_publish(self, event: Any) -> None:
+        """Helper to publish events safely without throwing when bus is not running."""
+        try:
+            if self.event_bus.state == RuntimeState.RUNNING:
+                asyncio.create_task(self.event_bus.publish(event))
+        except Exception:
+            pass
 
     def _transition_to(self, new_state: RuntimeState) -> None:
         """Validate and execute state transition."""
@@ -107,6 +143,7 @@ class JarvisApplication:
         except Exception as e:
             self._transition_to(RuntimeState.FAILED)
             self.logger.error(f"Startup dependency validation failed: {str(e)}")
+            self._safe_publish(RuntimeFailedEvent(source="runtime", correlation_id=self.context.app_id, payload={"error": str(e)}))
             raise
 
         # 2. Initialize components
@@ -115,31 +152,69 @@ class JarvisApplication:
 
         for comp in init_order:
             self.logger.info(f"Initializing component: '{comp.name}'")
+            self._safe_publish(
+                ComponentInitializingEvent(
+                    source="runtime",
+                    correlation_id=self.context.app_id,
+                    payload={"component_name": comp.name},
+                )
+            )
             try:
                 await asyncio.wait_for(comp.initialize(self.context), timeout=self.init_timeout)
                 self._initialized_components.append(comp)
                 self.logger.info(f"Initialized component cleanly: '{comp.name}'")
+                self._safe_publish(
+                    ComponentInitializedEvent(
+                        source="runtime",
+                        correlation_id=self.context.app_id,
+                        payload={"component_name": comp.name},
+                    )
+                )
             except Exception as e:
                 self.logger.error(f"Component '{comp.name}' initialization failed: {str(e)}")
                 self._transition_to(RuntimeState.FAILED)
+                self._safe_publish(
+                    ComponentFailedEvent(
+                        source="runtime",
+                        correlation_id=self.context.app_id,
+                        payload={"component_name": comp.name, "stage": "initialize", "error": str(e)},
+                    )
+                )
                 await self._cleanup_on_startup_failure()
                 raise ComponentInitializationError(f"Initialization failed for component '{comp.name}': {str(e)}") from e
 
         # 3. Start components
         self._transition_to(RuntimeState.RUNNING)
+        self._safe_publish(RuntimeStartingEvent(source="runtime", correlation_id=self.context.app_id))
+
         for comp in init_order:
             self.logger.info(f"Starting component: '{comp.name}'")
             try:
                 await asyncio.wait_for(comp.start(), timeout=self.start_timeout)
                 self._started_components.append(comp)
                 self.logger.info(f"Started component cleanly: '{comp.name}'")
+                self._safe_publish(
+                    ComponentStartedEvent(
+                        source="runtime",
+                        correlation_id=self.context.app_id,
+                        payload={"component_name": comp.name},
+                    )
+                )
             except Exception as e:
                 self.logger.error(f"Component '{comp.name}' start failed: {str(e)}")
                 self._transition_to(RuntimeState.FAILED)
+                self._safe_publish(
+                    ComponentFailedEvent(
+                        source="runtime",
+                        correlation_id=self.context.app_id,
+                        payload={"component_name": comp.name, "stage": "start", "error": str(e)},
+                    )
+                )
                 await self._cleanup_on_startup_failure()
                 raise ComponentStartError(f"Start failed for component '{comp.name}': {str(e)}") from e
 
         self.logger.info("JARVIS Application Runtime is RUNNING.")
+        self._safe_publish(RuntimeStartedEvent(source="runtime", correlation_id=self.context.app_id))
 
     async def _cleanup_on_startup_failure(self) -> None:
         """Stop already-started or initialized components during startup failure."""
@@ -174,6 +249,7 @@ class JarvisApplication:
 
             # Transition to STOPPING
             self._transition_to(RuntimeState.STOPPING)
+            self._safe_publish(RuntimeStoppingEvent(source="runtime", correlation_id=self.context.app_id, payload={"reason": reason}))
 
             # Components to stop: started ones first, then initialized ones
             to_stop: List[LifecycleComponent] = []
@@ -189,12 +265,14 @@ class JarvisApplication:
                 try:
                     await asyncio.wait_for(comp.stop(), timeout=self.shutdown_timeout)
                     self.logger.info(f"Stopped component cleanly: '{comp.name}'")
+                    self._safe_publish(ComponentStoppedEvent(source="runtime", correlation_id=self.context.app_id, payload={"component_name": comp.name}))
                 except Exception as e:
                     self.logger.error(f"Error stopping component '{comp.name}': {str(e)}")
                     self._failed_stop_components.append(comp.name)
 
             self._transition_to(RuntimeState.STOPPED)
             self.logger.info("JARVIS Application Runtime has STOPPED.")
+            self._safe_publish(RuntimeStoppedEvent(source="runtime", correlation_id=self.context.app_id))
 
     async def get_health(self) -> Dict[str, Any]:
         """Aggregate health statuses across all registered components."""

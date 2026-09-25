@@ -1,4 +1,4 @@
-# JARVIS Testing Guide & CI Baseline — Batch 4
+# JARVIS Testing Guide & CI Baseline — Batch 5
 
 ## Test Suite Architecture
 
@@ -7,6 +7,8 @@ The test suite is organized under `tests/`:
 ```text
 tests/
 ├── unit/
+│   ├── test_event_bus.py (Batch 5 Event Bus Pub/Sub & Negative Tests)
+│   ├── test_event_bus_performance.py (Batch 5 Event Bus Benchmark)
 │   ├── test_runtime.py (Batch 4 Runtime Kernel Lifecycle & Negative Tests)
 │   ├── test_config.py
 │   ├── test_logging.py
@@ -34,8 +36,10 @@ tests/
 
 - **Run Quality Gate**: `python scripts/quality_gate.py`
 - **Run Pytest Directly**: `pytest`
-- **Run Runtime Tests Specifically**: `pytest tests/unit/test_runtime.py`
+- **Run Event Bus Tests**: `pytest tests/unit/test_event_bus.py`
+- **Run Event Bus Benchmark**: `pytest tests/unit/test_event_bus_performance.py -s`
 - **Run Coverage**: `pytest --cov=jarvis --cov=config --cov-report=term-missing`
+
 
 ## CI Pipeline Reproduction
 

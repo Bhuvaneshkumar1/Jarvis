@@ -29,6 +29,9 @@ def test_core_and_contracts_imports():
         "jarvis.core.runtime.context",
         "jarvis.core.runtime.registry",
         "jarvis.core.runtime.application",
+        "jarvis.core.events",
+        "jarvis.core.events.contracts",
+        "jarvis.core.events.bus",
     ]
     for mod_name in modules:
         mod = importlib.import_module(mod_name)

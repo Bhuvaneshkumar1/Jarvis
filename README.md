@@ -2,29 +2,18 @@
 
 ```text
 Project status:
-APPLICATION KERNEL BASELINE / NOT PRODUCTION READY
+EVENT BUS & MESSAGING BASELINE / NOT PRODUCTION READY
 ```
 
 ## Purpose
 
 JARVIS is a Windows-first personal autonomous AI assistant engineering project built following strict production guidelines.
 
-## Current Scope (Batch 4 Runtime Lifecycle Kernel)
+## Current Scope (Batch 5 Internal Event Bus & Messaging)
 
-Batch 4 introduces the authoritative application runtime kernel (`jarvis.core.runtime.JarvisApplication`), managing deterministic component lifecycles (`STOPPED` -> `STARTING` -> `INITIALIZING` -> `RUNNING` -> `STOPPING` -> `STOPPED` / `FAILED`), dependency graph resolution, reverse order teardown, signal handling, and status/health inspection.
+Batch 5 introduces the authoritative internal event bus (`jarvis.core.events.EventBus`), providing typed event publishing/subscribing, async worker queues with priority-based ordering, handler error isolation, retries with exponential backoff, timeout handling, secret redaction, and runtime kernel lifecycle integration.
 
-**Note**: High-level subsystems (Agents, LLM routing, memory, voice, vision, Telegram, system automation, health monitoring watchdog) are **DEFERRED — FUTURE BATCH**.
-
-## Quick Start / Run Kernel
-
-Run the main application entry point:
-```powershell
-# Execute kernel test run (startup & immediate graceful shutdown)
-python main.py --test-run
-
-# Run kernel for 5 seconds
-python main.py --duration 5.0
-```
+**MCP Exclusion Check**: MCP implementation added: **NO** (Strictly excluded).
 
 ## Local Quality Gate
 
@@ -35,7 +24,7 @@ python scripts/quality_gate.py
 
 The script executes:
 1. Python compilation (`compileall`)
-2. Core & runtime import validation
+2. Core, runtime & event bus import validation
 3. Linter check (`ruff check .`)
 4. Formatter check (`ruff format --check .`)
 5. Type checking (`mypy main.py config jarvis/core scripts`)
@@ -43,13 +32,17 @@ The script executes:
 7. Secret scan
 8. Tests & coverage (`pytest --cov=jarvis --cov=config --cov-report=term-missing`)
 
-## Test Commands
+## Test & Benchmark Commands
 
 ```powershell
-# Run Pytest Suite (74 tests passing)
+# Run Pytest Suite (89 tests passing)
 pytest
 
-# Run Runtime Kernel Tests
-pytest tests/unit/test_runtime.py
+# Run Event Bus Unit & Negative Tests
+pytest tests/unit/test_event_bus.py
+
+# Run Event Bus Throughput Benchmark
+pytest tests/unit/test_event_bus_performance.py -s
 ```
+
 

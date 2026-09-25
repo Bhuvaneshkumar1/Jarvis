@@ -3528,3 +3528,2533 @@ Those belong to Batch 4 onward.
 The objective is to leave the repository with a trustworthy automated engineering baseline that future batches cannot silently bypass.
 
 If a mandatory quality gate cannot be established, report the exact blocker instead of pretending the batch succeeded.
+
+# JARVIS — BATCH 4
+
+## RUNTIME LIFECYCLE & APPLICATION KERNEL
+
+You are implementing Batch 4 of the JARVIS project.
+
+This batch introduces the first real runtime foundation.
+
+The objective is to create a deterministic application lifecycle:
+
+STARTING → INITIALIZING → RUNNING → STOPPING → STOPPED
+
+The runtime must initialize components in a controlled order, handle failures safely, support graceful shutdown, and provide reliable lifecycle state.
+
+This is infrastructure work.
+
+Do NOT implement AI functionality.
+
+---
+
+# 1. ABSOLUTE RULES
+
+Do not implement:
+
+* LLM providers
+* LLM routing
+* agents
+* agent spawning
+* autonomous planning
+* memory
+* Obsidian
+* voice
+* wake word
+* STT
+* TTS
+* vision
+* OCR
+* browser automation
+* Windows automation
+* cybersecurity operations
+* Telegram
+* external integrations
+* scheduling
+* MCP
+
+Do not create fake implementations for future systems.
+
+Do not create empty managers merely because future batches will need them.
+
+Create only the runtime infrastructure required by this batch.
+
+---
+
+# 2. PRIMARY OBJECTIVE
+
+Create a central application runtime responsible for:
+
+1. startup
+2. configuration initialization
+3. logging initialization
+4. database foundation initialization if already available
+5. internal component registration
+6. lifecycle transitions
+7. health state
+8. signal handling
+9. exception handling
+10. graceful shutdown
+11. forced shutdown fallback
+12. runtime status reporting
+
+The runtime must become the authoritative owner of application lifecycle.
+
+There must be exactly one authoritative runtime coordinator.
+
+Do not create multiple competing application runtimes.
+
+---
+
+# 3. RUNTIME STATES
+
+Use the existing contract system from Batch 2.
+
+If necessary, refine the contracts rather than creating duplicate definitions.
+
+Required lifecycle states:
+
+```text
+STARTING
+INITIALIZING
+RUNNING
+STOPPING
+STOPPED
+FAILED
+```
+
+If the existing architecture uses different names, preserve the established contract unless there is a documented reason to change it.
+
+State transitions must be explicit.
+
+Valid example:
+
+```text
+STOPPED
+   ↓
+STARTING
+   ↓
+INITIALIZING
+   ↓
+RUNNING
+   ↓
+STOPPING
+   ↓
+STOPPED
+```
+
+Failure example:
+
+```text
+STARTING
+   ↓
+INITIALIZING
+   ↓
+FAILED
+```
+
+A failed initialization must not falsely transition to RUNNING.
+
+---
+
+# 4. APPLICATION RUNTIME
+
+Create an authoritative runtime class.
+
+Possible conceptual structure:
+
+```text
+core/
+├── runtime/
+│   ├── __init__.py
+│   ├── application.py
+│   ├── lifecycle.py
+│   └── registry.py
+```
+
+Use appropriate names based on the existing architecture.
+
+The runtime should own:
+
+* lifecycle state
+* initialization sequence
+* shutdown sequence
+* component registry
+* runtime context
+* cancellation/shutdown signal
+* startup timestamp
+* shutdown reason
+* failure state
+
+Do not put business logic into the runtime.
+
+The runtime coordinates components.
+
+---
+
+# 5. COMPONENT CONTRACT
+
+Create a standard lifecycle contract for components managed by the runtime.
+
+Conceptually:
+
+```python
+class LifecycleComponent:
+    async def initialize(self) -> None:
+        ...
+
+    async def start(self) -> None:
+        ...
+
+    async def stop(self) -> None:
+        ...
+
+    async def health(self) -> HealthStatus:
+        ...
+```
+
+Use the project's actual contract conventions.
+
+Do not create unnecessary abstract complexity.
+
+A component should have a predictable lifecycle.
+
+---
+
+# 6. COMPONENT REGISTRY
+
+Create one authoritative runtime component registry.
+
+The registry must support:
+
+* registration
+* lookup
+* initialization ordering
+* start ordering
+* stop ordering
+* duplicate detection
+* dependency validation
+* status inspection
+
+Each component should have a unique name or identifier.
+
+Duplicate registrations must fail clearly.
+
+Do not silently overwrite an existing component.
+
+---
+
+# 7. DEPENDENCY ORDER
+
+Components may depend on other components.
+
+The runtime must support deterministic initialization order.
+
+For example:
+
+```text
+Configuration
+      ↓
+Logging
+      ↓
+Database
+      ↓
+Core Services
+      ↓
+Application Services
+```
+
+Do not hard-code dozens of future dependencies.
+
+Implement the minimal mechanism needed for deterministic ordering.
+
+If dependency resolution is implemented, detect:
+
+* missing dependency
+* duplicate component
+* dependency cycle
+* invalid dependency name
+
+A dependency cycle must fail startup rather than causing an infinite loop.
+
+---
+
+# 8. STARTUP SEQUENCE
+
+Implement a controlled startup sequence.
+
+Conceptually:
+
+```text
+main.py
+   ↓
+create runtime
+   ↓
+load configuration
+   ↓
+initialize logging
+   ↓
+register components
+   ↓
+validate dependencies
+   ↓
+initialize components
+   ↓
+start components
+   ↓
+mark RUNNING
+```
+
+The actual existing Batch 1/2 architecture may alter the exact sequence.
+
+Use the architecture already established.
+
+Do not duplicate configuration or logging initialization.
+
+---
+
+# 9. STARTUP FAILURE
+
+If a component fails during initialization:
+
+1. capture the exception
+2. log the failure
+3. record the failing component
+4. stop already-started components where appropriate
+5. attempt cleanup
+6. transition runtime to FAILED
+7. return a non-zero process result
+
+Never continue into RUNNING after a critical startup failure.
+
+Example:
+
+```text
+Component A initialized
+Component B initialized
+Component C FAILED
+
+Runtime:
+- stop B
+- stop A
+- record failure
+- state = FAILED
+```
+
+---
+
+# 10. GRACEFUL SHUTDOWN
+
+Implement graceful shutdown.
+
+Shutdown must:
+
+1. stop accepting new work
+2. signal cancellation
+3. stop runtime-managed components
+4. stop in reverse dependency/order sequence
+5. release resources
+6. record shutdown reason
+7. transition to STOPPED
+
+Example:
+
+```text
+RUNNING
+   ↓
+shutdown requested
+   ↓
+STOPPING
+   ↓
+component N stop
+   ↓
+component N-1 stop
+   ↓
+...
+   ↓
+STOPPED
+```
+
+Do not abruptly terminate the process during normal shutdown.
+
+---
+
+# 11. SHUTDOWN IDEMPOTENCY
+
+Calling shutdown multiple times must not cause corruption.
+
+Test:
+
+```text
+shutdown()
+shutdown()
+shutdown()
+```
+
+Expected:
+
+* no duplicate resource destruction
+* no unhandled exception
+* stable final state
+
+A second shutdown request should be safely ignored or handled deterministically.
+
+---
+
+# 12. SIGNAL HANDLING
+
+Implement graceful handling of appropriate process signals.
+
+On Windows, account for the signals that are actually available.
+
+Do not assume Unix-only behavior.
+
+Handle appropriate termination signals such as:
+
+* SIGINT
+* SIGTERM where supported
+
+Do not intercept signals in a way that prevents normal testing.
+
+Signal handlers should request shutdown rather than directly performing complex cleanup.
+
+---
+
+# 13. ASYNC/SYNC DESIGN
+
+Use asynchronous lifecycle methods if the application architecture is async.
+
+Do not introduce async everywhere without a reason.
+
+If the runtime is synchronous, keep it synchronous.
+
+Choose one authoritative lifecycle model.
+
+Do not create both:
+
+```text
+run()
+async_run()
+```
+
+with duplicated behavior unless both are genuinely required.
+
+If both are required, one must delegate to the other rather than implement two independent runtimes.
+
+---
+
+# 14. MAIN ENTRY POINT
+
+Update:
+
+```text
+main.py
+```
+
+so it starts the actual runtime.
+
+The entry point must:
+
+1. construct runtime
+2. initialize runtime
+3. start runtime
+4. remain alive while runtime is active
+5. handle shutdown
+6. return appropriate process exit code
+
+Do not make `main.py` contain the entire runtime implementation.
+
+Keep it thin.
+
+---
+
+# 15. RUNTIME CONTEXT
+
+Create a controlled runtime context containing only shared application-level state.
+
+Potential contents:
+
+* configuration reference
+* logger reference
+* application ID
+* startup timestamp
+* session ID if applicable
+* cancellation state
+* component registry
+
+Do NOT place arbitrary global state into it.
+
+Do not use global variables as a substitute for dependency injection.
+
+---
+
+# 16. COMPONENT OWNERSHIP
+
+The runtime must clearly own lifecycle-managed components.
+
+Define:
+
+```text
+Who creates it?
+Who initializes it?
+Who starts it?
+Who stops it?
+Who destroys/releases it?
+```
+
+There must be no ambiguity.
+
+Do not allow components to secretly start background threads during import.
+
+Importing a module must not start JARVIS.
+
+---
+
+# 17. IMPORT SAFETY
+
+Importing modules must have no major side effects.
+
+Bad:
+
+```python
+start_background_service()
+```
+
+at module import time.
+
+Bad:
+
+```python
+connect_to_database()
+```
+
+during import.
+
+Bad:
+
+```python
+start_microphone()
+```
+
+during import.
+
+All runtime activity must be initiated explicitly through the application lifecycle.
+
+---
+
+# 18. BACKGROUND TASK MANAGEMENT
+
+If runtime components require background asyncio tasks or threads, create a controlled mechanism.
+
+The runtime must track tasks it owns.
+
+At shutdown:
+
+1. request cancellation
+2. wait for completion
+3. enforce timeout
+4. record tasks that fail to stop
+5. perform fallback cleanup
+
+Do not create untracked background tasks.
+
+Avoid:
+
+```python
+asyncio.create_task(...)
+```
+
+without lifecycle ownership.
+
+---
+
+# 19. SHUTDOWN TIMEOUT
+
+Implement a bounded shutdown timeout.
+
+A component that never returns from `stop()` must not hang JARVIS indefinitely.
+
+Conceptually:
+
+```text
+stop requested
+↓
+wait
+↓
+timeout
+↓
+record failure
+↓
+continue controlled shutdown
+```
+
+Do not hide the timeout.
+
+The final logs must identify which component failed to stop.
+
+---
+
+# 20. STARTUP TIMEOUT
+
+Where practical, component initialization/startup should also have bounded execution.
+
+A component that hangs forever during startup must not leave JARVIS permanently stuck without explanation.
+
+Record:
+
+* component
+* operation
+* elapsed time
+* timeout
+* exception/state
+
+---
+
+# 21. RUNTIME HEALTH
+
+Integrate with the Health contract from Batch 2.
+
+The runtime health response should report at least:
+
+```text
+runtime state
+uptime
+component count
+healthy components
+unhealthy components
+failed components
+startup status
+shutdown status
+```
+
+Do not implement sophisticated monitoring yet.
+
+Batch 57 will handle the advanced health/watchdog subsystem.
+
+This batch only establishes runtime health visibility.
+
+---
+
+# 22. RUNTIME STATUS
+
+Provide a programmatic runtime status API.
+
+Example conceptual result:
+
+```text
+State: RUNNING
+Uptime: 00:03:42
+Components: 4
+Healthy: 4
+Unhealthy: 0
+Startup failures: 0
+```
+
+The exact API should use the existing response contracts.
+
+Do not expose internal object references through status responses.
+
+Responses must be serializable.
+
+---
+
+# 23. ERROR HANDLING
+
+Create a clear distinction between:
+
+```text
+startup failure
+runtime failure
+component failure
+shutdown failure
+unexpected exception
+configuration failure
+dependency failure
+```
+
+Do not catch every exception and ignore it.
+
+Bad:
+
+```python
+try:
+    ...
+except Exception:
+    pass
+```
+
+This is prohibited.
+
+If an exception is caught, it must be:
+
+* handled
+* propagated
+* recorded
+* or explicitly classified
+
+---
+
+# 24. CRASH BEHAVIOR
+
+Test an intentional runtime exception.
+
+Expected behavior:
+
+1. exception is captured
+2. exception is logged
+3. runtime transitions appropriately
+4. shutdown/cleanup is attempted
+5. process exits with non-zero status where appropriate
+
+Do not create an automatic restart loop yet.
+
+Advanced watchdog/recovery belongs to Batch 57.
+
+---
+
+# 25. RESOURCE CLEANUP
+
+Verify cleanup of:
+
+* file handles
+* temporary resources
+* background tasks
+* thread pools if introduced
+* database connections if introduced
+* event loops where applicable
+
+Do not add resource managers that are not currently needed.
+
+---
+
+# 26. THREAD SAFETY
+
+If the runtime state can be accessed from multiple threads/tasks, protect state transitions appropriately.
+
+Prevent race conditions such as:
+
+```text
+Task A → STOPPING
+Task B → RUNNING
+```
+
+State transitions must be deterministic.
+
+Do not over-engineer locking if the runtime is strictly single-threaded.
+
+Document the concurrency model.
+
+---
+
+# 27. LOGGING
+
+Use the logging foundation from Batch 1.
+
+Every important lifecycle event must be logged:
+
+```text
+runtime_created
+runtime_starting
+component_registered
+component_initializing
+component_initialized
+component_starting
+component_started
+runtime_running
+shutdown_requested
+component_stopping
+component_stopped
+runtime_stopped
+startup_failed
+runtime_failed
+shutdown_failed
+```
+
+Use structured fields where supported.
+
+Do not log secrets.
+
+Do not log raw credentials.
+
+---
+
+# 28. CORRELATION
+
+Use the existing correlation/request/session ID contracts from Batch 2.
+
+A runtime operation should be traceable through its logs.
+
+Do not invent another ID system.
+
+If a lifecycle event does not logically require a request ID, use an appropriate runtime/session correlation identifier.
+
+---
+
+# 29. TEST COMPONENTS
+
+Create test-only lifecycle components.
+
+Examples:
+
+### Successful component
+
+* initialize succeeds
+* start succeeds
+* stop succeeds
+
+### Initialization failure component
+
+* initialize raises
+
+### Start failure component
+
+* start raises
+
+### Stop failure component
+
+* stop raises
+
+### Slow component
+
+* exceeds timeout
+
+### Dependency component
+
+* depends on another component
+
+### Circular dependency components
+
+* A depends on B
+* B depends on A
+
+These are test fixtures only.
+
+Do not include them in production runtime.
+
+---
+
+# 30. REQUIRED TESTS
+
+At minimum implement tests for:
+
+### Lifecycle
+
+* initial state
+* startup
+* running state
+* shutdown
+* stopped state
+
+### Failure
+
+* initialization failure
+* startup failure
+* shutdown failure
+* unexpected exception
+
+### Dependencies
+
+* valid dependency order
+* missing dependency
+* duplicate component
+* circular dependency
+
+### Shutdown
+
+* graceful shutdown
+* repeated shutdown
+* shutdown timeout
+
+### Signals
+
+Test the signal-to-shutdown request mechanism without terminating the test runner.
+
+### Imports
+
+Verify importing runtime modules has no unintended startup side effects.
+
+### Status
+
+Verify runtime status is accurate and serializable.
+
+### Logging
+
+Verify important lifecycle transitions are recorded.
+
+---
+
+# 31. NEGATIVE TESTS
+
+Mandatory negative tests:
+
+1. duplicate component registration
+2. missing dependency
+3. dependency cycle
+4. component initialization exception
+5. component start exception
+6. component stop exception
+7. shutdown called twice
+8. shutdown timeout
+9. invalid lifecycle transition
+10. runtime unexpected exception
+
+Each must have an explicit expected result.
+
+---
+
+# 32. INVALID STATE TRANSITIONS
+
+Prevent invalid transitions.
+
+For example:
+
+```text
+STOPPED → STOPPING
+RUNNING → INITIALIZING
+STOPPED → RUNNING
+FAILED → RUNNING
+```
+
+unless the architecture explicitly defines recovery semantics.
+
+Recovery/restart is not part of this batch.
+
+Invalid transitions must be rejected or handled deterministically.
+
+---
+
+# 33. NO AUTOMATIC RESTART YET
+
+Do not implement:
+
+```text
+crash → restart → crash → restart
+```
+
+Do not create watchdog behavior.
+
+Do not create Windows service installation.
+
+Do not create startup registry entries.
+
+Those belong to later reliability/deployment work.
+
+---
+
+# 34. WINDOWS COMPATIBILITY
+
+The current deployment target is Windows.
+
+Ensure runtime behavior works on Windows.
+
+Avoid Unix-only assumptions.
+
+Do not introduce Linux-only process-management code.
+
+If platform-specific code is unavoidable, isolate it behind an adapter.
+
+---
+
+# 35. DOCUMENTATION
+
+Update:
+
+```text
+docs/architecture.md
+docs/development.md
+docs/testing.md
+docs/current_state.md
+README.md
+```
+
+Document:
+
+* runtime lifecycle
+* component lifecycle
+* startup order
+* shutdown order
+* dependency handling
+* failure behavior
+* timeout behavior
+* signal behavior
+* current limitations
+* future watchdog/recovery work
+
+Do not claim automatic recovery exists.
+
+---
+
+# 36. ARCHITECTURAL INTEGRITY CHECK
+
+Before completing the batch, search for competing implementations of:
+
+* Runtime
+* Application
+* Lifecycle manager
+* Component registry
+* Shutdown manager
+* Startup manager
+
+There must be one authoritative implementation.
+
+If duplicates exist, classify them.
+
+Do not leave two competing runtime implementations.
+
+---
+
+# 37. BATCH 1–3 REGRESSION
+
+Run all existing quality gates from previous batches.
+
+At minimum:
+
+```text
+compile
+lint
+format
+type check
+security scan
+secret scan
+tests
+coverage
+```
+
+Run the full test suite.
+
+Do not only run the new runtime tests.
+
+---
+
+# 38. ACTUAL RUNTIME TEST
+
+Run the actual application entry point.
+
+Example:
+
+```bash
+python main.py
+```
+
+or the project's actual startup command.
+
+Verify:
+
+```text
+runtime starts
+↓
+runtime reaches RUNNING
+↓
+shutdown can be requested
+↓
+runtime reaches STOPPED
+↓
+process exits correctly
+```
+
+Do not claim runtime functionality without actually executing it.
+
+If interactive shutdown is difficult to automate, create a safe test mode or controlled runtime test.
+
+Do not fake the result.
+
+---
+
+# 39. PROCESS EXIT CODES
+
+Define deterministic exit behavior.
+
+Example:
+
+```text
+0 = successful execution/shutdown
+non-zero = startup/runtime failure
+```
+
+Document the chosen convention.
+
+Do not silently return success after startup failure.
+
+---
+
+# 40. NO FUTURE FUNCTIONALITY
+
+After implementation, verify that the batch did NOT accidentally introduce:
+
+* fake LLM calls
+* fake agents
+* fake memory
+* fake voice
+* fake browser automation
+* fake Windows control
+* fake Telegram
+* MCP
+* hard-coded API keys
+
+If discovered, remove or classify appropriately.
+
+---
+
+# 41. REQUIRED FINAL REPORT
+
+Produce exactly:
+
+## BATCH 4 RESULT
+
+### 1. Baseline
+
+* previous test result
+* Git status
+* environment
+
+### 2. Runtime Architecture
+
+* runtime entry point
+* lifecycle states
+* component registry
+* dependency model
+
+### 3. Files Created
+
+Exact paths.
+
+### 4. Files Modified
+
+Exact paths.
+
+### 5. Lifecycle Implementation
+
+Explain actual implementation.
+
+### 6. Startup Evidence
+
+Provide:
+
+* exact command
+* actual output
+* exit code
+
+### 7. Shutdown Evidence
+
+Provide:
+
+* exact command/test
+* actual output
+* exit code
+
+### 8. Failure Tests
+
+List every failure scenario tested.
+
+### 9. Negative Tests
+
+List every negative test and result.
+
+### 10. Full Regression
+
+Provide exact:
+
+* tests collected
+* passed
+* failed
+* skipped
+* errors
+* coverage
+
+### 11. Quality Gates
+
+Report:
+
+* compilation
+* lint
+* formatting
+* type checking
+* security
+* secret detection
+
+### 12. Runtime Defects
+
+List every known defect.
+
+### 13. Unverified Items
+
+List anything not actually executed.
+
+### 14. Architecture Deviations
+
+List every deviation from the Batch 4 requirements.
+
+### 15. Final Status
+
+Use exactly one:
+
+IMPLEMENTED AND VERIFIED
+
+PARTIALLY IMPLEMENTED
+
+FAILED
+
+BLOCKED
+
+NOT VERIFIED
+
+Do not provide percentages.
+
+Do not say "production ready."
+
+Do not say "fully complete" unless the evidence genuinely supports completion of THIS batch.
+
+---
+
+# 42. STOP CONDITION
+
+STOP after Batch 4.
+
+Do not start Batch 5.
+
+Do not implement the event bus.
+
+Do not implement the task manager.
+
+Do not implement orchestration.
+
+Do not implement agents.
+
+Do not implement LLMs.
+
+The only objective is a reliable, testable, deterministic JARVIS application lifecycle.
+
+# JARVIS — BATCH 5
+
+## INTERNAL EVENT BUS & MESSAGING INFRASTRUCTURE
+
+You are implementing Batch 5 of the JARVIS project.
+
+Batch 4 established the application runtime lifecycle.
+
+This batch establishes the internal messaging/event infrastructure that allows JARVIS components to communicate without creating direct coupling between every subsystem.
+
+This is CORE INFRASTRUCTURE.
+
+Do not implement MCP in this batch.
+
+Do not install MCP servers.
+
+Do not create MCP clients.
+
+Do not create MCP credential handling.
+
+Do not add MCP API keys.
+
+Do not modify the architecture to depend on MCP.
+
+MCP will be implemented later in its dedicated MCP integration phase.
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Implement a real internal event bus/message bus for JARVIS.
+
+The event bus must support:
+
+* event publishing
+* event subscription
+* asynchronous event delivery
+* synchronous handlers where appropriate
+* typed events
+* event metadata
+* correlation IDs
+* causation IDs
+* timestamps
+* event IDs
+* priorities where justified
+* handler registration
+* handler removal
+* error isolation
+* retries where appropriate
+* timeout handling
+* cancellation
+* graceful shutdown
+* backpressure protection
+* event history/observability
+* deterministic testing
+
+This must be a real implementation.
+
+Do NOT create an empty `EventBus` class containing only:
+
+```python
+pass
+```
+
+Do NOT create a fake implementation that only prints events.
+
+Do NOT create a placeholder API for a future implementation.
+
+---
+
+# 2. ARCHITECTURAL POSITION
+
+The event bus belongs inside the JARVIS core.
+
+Conceptually:
+
+```text
+                    JARVIS RUNTIME
+                         │
+                         ▼
+                   INTERNAL BUS
+                         │
+        ┌────────────────┼────────────────┐
+        ▼                ▼                ▼
+   Task Manager      Security        Health
+        │                │                │
+        ▼                ▼                ▼
+     Agents          Tools          Integrations
+```
+
+The event bus must NOT become the application orchestrator.
+
+The event bus transports events.
+
+The orchestrator decides what work should happen.
+
+Do not put planning/business logic inside the event bus.
+
+---
+
+# 3. AUTHORITATIVE IMPLEMENTATION
+
+There must be exactly one authoritative internal event bus.
+
+Search the repository before implementation for:
+
+```text
+EventBus
+MessageBus
+EventManager
+EventDispatcher
+PubSub
+PubSubManager
+Emitter
+Dispatcher
+```
+
+Classify existing implementations.
+
+If duplicate messaging implementations exist, consolidate them rather than creating another competing system.
+
+---
+
+# 4. DO NOT CONFUSE EVENTS AND COMMANDS
+
+Clearly distinguish:
+
+## Events
+
+Something already happened.
+
+Examples:
+
+```text
+RuntimeStarted
+RuntimeStopped
+TaskCreated
+TaskCompleted
+AuthenticationFailed
+ToolExecuted
+VerificationCompleted
+```
+
+Events should normally be immutable.
+
+---
+
+## Commands
+
+Something is being requested.
+
+Examples:
+
+```text
+StartTask
+StopTask
+ExecuteTool
+RequestApproval
+ShutdownRuntime
+```
+
+Do not silently mix commands and events.
+
+The Batch 5 event bus may support a command transport mechanism only if the architecture genuinely requires it.
+
+If commands are implemented, define their semantics explicitly.
+
+---
+
+# 5. EVENT CONTRACT
+
+Use the existing Batch 2 contracts.
+
+Create/refine an event contract such as:
+
+```text
+Event
+```
+
+with fields conceptually equivalent to:
+
+```text
+event_id
+event_type
+timestamp
+source
+correlation_id
+causation_id
+session_id
+payload
+metadata
+version
+```
+
+Use the project's existing ID types.
+
+Do NOT invent another UUID system.
+
+---
+
+# 6. EVENT IDs
+
+Every event must have a unique event ID.
+
+Use the established identifier approach from Batch 2.
+
+Do not use:
+
+```text
+event1
+event2
+event3
+```
+
+Do not use timestamps alone as IDs.
+
+IDs must be safe for concurrent event creation.
+
+---
+
+# 7. CORRELATION ID
+
+Events participating in the same logical operation should share a correlation ID.
+
+Example:
+
+```text
+User Request
+    correlation_id = ABC
+
+        ↓
+
+Task Created
+    correlation_id = ABC
+
+        ↓
+
+Tool Requested
+    correlation_id = ABC
+
+        ↓
+
+Tool Executed
+    correlation_id = ABC
+
+        ↓
+
+Verification Completed
+    correlation_id = ABC
+```
+
+This will later allow JARVIS to reconstruct an operation's history.
+
+---
+
+# 8. CAUSATION ID
+
+Where appropriate, an event should identify the event that caused it.
+
+Example:
+
+```text
+TaskCreated
+event_id = E1
+
+ToolRequested
+causation_id = E1
+event_id = E2
+
+ToolExecuted
+causation_id = E2
+event_id = E3
+```
+
+This creates traceability.
+
+Do not force causation IDs onto events where no causal relationship exists.
+
+---
+
+# 9. IMMUTABILITY
+
+Events should be immutable after creation.
+
+Once published:
+
+```text
+event.payload
+event.event_id
+event.timestamp
+event.correlation_id
+```
+
+must not be modified.
+
+If an updated event is needed, publish a new event.
+
+Do not mutate previously published events.
+
+---
+
+# 10. EVENT TYPES
+
+Create a clear event type system.
+
+At minimum support the following categories:
+
+### Runtime
+
+```text
+RuntimeStarting
+RuntimeStarted
+RuntimeStopping
+RuntimeStopped
+RuntimeFailed
+```
+
+### Component
+
+```text
+ComponentRegistered
+ComponentInitializing
+ComponentInitialized
+ComponentStarted
+ComponentStopped
+ComponentFailed
+```
+
+### System
+
+```text
+SystemError
+SystemWarning
+SystemHealthChanged
+```
+
+### Task foundation
+
+Only define the events needed by the current architecture.
+
+Do NOT implement the Task Manager yet.
+
+Possible future event types can be documented but must not be falsely implemented.
+
+---
+
+# 11. TYPED PAYLOADS
+
+Avoid an event bus where every event is simply:
+
+```python
+dict
+```
+
+with undocumented keys.
+
+Events should have typed payloads where practical.
+
+For example:
+
+```text
+RuntimeStartedEvent
+ComponentFailedEvent
+SystemErrorEvent
+```
+
+Use the existing contract style.
+
+Avoid unnecessary duplication.
+
+---
+
+# 12. EVENT REGISTRATION
+
+The bus must support handler registration.
+
+Conceptually:
+
+```python
+subscribe(
+    event_type=RuntimeStarted,
+    handler=handler
+)
+```
+
+A handler may be:
+
+* async
+* synchronous
+
+depending on the architecture.
+
+The event bus must correctly handle both.
+
+---
+
+# 13. UNSUBSCRIBE
+
+Implement real unsubscribe functionality.
+
+Example:
+
+```python
+subscription = bus.subscribe(...)
+bus.unsubscribe(subscription)
+```
+
+Do not require the entire event bus to be destroyed to remove a handler.
+
+Test unsubscribe behavior.
+
+---
+
+# 14. HANDLER IDENTITY
+
+Each subscription should have a deterministic identity.
+
+Do not rely exclusively on function object identity because bound methods and wrappers can make identity ambiguous.
+
+Use an explicit subscription ID.
+
+---
+
+# 15. MULTIPLE HANDLERS
+
+One event may have multiple subscribers.
+
+Example:
+
+```text
+RuntimeStarted
+       │
+       ├── Health handler
+       ├── Audit handler
+       └── Metrics handler
+```
+
+One handler failing must not automatically prevent unrelated handlers from receiving the event unless explicitly configured.
+
+Test this behavior.
+
+---
+
+# 16. HANDLER ERROR ISOLATION
+
+If:
+
+```text
+Handler A → SUCCESS
+Handler B → EXCEPTION
+Handler C → SUCCESS
+```
+
+the default behavior should not silently prevent C from receiving the event.
+
+Record B's failure.
+
+Do not swallow it.
+
+The bus must expose handler failure information through:
+
+* logs
+* event/result metadata
+* health state where appropriate
+
+---
+
+# 17. RETRY POLICY
+
+Implement retry behavior only where appropriate.
+
+Do NOT blindly retry every event handler.
+
+A handler should have a configurable policy such as:
+
+```text
+max_attempts
+retry_delay
+backoff
+retryable_exceptions
+```
+
+Avoid infinite retries.
+
+Example:
+
+```text
+attempt 1 → failure
+attempt 2 → failure
+attempt 3 → success
+```
+
+Record the attempts.
+
+---
+
+# 18. NON-RETRYABLE FAILURE
+
+Support classification of failures as non-retryable.
+
+Example:
+
+```text
+ValidationError
+PermissionDenied
+InvalidEvent
+```
+
+These should normally fail immediately rather than being retried.
+
+Do not waste resources repeatedly retrying deterministic failures.
+
+---
+
+# 19. HANDLER TIMEOUT
+
+Handlers must not be allowed to block the entire event system indefinitely.
+
+Support configurable handler timeout.
+
+Example:
+
+```text
+handler started
+    ↓
+timeout
+    ↓
+cancel/request stop
+    ↓
+record timeout
+```
+
+The event bus must record:
+
+* event ID
+* handler ID
+* timeout
+* elapsed time
+
+---
+
+# 20. ASYNC DELIVERY
+
+Use an appropriate asynchronous architecture.
+
+Possible approach:
+
+```text
+Publisher
+    ↓
+Queue
+    ↓
+Dispatcher
+    ↓
+Handlers
+```
+
+Do not create unlimited tasks for every event.
+
+The design must consider resource limits.
+
+---
+
+# 21. BACKPRESSURE
+
+Prevent uncontrolled event accumulation.
+
+For example, configure:
+
+```text
+max queue size
+```
+
+When the queue reaches capacity, define deterministic behavior:
+
+* reject
+* block
+* prioritize
+* drop only explicitly droppable events
+
+Do not silently lose critical events.
+
+---
+
+# 22. EVENT PRIORITY
+
+Only implement event priorities if they provide genuine value.
+
+Potential categories:
+
+```text
+CRITICAL
+HIGH
+NORMAL
+LOW
+```
+
+Critical events such as security failures must not be treated exactly like informational events if prioritization is implemented.
+
+Do not introduce priority complexity without tests.
+
+---
+
+# 23. CRITICAL EVENT GUARANTEE
+
+Events such as:
+
+```text
+AuthenticationFailed
+SecurityViolation
+RuntimeFailed
+ApprovalDenied
+```
+
+must not be silently dropped due to ordinary queue pressure.
+
+If the current architecture cannot guarantee this yet, document the limitation rather than claiming reliability.
+
+---
+
+# 24. EVENT PERSISTENCE
+
+Do NOT turn the event bus into a database in this batch.
+
+The bus may maintain bounded in-memory observability/history if useful.
+
+Persistent event storage belongs to later state/database work.
+
+Do not build a second persistence system.
+
+---
+
+# 25. EVENT HISTORY
+
+Provide a bounded diagnostic history.
+
+For example:
+
+```text
+last N events
+```
+
+This is for diagnostics only.
+
+Requirements:
+
+* configurable size
+* bounded memory
+* thread-safe access
+* no unbounded list growth
+
+Do not retain the entire lifetime event stream in RAM.
+
+---
+
+# 26. EVENT FILTERING
+
+Allow subscriptions to specific event types.
+
+Avoid creating a complicated query language.
+
+Basic:
+
+```text
+subscribe(EventType, handler)
+```
+
+is sufficient.
+
+Optional metadata predicates may be implemented only if genuinely needed.
+
+---
+
+# 27. EVENT VERSIONING
+
+Include event version metadata.
+
+Example:
+
+```text
+version = 1
+```
+
+This prepares the system for future contract evolution.
+
+Do not build a complete event migration framework in this batch.
+
+---
+
+# 28. SERIALIZATION
+
+Events should be serializable through the existing contract system.
+
+Test:
+
+```text
+Event
+ ↓
+serialize
+ ↓
+deserialize
+ ↓
+equivalent Event
+```
+
+Do not use Python pickle for event interoperability.
+
+Use the project's safe structured serialization approach.
+
+---
+
+# 29. SECURITY
+
+Events may contain sensitive information.
+
+Therefore:
+
+* do not automatically log complete payloads
+* redact secrets
+* avoid credentials in payloads
+* avoid API keys
+* avoid authentication secrets
+* avoid raw tokens
+
+The event bus must not become a secret-leak mechanism.
+
+---
+
+# 30. EVENT AUDITING
+
+Integrate with the existing AuditEvent contract.
+
+Important lifecycle/security events should be auditable.
+
+Do not create a second audit logger.
+
+Use the authoritative audit architecture from previous batches.
+
+---
+
+# 31. EVENT OBSERVABILITY
+
+Provide useful diagnostic information:
+
+```text
+event ID
+event type
+source
+correlation ID
+handler
+delivery time
+handler duration
+success/failure
+retry count
+timeout
+```
+
+Do not expose sensitive payload contents unnecessarily.
+
+---
+
+# 32. EVENT SOURCE
+
+Every event should identify its source.
+
+Examples:
+
+```text
+runtime
+task_manager
+security
+tool_registry
+health
+agent
+integration
+```
+
+Only use components that actually exist.
+
+Do not pretend future components are active.
+
+---
+
+# 33. SHUTDOWN BEHAVIOR
+
+The event bus must integrate with Batch 4 runtime lifecycle.
+
+Shutdown sequence:
+
+```text
+RuntimeStopping
+       ↓
+stop accepting new events
+       ↓
+process/cancel existing work according to policy
+       ↓
+stop dispatcher
+       ↓
+close subscriptions
+       ↓
+EventBus stopped
+       ↓
+RuntimeStopped
+```
+
+Do not allow events to be published after the bus enters its terminal state.
+
+---
+
+# 34. EVENT BUS STATES
+
+Use explicit states where useful:
+
+```text
+CREATED
+STARTING
+RUNNING
+STOPPING
+STOPPED
+FAILED
+```
+
+Do not allow:
+
+```text
+STOPPED → publish()
+```
+
+without explicitly defining behavior.
+
+Publishing after shutdown should fail deterministically.
+
+---
+
+# 35. RACE CONDITIONS
+
+Test concurrent scenarios:
+
+```text
+publish while subscribe
+publish while unsubscribe
+multiple publishers
+multiple handlers
+shutdown while events are queued
+shutdown while handler is running
+```
+
+The result must be deterministic and safe.
+
+---
+
+# 36. THREAD/ASYNC SAFETY
+
+Document the concurrency model.
+
+If the event bus is asyncio-based:
+
+* ensure state access is safe
+* avoid blocking the event loop
+* do not call blocking operations directly inside async dispatch
+
+If threads are used:
+
+* protect shared state
+* avoid deadlocks
+* avoid unnecessary locks
+
+Do not mix threading and asyncio casually.
+
+---
+
+# 37. RUNTIME INTEGRATION
+
+Integrate the event bus into the Batch 4 runtime.
+
+The runtime should:
+
+1. create the event bus
+2. initialize it
+3. start it
+4. publish runtime lifecycle events
+5. stop it during shutdown
+
+The event bus should NOT independently start itself at module import.
+
+---
+
+# 38. MAIN APPLICATION TEST
+
+Run the real application.
+
+Verify actual lifecycle events.
+
+Example expected sequence:
+
+```text
+RuntimeStarting
+ComponentInitializing
+ComponentInitialized
+ComponentStarted
+RuntimeStarted
+```
+
+During shutdown:
+
+```text
+RuntimeStopping
+ComponentStopped
+RuntimeStopped
+```
+
+Do not fabricate this output.
+
+Capture actual logs/test output.
+
+---
+
+# 39. TEST FIXTURES
+
+Create real test fixtures for:
+
+### Successful handler
+
+Returns normally.
+
+### Failing handler
+
+Raises an exception.
+
+### Slow handler
+
+Exceeds timeout.
+
+### Retryable handler
+
+Fails N times then succeeds.
+
+### Non-retryable handler
+
+Fails immediately.
+
+### Multiple handlers
+
+One fails while others succeed.
+
+### Subscription removal
+
+Handler stops receiving events.
+
+### Queue overflow
+
+Configured capacity is exceeded.
+
+### Concurrent publisher
+
+Multiple publishers submit events.
+
+---
+
+# 40. REQUIRED TESTS
+
+At minimum:
+
+## Event creation
+
+* unique ID
+* timestamp
+* type
+* source
+* correlation ID
+* causation ID
+* version
+
+## Publishing
+
+* event reaches subscriber
+* multiple subscribers
+* no subscriber
+* invalid event
+
+## Subscription
+
+* subscribe
+* unsubscribe
+* duplicate subscription handling
+
+## Failure
+
+* handler exception
+* retry
+* retry exhaustion
+* non-retryable exception
+* timeout
+
+## Concurrency
+
+* concurrent publishing
+* concurrent subscription changes
+* shutdown during delivery
+
+## Queue
+
+* normal queue
+* queue limit
+* overflow behavior
+
+## Lifecycle
+
+* start
+* stop
+* repeated stop
+* publish after stop
+
+## Serialization
+
+* serialize
+* deserialize
+* invalid payload
+
+## Security
+
+* sensitive payload redaction
+* secrets not written to logs
+
+---
+
+# 41. NEGATIVE TESTS
+
+Mandatory negative tests:
+
+1. invalid event payload
+2. duplicate subscription
+3. invalid subscription
+4. handler exception
+5. retry exhaustion
+6. handler timeout
+7. queue overflow
+8. publish after shutdown
+9. unsubscribe unknown subscription
+10. invalid lifecycle transition
+11. event serialization corruption
+12. concurrent shutdown
+
+Every test must have an explicit expected behavior.
+
+---
+
+# 42. PERFORMANCE TEST
+
+Create a lightweight benchmark/test for event throughput.
+
+Do not invent a performance number beforehand.
+
+Measure:
+
+* events published
+* events delivered
+* elapsed time
+* failures
+* queue behavior
+* memory behavior where practical
+
+Report the actual result.
+
+Do not claim "high performance" without measurement.
+
+---
+
+# 43. RESOURCE SAFETY
+
+Verify that:
+
+* queues are bounded
+* event history is bounded
+* subscriptions can be removed
+* tasks do not leak
+* handlers do not accumulate indefinitely
+* shutdown releases resources
+
+Run repeated start/stop tests to detect obvious leaks.
+
+---
+
+# 44. NO EVENT BUS BUSINESS LOGIC
+
+The event bus must NOT:
+
+* create tasks
+* call LLMs
+* execute tools
+* authenticate users
+* modify files
+* make security decisions
+* perform browser actions
+* spawn agents
+
+It transports events.
+
+Those responsibilities belong elsewhere.
+
+---
+
+# 45. MCP EXCLUSION CHECK
+
+Explicitly verify that this batch does NOT add MCP.
+
+Search:
+
+```text
+MCP
+mcp
+modelcontextprotocol
+mcp-server
+MCPClient
+```
+
+If an MCP-related implementation is found, remove it unless it was already present from a previous state and is being explicitly classified.
+
+Do NOT begin MCP implementation.
+
+The future MCP phase will include:
+
+* real MCP servers
+* real MCP clients
+* `.env` credential loading
+* API authentication
+* server allowlisting
+* sandboxing
+* tool permission mapping
+* command execution
+* connectivity tests
+* failure tests
+* version pinning
+* audit logging
+* verification
+* kill switch
+
+That is intentionally deferred.
+
+---
+
+# 46. QUALITY GATES
+
+After implementation run ALL previous quality gates:
+
+```text
+compile
+lint
+format check
+type check
+security scan
+secret scan
+pytest
+coverage
+```
+
+Do not run only Batch 5 tests.
+
+Run the complete regression suite.
+
+---
+
+# 47. REAL COMMAND REQUIREMENT
+
+Every newly implemented feature must be backed by executable code.
+
+Do not submit:
+
+```python
+class EventBus:
+    """Future event bus."""
+    pass
+```
+
+Do not submit:
+
+```python
+def publish(...):
+    print("event published")
+```
+
+Do not submit fake successful results.
+
+The event bus must actually deliver events between real handlers during tests.
+
+---
+
+# 48. FINAL REPORT
+
+Produce exactly:
+
+## BATCH 5 RESULT
+
+### 1. Baseline
+
+* Batch 4 status
+* Git status
+* Python version
+* existing test result
+
+### 2. Architecture
+
+* event bus location
+* event model
+* subscription model
+* dispatch model
+* queue model
+* lifecycle model
+
+### 3. Files Created
+
+Exact paths.
+
+### 4. Files Modified
+
+Exact paths.
+
+### 5. Real Implementation
+
+Explain the actual implementation.
+
+### 6. Runtime Integration
+
+Explain exactly how Batch 4 uses the event bus.
+
+### 7. Event Types
+
+List implemented event types.
+
+### 8. Handler Execution
+
+Explain sync/async behavior.
+
+### 9. Retry/Timeout
+
+Provide actual configuration and behavior.
+
+### 10. Concurrency
+
+Explain tested concurrency behavior.
+
+### 11. Security
+
+Explain payload handling and secret redaction.
+
+### 12. Tests
+
+Report:
+
+```text
+collected:
+passed:
+failed:
+skipped:
+errors:
+coverage:
+```
+
+### 13. Negative Tests
+
+List every negative test and result.
+
+### 14. Performance Test
+
+Provide actual measured result.
+
+### 15. Regression
+
+Provide full previous-batch test result.
+
+### 16. MCP Check
+
+Explicitly report whether any MCP implementation was added.
+
+Expected:
+
+```text
+MCP implementation added: NO
+```
+
+### 17. Known Defects
+
+List every known defect.
+
+### 18. Unverified Items
+
+List everything that was not actually tested.
+
+### 19. Architecture Deviations
+
+List deviations from this batch.
+
+### 20. Final Status
+
+Use exactly one:
+
+IMPLEMENTED AND VERIFIED
+
+PARTIALLY IMPLEMENTED
+
+FAILED
+
+BLOCKED
+
+NOT VERIFIED
+
+Do not provide percentages.
+
+Do not claim production readiness.
+
+---
+
+# 49. STOP CONDITION
+
+STOP after Batch 5.
+
+Do not implement Batch 6.
+
+Do not implement the Task Manager yet.
+
+Do not implement autonomous planning.
+
+Do not implement agents.
+
+Do not implement LLMs.
+
+Do not implement MCP.
+
+Do not implement voice.
+
+Do not implement memory.
+
+Batch 5 is complete only when the internal event bus is a real, tested, bounded, observable, lifecycle-managed component integrated with the Batch 4 runtime.

@@ -1,4 +1,4 @@
-# JARVIS Development Environment Guide — Batch 4
+# JARVIS Development Environment Guide — Batch 5
 
 ## Prerequisites & Supported Target Environment
 
@@ -17,7 +17,7 @@
    python -m pip install -e .[dev]
    ```
 
-3. **Running the Application Kernel**:
+3. **Running the Application Kernel & Event Bus**:
    - **Test Run (Startup & Immediate Graceful Shutdown)**:
      ```powershell
      python main.py --test-run
@@ -27,11 +27,17 @@
      python main.py --duration 5.0
      ```
 
-4. **Local Quality Gate Runner**:
+4. **Running Event Bus Benchmark**:
+   ```powershell
+   pytest tests/unit/test_event_bus_performance.py -s
+   ```
+
+5. **Local Quality Gate Runner**:
    Execute the single authoritative local quality gate script to run compilation, import check, linting, format check, type checking, security scanning, secret scanning, and test coverage:
    ```powershell
    python scripts/quality_gate.py
    ```
+
 
 5. **Individual Validation Commands**:
    - **Compilation**: `python -m compileall -q -x "\.venv|\.git|build|dist" .`
