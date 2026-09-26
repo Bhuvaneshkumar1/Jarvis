@@ -15,6 +15,18 @@ class ConfigurationError(JarvisError):
     pass
 
 
+class EnvironmentValidationError(ConfigurationError):
+    """Raised when environment variables fail validation, contain duplicates, or malformed syntax."""
+
+    pass
+
+
+class EnvironmentSecurityError(ConfigurationError):
+    """Raised when environment security policy violations or secret leaks are detected."""
+
+    pass
+
+
 class AuthenticationError(JarvisError):
     """Raised when authentication credentials or token validation fails."""
 

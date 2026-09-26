@@ -139,8 +139,8 @@ class JarvisApplication:
 
     async def start(self) -> None:
         """
-        Execute application startup: validate dependencies, initialize components,
-        and start components in deterministic order.
+        Execute application startup: validate environment security, validate dependencies,
+        initialize components, and start components in deterministic order.
         """
         if self._state != RuntimeState.STOPPED:
             raise InvalidStateTransitionError(f"Cannot start runtime when in state '{self._state.value}'.")
@@ -148,6 +148,17 @@ class JarvisApplication:
         self._transition_to(RuntimeState.STARTING)
         self.context.startup_timestamp = time.time()
         self.logger.info("JARVIS Application Runtime starting...")
+
+        # 0. Validate Environment Security
+        try:
+            from config.env_security import validate_environment
+
+            validate_environment()
+        except Exception as e:
+            self._transition_to(RuntimeState.FAILED)
+            self.logger.error(f"Startup environment security validation failed: {str(e)}")
+            self._safe_publish(RuntimeFailedEvent(source="runtime", correlation_id=self.context.app_id, payload={"error": str(e)}))
+            raise
 
         # 1. Validate dependencies
         try:

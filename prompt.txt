@@ -8796,3 +8796,1456 @@ Do not implement:
 The next batch is Batch 8 — Configuration Management.
 
 Batch 7 is complete only when Runtime, Event Bus, Task Manager, and Orchestrator operate as one deterministic, testable core without introducing autonomous behavior.
+
+# JARVIS — BATCH 8
+
+## CENTRALIZED CONFIGURATION MANAGEMENT
+
+You are implementing Batch 8 of the JARVIS project.
+
+Previous batches established:
+
+* Batch 4 → Runtime lifecycle
+* Batch 5 → Internal Event Bus
+* Batch 6 → Persistent Task Manager
+* Batch 7 → Core Orchestrator
+
+This batch establishes one authoritative configuration system for the entire JARVIS application.
+
+The goal is to eliminate scattered environment-variable reads, hard-coded configuration, duplicate configuration loaders, and inconsistent defaults.
+
+This must be a real implementation.
+
+Do NOT create placeholder configuration classes.
+
+Do NOT create empty configuration files.
+
+Do NOT put fake API credentials into the repository.
+
+Do NOT implement the full secrets-management subsystem yet.
+
+---
+
+# 1. ABSOLUTE RULES
+
+DO NOT implement:
+
+* LLM providers
+* NVIDIA integration
+* OpenRouter integration
+* OpenAI integration
+* local model management
+* MCP
+* MCP credentials
+* MCP servers
+* MCP clients
+* agents
+* autonomous planning
+* memory
+* Obsidian
+* voice
+* STT
+* TTS
+* wake word
+* vision
+* OCR
+* browser automation
+* Windows automation
+* Telegram
+* external integrations
+* scheduler
+* cybersecurity execution
+* full secrets manager
+
+Those belong to later batches.
+
+Configuration support may define variables needed by future systems, but do NOT implement those systems.
+
+---
+
+# 2. PRIMARY OBJECTIVE
+
+Create one authoritative configuration subsystem capable of:
+
+* loading configuration
+* loading `.env`
+* reading environment variables
+* applying defaults
+* type conversion
+* validation
+* required/optional configuration
+* nested configuration
+* environment-specific settings
+* immutable runtime configuration
+* configuration redaction
+* configuration inspection
+* configuration errors
+* deterministic precedence
+* startup integration
+* testing
+
+There must be exactly one authoritative configuration loader.
+
+---
+
+# 3. SEARCH BEFORE IMPLEMENTATION
+
+Search the repository for:
+
+```text
+os.getenv
+os.environ
+dotenv
+load_dotenv
+Config
+Settings
+Configuration
+ENV
+API_KEY
+TOKEN
+PASSWORD
+SECRET
+```
+
+Classify every meaningful occurrence.
+
+Identify:
+
+* existing configuration loaders
+* direct environment access
+* hard-coded settings
+* duplicate configuration classes
+* secret handling
+* future integration variables
+
+Do not create a second configuration system without first resolving duplicates.
+
+---
+
+# 4. AUTHORITATIVE CONFIGURATION FLOW
+
+Use:
+
+```text id="5p5z1b"
+Environment
+     ↓
+.env
+     ↓
+Configuration Loader
+     ↓
+Validation
+     ↓
+Typed Configuration
+     ↓
+Runtime
+     ↓
+Components
+```
+
+Components should receive configuration through the established dependency/runtime architecture.
+
+Do not make every module independently call:
+
+```python
+os.getenv(...)
+```
+
+after this batch.
+
+---
+
+# 5. CONFIGURATION PRECEDENCE
+
+Define and document deterministic precedence.
+
+Recommended:
+
+```text id="u9rj30"
+1. Built-in safe defaults
+2. Configuration file if implemented
+3. .env
+4. Process environment variables
+5. Explicit runtime overrides where supported
+```
+
+Higher-priority values must override lower-priority values.
+
+Do not allow precedence to depend on import order.
+
+Document the exact behavior.
+
+---
+
+# 6. .ENV SUPPORT
+
+The project must support:
+
+```text id="e3f8sp"
+.env
+.env.example
+```
+
+`.env` contains local secrets/configuration and must never be committed.
+
+`.env.example` contains safe names and non-secret examples.
+
+Example:
+
+```text id="8x0w7q"
+JARVIS_ENV=development
+JARVIS_LOG_LEVEL=INFO
+JARVIS_MAX_MEMORY_GB=8
+NVIDIA_API_KEY=YOUR_NVIDIA_API_KEY_HERE
+OPENROUTER_API_KEY=YOUR_OPENROUTER_API_KEY_HERE
+```
+
+Do not put actual credentials into `.env.example`.
+
+Do not print credentials during validation.
+
+---
+
+# 7. EXISTING .ENV
+
+If a `.env` file already exists in the project directory:
+
+* do NOT overwrite it
+* do NOT replace credentials
+* do NOT print secret values
+* do NOT copy secrets into source code
+* do NOT commit it
+
+Verify that `.gitignore` excludes it.
+
+The actual secret values must remain local.
+
+---
+
+# 8. FUTURE API VARIABLES
+
+The configuration architecture must be capable of supporting future provider credentials.
+
+However, DO NOT implement the providers yet.
+
+You may define safe configuration names for future use, such as:
+
+```text id="xg35h0"
+NVIDIA_API_KEY
+OPENROUTER_API_KEY
+OPENAI_API_KEY
+TELEGRAM_BOT_TOKEN
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GITHUB_TOKEN
+```
+
+But:
+
+* do not require them during current startup
+* do not validate them as present
+* do not contact their services
+* do not expose their values
+* do not implement their integrations
+
+Future batches will activate them.
+
+---
+
+# 9. CONFIGURATION SECTIONS
+
+Create logical configuration sections.
+
+Recommended:
+
+```text id="l4drdu"
+ApplicationConfig
+RuntimeConfig
+LoggingConfig
+DatabaseConfig
+SecurityConfig
+TaskConfig
+EventBusConfig
+OrchestratorConfig
+ResourceConfig
+```
+
+Do not create configuration sections for systems that do not yet exist unless the variables are explicitly marked future/deferred.
+
+---
+
+# 10. APPLICATION CONFIGURATION
+
+Include core settings such as:
+
+```text id="4o2d5r"
+environment
+application_name
+application_version
+debug
+```
+
+Defaults must be safe.
+
+Production must not accidentally default to debug mode.
+
+---
+
+# 11. RUNTIME CONFIGURATION
+
+Support settings such as:
+
+```text id="cbrnd7"
+startup_timeout
+shutdown_timeout
+component_timeout
+```
+
+Use actual configuration values rather than hard-coded magic numbers.
+
+Validate that:
+
+```text timeout > 0
+```
+
+---
+
+# 12. LOGGING CONFIGURATION
+
+Support:
+
+```text id="psxk10"
+log_level
+log_directory
+log_retention
+console_logging
+file_logging
+```
+
+Respect the existing logging architecture.
+
+Do not create another logger.
+
+Do not allow arbitrary paths without validation where security requires restrictions.
+
+---
+
+# 13. RESOURCE CONFIGURATION
+
+JARVIS has an architectural resource target:
+
+```text id="qkjl9b"
+idle memory target: approximately 2–3 GB
+maximum memory target: 8 GB
+```
+
+Batch 8 does NOT implement resource monitoring.
+
+It should establish configuration values for future monitoring.
+
+Example:
+
+```text id="7mlgko"
+JARVIS_MAX_MEMORY_GB=8
+```
+
+Do not claim this setting enforces memory limits.
+
+It only configures the future resource-monitoring subsystem.
+
+---
+
+# 14. DATABASE CONFIGURATION
+
+Provide typed database configuration required by the current Task Manager foundation.
+
+Potential settings:
+
+```text id="tbdm7m"
+database_path
+database_timeout
+database_pool_size where actually applicable
+```
+
+Do not introduce a connection pool if the current database architecture does not need one.
+
+Paths must be validated appropriately.
+
+---
+
+# 15. EVENT BUS CONFIGURATION
+
+Configure Batch 5 values such as:
+
+```text id="d2g7zz"
+event_queue_size
+event_history_size
+handler_timeout
+max_handler_retries
+retry_delay
+```
+
+Use actual existing event-bus behavior.
+
+Do not create configuration for features that do not exist.
+
+---
+
+# 16. TASK CONFIGURATION
+
+Configure Batch 6 values where applicable:
+
+```text id="w0o2d3"
+max_title_length
+max_description_length
+max_metadata_size
+default_priority
+```
+
+Avoid excessive configuration.
+
+Only expose meaningful operational parameters.
+
+---
+
+# 17. ORCHESTRATOR CONFIGURATION
+
+Configure Batch 7 operational values if actually used:
+
+```text id="5a2d6w"
+operation_timeout
+max_concurrent_operations
+```
+
+Do not create fake orchestration behavior to justify these values.
+
+---
+
+# 18. SECURITY CONFIGURATION
+
+The security subsystem comes later, but configuration should be ready for it.
+
+Potential future values:
+
+```text id="6l3b3c"
+PIN_REQUIRED
+MAX_AUTH_ATTEMPTS
+LOCKOUT_DURATION
+```
+
+However:
+
+DO NOT implement authentication in Batch 8.
+
+Do not pretend these values enforce authentication.
+
+If defined now, mark them as reserved/future configuration.
+
+---
+
+# 19. TYPED CONFIGURATION
+
+Configuration values must be typed.
+
+Examples:
+
+```text id="i6wz7u"
+"8" → int 8
+"true" → bool True
+"INFO" → log level enum
+"3.5" → float 3.5
+```
+
+Do not make application code repeatedly parse strings.
+
+Bad:
+
+```python id="j5c9d7"
+int(os.getenv("JARVIS_MAX_MEMORY_GB"))
+```
+
+throughout the codebase.
+
+The configuration layer performs conversion once.
+
+---
+
+# 20. BOOLEAN PARSING
+
+Support deterministic boolean parsing.
+
+Accepted examples:
+
+```text id="4m6i2j"
+true
+false
+1
+0
+yes
+no
+on
+off
+```
+
+Case-insensitive where appropriate.
+
+Reject ambiguous values.
+
+Do not treat:
+
+```text id="2mt0n5"
+"maybe"
+```
+
+as true.
+
+---
+
+# 21. INTEGER VALIDATION
+
+Reject invalid integers.
+
+Example:
+
+```text id="2fuw5s"
+JARVIS_MAX_MEMORY_GB=abc
+```
+
+must produce a configuration validation error.
+
+Do not silently use the default.
+
+---
+
+# 22. RANGE VALIDATION
+
+Validate operational ranges.
+
+Examples:
+
+```text id="7a6u5z"
+queue_size > 0
+timeout > 0
+memory_limit > 0
+retry_count >= 0
+history_size >= 0
+```
+
+Use sensible upper bounds where resource exhaustion is possible.
+
+Do not accept arbitrary huge values.
+
+---
+
+# 23. ENUM VALIDATION
+
+Configuration values such as log level/environment should use controlled values.
+
+Example:
+
+```text id="u0nq2h"
+DEBUG
+INFO
+WARNING
+ERROR
+CRITICAL
+```
+
+Invalid values must fail configuration loading.
+
+---
+
+# 24. REQUIRED VS OPTIONAL
+
+Each configuration value must clearly define:
+
+```text id="f7ozq3"
+required
+optional
+default
+future
+```
+
+Current required values should actually be required.
+
+Do not mark everything optional to avoid startup failures.
+
+Do not require future API credentials before those integrations are implemented.
+
+---
+
+# 25. MISSING CONFIGURATION
+
+If a required value is missing:
+
+```text id="4ij5qk"
+ConfigurationError
+```
+
+must be raised.
+
+The application must not silently continue with an unsafe value.
+
+The error should identify the variable name but must not reveal the secret value.
+
+---
+
+# 26. SECRET REDACTION
+
+Configuration inspection must NEVER print secret values.
+
+For example:
+
+```text id="j3dy7f"
+NVIDIA_API_KEY=********
+```
+
+not:
+
+```text id="8d6r2w"
+NVIDIA_API_KEY=actual-secret
+```
+
+Secret detection should be based on field metadata rather than blindly masking every string.
+
+---
+
+# 27. SECRET CONFIG VS SECRET MANAGER
+
+Important:
+
+Batch 8 only handles configuration loading.
+
+It does NOT implement:
+
+* encrypted secret database
+* password-protected credential vault
+* key rotation
+* secret lifecycle
+* credential access authorization
+
+Those belong to Batch 10.
+
+Do not duplicate Batch 10 functionality here.
+
+---
+
+# 28. IMMUTABILITY
+
+Once configuration is loaded and validated, runtime configuration should be immutable.
+
+Bad:
+
+```text id="ojl6qz"
+config.max_memory = 999
+```
+
+during normal runtime.
+
+If dynamic configuration is required later, it should go through a controlled configuration-management mechanism.
+
+Do not implement dynamic reconfiguration now.
+
+---
+
+# 29. CONFIGURATION SNAPSHOT
+
+Provide a safe configuration snapshot for diagnostics.
+
+Example:
+
+```text id="6hy4qj"
+Environment: development
+Log Level: INFO
+Database: configured
+Event Queue: 1000
+Max Memory: 8 GB
+Secrets:
+  NVIDIA_API_KEY: SET
+  OPENROUTER_API_KEY: SET
+```
+
+Never expose secret contents.
+
+---
+
+# 30. SECRET STATE
+
+For secret configuration values, diagnostics should report only:
+
+```text id="s2g6kn"
+SET
+NOT SET
+```
+
+Do not reveal:
+
+* length
+* prefix
+* suffix
+* hash
+* token structure
+
+unless there is a documented security reason.
+
+Prefer simple SET/NOT SET.
+
+---
+
+# 31. CONFIGURATION ERROR MESSAGES
+
+Errors should be useful.
+
+Good:
+
+```text id="x5o0r4"
+ConfigurationError:
+JARVIS_MAX_MEMORY_GB must be an integer >= 1.
+```
+
+Bad:
+
+```text id="0e0y7v"
+Something went wrong.
+```
+
+For secret variables:
+
+```text id="3m8vdu"
+NVIDIA_API_KEY is invalid or missing.
+```
+
+Never print its value.
+
+---
+
+# 32. CONFIGURATION FILE SUPPORT
+
+If a non-secret configuration file is used, define its format clearly.
+
+Possible:
+
+```text
+config/
+    defaults.toml
+```
+
+or equivalent.
+
+Do not create a second competing configuration format.
+
+Do not store secrets in the configuration file.
+
+Prefer environment variables for secrets.
+
+---
+
+# 33. DEVELOPMENT / TEST / PRODUCTION
+
+Support explicit environments:
+
+```text id="r9w9y4"
+development
+test
+production
+```
+
+Do not assume environment based on hostname or username.
+
+Tests should explicitly use:
+
+```text
+test
+```
+
+and safe isolated values.
+
+Production must not inherit test configuration accidentally.
+
+---
+
+# 34. TEST CONFIGURATION
+
+Tests must never use the user's actual `.env` credentials unnecessarily.
+
+Create an isolated test configuration.
+
+Example:
+
+```text id="y1c8a0"
+JARVIS_ENV=test
+DATABASE_PATH=<temporary test path>
+```
+
+Do not call external APIs.
+
+Do not use real tokens.
+
+---
+
+# 35. CONFIGURATION OVERRIDES
+
+Test precedence.
+
+Example:
+
+```text id="l0t7q4"
+default = INFO
+.env = WARNING
+process environment = ERROR
+```
+
+Expected:
+
+```text
+ERROR
+```
+
+Do not rely on test execution order.
+
+---
+
+# 36. CONFIGURATION RELOAD
+
+Do NOT implement automatic runtime reload in this batch.
+
+If `.env` changes while JARVIS is running:
+
+```text id="4qf7d2"
+existing runtime configuration remains unchanged
+```
+
+until a controlled restart.
+
+Document this behavior.
+
+---
+
+# 37. PATH HANDLING
+
+Normalize filesystem paths safely.
+
+Handle:
+
+* relative paths
+* absolute paths
+* Windows path separators
+* nonexistent paths
+* directories vs files
+
+Do not create directories merely because configuration was loaded unless the existing component explicitly owns that behavior.
+
+---
+
+# 38. WINDOWS COMPATIBILITY
+
+Current target:
+
+```text
+Windows 11
+```
+
+Do not assume Linux path semantics.
+
+Test configuration loading on the actual development environment.
+
+Use platform-safe path handling.
+
+---
+
+# 39. CONFIGURATION DEPENDENCY INJECTION
+
+Runtime components should receive configuration through controlled dependency injection.
+
+Example:
+
+```text id="qg4r2e"
+Runtime
+   ↓
+Config
+   ↓
+EventBus
+TaskManager
+Orchestrator
+```
+
+Avoid global singleton configuration objects unless the existing architecture explicitly requires one.
+
+Do not allow arbitrary modules to mutate configuration.
+
+---
+
+# 40. STARTUP INTEGRATION
+
+Integrate configuration into Batch 4 runtime startup.
+
+Expected:
+
+```text id="v0u8fc"
+Process starts
+     ↓
+Load configuration
+     ↓
+Validate configuration
+     ↓
+Initialize logging
+     ↓
+Initialize runtime
+     ↓
+Start components
+```
+
+If configuration validation fails:
+
+```text id="czh9l2"
+Runtime must NOT enter RUNNING.
+```
+
+This must be tested.
+
+---
+
+# 41. CONFIGURATION FAILURE TEST
+
+Intentionally provide:
+
+```text id="g0yq3v"
+invalid integer
+invalid enum
+missing required variable
+invalid path
+out-of-range value
+```
+
+Expected:
+
+```text id="6q8v7x"
+configuration failure
+↓
+runtime startup blocked
+↓
+clear error
+↓
+non-zero process result
+```
+
+Do not start JARVIS with invalid configuration.
+
+---
+
+# 42. SECRET LEAK TEST
+
+Create a test-only fake secret:
+
+```text id="f5m5i4"
+TEST_FAKE_SECRET_DO_NOT_USE
+```
+
+Load it through the configuration system.
+
+Verify:
+
+* configuration works
+* diagnostic snapshot masks it
+* logs do not contain it
+* exceptions do not expose it
+
+Do not use any real API credential in this test.
+
+---
+
+# 43. CONFIGURATION SERIALIZATION
+
+Provide safe serialization/inspection if needed.
+
+Never serialize secret values into ordinary diagnostic output.
+
+If configuration must be persisted, secret fields must be excluded or protected.
+
+Do not introduce secret persistence in Batch 8.
+
+---
+
+# 44. CONFIGURATION DOCUMENTATION
+
+Update:
+
+```text id="w1g0zt"
+README.md
+docs/architecture.md
+docs/development.md
+docs/security.md
+docs/testing.md
+docs/current_state.md
+```
+
+Document:
+
+* configuration hierarchy
+* environment variables
+* `.env`
+* `.env.example`
+* precedence
+* type conversion
+* validation
+* secret redaction
+* test configuration
+* current limitations
+* future secret manager
+
+---
+
+# 45. .ENV.EXAMPLE REQUIREMENTS
+
+Update `.env.example` with all configuration variables currently required by implemented systems.
+
+Do not fill it with every future JARVIS variable merely because they might eventually exist.
+
+For future providers, only add variables if the configuration architecture needs them now.
+
+Actual credentials MUST NOT appear.
+
+---
+
+# 46. REAL CONFIGURATION COMMAND
+
+Create an executable configuration validation command.
+
+For example:
+
+```bash
+python -m jarvis.config.validate
+```
+
+or:
+
+```bash
+python scripts/validate_config.py
+```
+
+Use the project's actual structure.
+
+It must:
+
+1. load configuration
+2. validate it
+3. produce safe diagnostics
+4. return non-zero on failure
+
+Do not create a script that only prints:
+
+```text
+Configuration OK
+```
+
+without actually loading and validating configuration.
+
+---
+
+# 47. CONFIGURATION DIAGNOSTICS
+
+The command should produce something similar to:
+
+```text
+JARVIS CONFIGURATION
+====================
+
+Environment: development
+Application: JARVIS
+Debug: false
+Log Level: INFO
+
+Database:
+  configured: YES
+
+Event Bus:
+  queue size: 1000
+  history size: 500
+  handler timeout: 30s
+
+Task Manager:
+  default priority: NORMAL
+
+Resources:
+  configured max memory: 8 GB
+
+Secrets:
+  NVIDIA_API_KEY: SET
+  OPENROUTER_API_KEY: SET
+  OPENAI_API_KEY: NOT SET
+
+RESULT: VALID
+```
+
+Values must come from the actual configuration object.
+
+Do not hard-code the displayed values.
+
+---
+
+# 48. TEST MATRIX
+
+Implement tests for:
+
+### Loading
+
+* defaults
+* `.env`
+* process environment
+* precedence
+
+### Types
+
+* bool
+* int
+* float
+* enum
+* path
+
+### Validation
+
+* missing required
+* invalid type
+* invalid enum
+* invalid range
+* invalid path
+
+### Security
+
+* secret redaction
+* no secret logging
+* `.env` ignored
+
+### Runtime
+
+* valid config → startup
+* invalid config → startup blocked
+
+### Immutability
+
+* configuration cannot be arbitrarily mutated
+
+### Environment
+
+* development
+* test
+* production validation
+
+---
+
+# 49. NEGATIVE TESTS
+
+Mandatory:
+
+1. invalid integer
+2. invalid boolean
+3. invalid enum
+4. missing required setting
+5. out-of-range value
+6. malformed path
+7. oversized configuration value
+8. secret diagnostic leak
+9. `.env` accidentally tracked
+10. test configuration accidentally using production settings
+
+Each must have an explicit expected result.
+
+---
+
+# 50. NO HARD-CODED SECRETS
+
+Search repository for:
+
+```text
+API_KEY=
+TOKEN=
+PASSWORD=
+SECRET=
+PRIVATE_KEY=
+```
+
+Classify all findings.
+
+No real credentials may be present in:
+
+* Python files
+* tests
+* README
+* documentation
+* CI
+* `.env.example`
+* shell scripts
+* JSON
+* YAML
+
+`.env` is allowed to contain the user's local credentials but MUST remain untracked.
+
+---
+
+# 51. MCP EXCLUSION
+
+Search for:
+
+```text
+MCP
+mcp
+modelcontextprotocol
+mcp-server
+```
+
+Do not implement anything MCP-related.
+
+Report:
+
+```text
+MCP implementation added: NO
+```
+
+The MCP phase remains separate.
+
+It will later include real:
+
+* MCP server installation
+* MCP client integration
+* credential loading
+* API authentication
+* server allowlisting
+* sandboxing
+* permission mapping
+* real command execution
+* connectivity tests
+* failure tests
+* audit
+* verification
+* version pinning
+* kill switch
+
+Do not touch that architecture now.
+
+---
+
+# 52. FULL REGRESSION
+
+Run:
+
+```text
+compile
+lint
+format
+type check
+security scan
+secret scan
+pytest
+coverage
+```
+
+Run all tests from Batches 1–7.
+
+Do not only run configuration tests.
+
+---
+
+# 53. REAL STARTUP TEST
+
+Run the actual JARVIS entry point with valid configuration.
+
+Verify:
+
+```text
+configuration loaded
+↓
+configuration validated
+↓
+runtime starts
+↓
+components initialize
+↓
+runtime reaches RUNNING
+```
+
+Then test invalid configuration.
+
+Verify:
+
+```text
+configuration validation fails
+↓
+runtime does not enter RUNNING
+↓
+process exits appropriately
+```
+
+Provide actual command/output evidence.
+
+---
+
+# 54. NO FALSE COMPLETION
+
+Do not claim:
+
+* secrets are secure
+* configuration is production-ready
+* credentials are encrypted
+* dynamic reload works
+* authentication works
+
+unless those features are actually implemented.
+
+Batch 10 will handle the real secret manager.
+
+Batch 12 onward will handle authentication.
+
+---
+
+# 55. REQUIRED FINAL REPORT
+
+Produce exactly:
+
+## BATCH 8 RESULT
+
+### 1. Baseline
+
+* Batch 7 status
+* Python
+* OS
+* Git status
+* existing tests
+
+### 2. Configuration Architecture
+
+* authoritative configuration loader
+* precedence
+* configuration sections
+* dependency injection
+
+### 3. Files Created
+
+Exact paths.
+
+### 4. Files Modified
+
+Exact paths.
+
+### 5. Environment Variables
+
+List actual implemented configuration variables.
+
+### 6. `.env`
+
+Report:
+
+* exists
+* ignored
+* not committed
+* secrets not exposed
+
+Do NOT print actual values.
+
+### 7. Validation
+
+Explain actual validation implementation.
+
+### 8. Redaction
+
+Explain actual secret redaction behavior.
+
+### 9. Runtime Integration
+
+Explain how configuration affects startup.
+
+### 10. Failure Tests
+
+List all invalid-configuration tests.
+
+### 11. Security
+
+Report:
+
+* secret handling
+* secret leak test
+* `.env` protection
+
+### 12. Tests
+
+```text
+collected:
+passed:
+failed:
+skipped:
+errors:
+coverage:
+```
+
+### 13. Quality Gates
+
+Report:
+
+* compile
+* lint
+* format
+* type
+* security
+* secret scan
+
+### 14. MCP Check
+
+```text
+MCP implementation added: NO
+```
+
+### 15. Known Defects
+
+List all unresolved defects.
+
+### 16. Unverified Items
+
+List everything not actually tested.
+
+### 17. Architecture Deviations
+
+List deviations from this batch.
+
+### 18. Final Status
+
+Use exactly one:
+
+IMPLEMENTED AND VERIFIED
+
+PARTIALLY IMPLEMENTED
+
+FAILED
+
+BLOCKED
+
+NOT VERIFIED
+
+No percentages.
+
+No unsupported claims.
+
+---
+
+# 56. STOP CONDITION
+
+STOP after Batch 8.
+
+Do NOT begin Batch 9.
+
+Do not implement:
+
+* secrets manager
+* authentication
+* authorization
+* LLM providers
+* agents
+* memory
+* MCP
+* voice
+* vision
+* integrations
+
+The next batch is:
+
+**Batch 9 — `.env`, Environment Validation & Configuration Security Enforcement**
+
+Batch 8 is complete only when every current JARVIS component obtains configuration through the authoritative typed configuration system and invalid configuration prevents unsafe startup.
+
