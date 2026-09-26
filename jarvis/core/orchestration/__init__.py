@@ -1,10 +1,8 @@
 """
-Legacy Re-export module for Orchestrator (Batch 7 Consolidation).
-All authoritative orchestration implementation resides in jarvis.core.orchestration.
+Orchestration Subsystem Package for JARVIS Core (Batch 7).
 """
 
-from jarvis.core.orchestration import (
-    Orchestrator,
+from jarvis.core.orchestration.contracts import (
     Command,
     CreateTaskCommand,
     StartTaskCommand,
@@ -17,6 +15,7 @@ from jarvis.core.orchestration import (
     GetRuntimeStatusCommand,
     CommandResult,
 )
+from jarvis.core.orchestration.orchestrator import Orchestrator
 
 __all__ = [
     "Orchestrator",

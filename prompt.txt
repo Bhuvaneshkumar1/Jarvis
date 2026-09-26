@@ -6058,3 +6058,2741 @@ Do not implement voice.
 Do not implement memory.
 
 Batch 5 is complete only when the internal event bus is a real, tested, bounded, observable, lifecycle-managed component integrated with the Batch 4 runtime.
+
+
+# JARVIS — BATCH 6
+
+## PERSISTENT TASK MANAGER & TASK LIFECYCLE
+
+You are implementing Batch 6 of the JARVIS project.
+
+Batch 4 established the runtime lifecycle.
+
+Batch 5 established the internal event bus.
+
+This batch establishes the authoritative JARVIS Task Manager.
+
+The Task Manager must provide real persistent task creation, tracking, state transitions, dependencies, cancellation, recovery, and event integration.
+
+This is NOT the autonomous planner.
+
+This is NOT the agent system.
+
+This is NOT the scheduler.
+
+This is the execution-state foundation that those later systems will use.
+
+---
+
+# 1. ABSOLUTE RULES
+
+Do NOT implement:
+
+* LLM providers
+* LLM routing
+* autonomous planning
+* task decomposition by AI
+* agents
+* agent spawning
+* agent delegation
+* MCP
+* MCP servers
+* MCP clients
+* MCP credentials
+* voice
+* wake word
+* STT
+* TTS
+* vision
+* OCR
+* browser automation
+* Windows automation
+* Telegram
+* external integrations
+* scheduling
+* automatic recurring jobs
+* Obsidian
+* vector databases
+* knowledge graph
+
+Those belong to later batches.
+
+Do not create placeholder implementations for those systems.
+
+---
+
+# 2. PRIMARY OBJECTIVE
+
+Create one authoritative Task Manager capable of:
+
+* creating tasks
+* retrieving tasks
+* updating tasks
+* tracking task status
+* cancelling tasks
+* pausing tasks where supported
+* resuming tasks where supported
+* task dependencies
+* task priorities
+* task ownership
+* task metadata
+* task timestamps
+* task correlation
+* task persistence
+* restart recovery
+* task history
+* task events
+* idempotency
+* validation
+* failure handling
+* concurrency protection
+
+The implementation must be real and executable.
+
+Do NOT create a TaskManager containing only CRUD stubs.
+
+---
+
+# 3. ARCHITECTURAL POSITION
+
+The architecture should become:
+
+```text
+                   JARVIS RUNTIME
+                         │
+                         ▼
+                    EVENT BUS
+                         │
+                         ▼
+                  TASK MANAGER
+                         │
+                         ▼
+                    DATABASE
+```
+
+Later:
+
+```text
+Planner
+   ↓
+Task Manager
+   ↓
+Agent Manager
+   ↓
+Execution
+   ↓
+Verification
+```
+
+But those later systems must NOT be implemented now.
+
+The Task Manager is the authoritative owner of task state.
+
+There must be exactly one authoritative Task Manager.
+
+---
+
+# 4. SEARCH BEFORE IMPLEMENTATION
+
+Search the repository for:
+
+```text
+TaskManager
+TaskService
+TaskStore
+TaskRepository
+TaskStatus
+Task
+TaskStep
+Job
+Workflow
+Execution
+```
+
+Classify each existing implementation.
+
+Do not create competing task systems.
+
+If Batch 2 contracts already define:
+
+```text
+Task
+TaskStep
+TaskStatus
+```
+
+reuse them.
+
+Refine them only if required.
+
+---
+
+# 5. TASK MODEL
+
+The task model must contain enough information to reliably reconstruct task state after restart.
+
+At minimum support:
+
+```text
+task_id
+title
+description
+status
+priority
+created_at
+updated_at
+started_at
+completed_at
+cancelled_at
+failed_at
+owner
+correlation_id
+parent_task_id
+metadata
+version
+```
+
+Only include fields that are genuinely required.
+
+Do not create dozens of unused fields.
+
+---
+
+# 6. TASK STATUS
+
+Establish a controlled state machine.
+
+Recommended states:
+
+```text
+PENDING
+READY
+RUNNING
+PAUSED
+COMPLETED
+FAILED
+CANCELLED
+BLOCKED
+```
+
+If Batch 2 already established a status model, preserve compatibility unless a documented correction is necessary.
+
+---
+
+# 7. VALID STATE TRANSITIONS
+
+Define explicit transitions.
+
+Example:
+
+```text
+PENDING
+   ↓
+READY
+   ↓
+RUNNING
+   ↓
+COMPLETED
+```
+
+Failure:
+
+```text
+RUNNING
+   ↓
+FAILED
+```
+
+Cancellation:
+
+```text
+PENDING → CANCELLED
+READY → CANCELLED
+RUNNING → CANCELLED
+PAUSED → CANCELLED
+```
+
+Do not allow arbitrary status assignment.
+
+For example, this must not silently work:
+
+```text
+COMPLETED → RUNNING
+```
+
+unless the architecture explicitly defines a retry/reopen operation.
+
+---
+
+# 8. TASK STATE MACHINE
+
+Implement a real transition mechanism.
+
+Conceptually:
+
+```python
+transition(
+    task_id,
+    target_status,
+    reason=...
+)
+```
+
+The transition must:
+
+1. load current task
+2. validate transition
+3. update timestamps
+4. increment version
+5. persist transactionally
+6. publish appropriate event
+7. return updated task state
+
+Do not update the in-memory object without persistence.
+
+---
+
+# 9. DATABASE PERSISTENCE
+
+Batch 6 must use the project's persistent database foundation.
+
+If Batch 16 is planned as the full SQLite schema phase, do NOT duplicate that future architecture.
+
+However, Batch 6 requires enough database infrastructure to persist tasks.
+
+If the database layer from earlier batches is not yet sufficient:
+
+* implement the minimum required repository/schema layer
+* document what is temporary
+* ensure it can later be migrated into the authoritative database architecture
+
+Do NOT create two independent databases.
+
+Do NOT store tasks only in memory.
+
+---
+
+# 10. TASK REPOSITORY
+
+Create a real repository abstraction.
+
+Conceptually:
+
+```text
+TaskRepository
+├── create
+├── get
+├── list
+├── update
+├── transition
+├── delete where explicitly allowed
+└── recover
+```
+
+The Task Manager should depend on the repository abstraction rather than directly scattering SQL everywhere.
+
+Do not put business logic inside raw SQL helpers.
+
+---
+
+# 11. DATABASE TRANSACTIONS
+
+Task state changes must be transactional.
+
+For example:
+
+```text
+transition task
+   ↓
+database update
+   ↓
+event publication
+```
+
+Avoid a state where:
+
+```text
+database says COMPLETED
+event publication completely failed
+```
+
+without an explicit consistency strategy.
+
+If true atomic database+event transactions are not implemented yet, document the consistency model.
+
+Do not falsely claim exactly-once event delivery.
+
+---
+
+# 12. EVENT BUS INTEGRATION
+
+Use the Batch 5 event bus.
+
+Publish events such as:
+
+```text
+TaskCreated
+TaskReady
+TaskStarted
+TaskPaused
+TaskResumed
+TaskCompleted
+TaskFailed
+TaskCancelled
+TaskBlocked
+TaskUpdated
+```
+
+Only implement event types actually needed.
+
+Every event should include:
+
+* task ID
+* correlation ID
+* timestamp
+* source
+* causation ID where appropriate
+
+Do not create another event system.
+
+---
+
+# 13. TASK CREATION
+
+Implement real task creation.
+
+Example:
+
+```text
+create_task(
+    title="Build JARVIS",
+    description="Implement runtime foundation",
+    priority=HIGH
+)
+```
+
+Expected:
+
+1. validate input
+2. generate TaskID
+3. create persistent record
+4. set initial state
+5. publish TaskCreated
+6. return task
+
+Do not simply return an in-memory object.
+
+---
+
+# 14. TASK IDENTIFIERS
+
+Task IDs must be globally unique within the application.
+
+Use the existing ID contract from Batch 2.
+
+Do not use sequential IDs such as:
+
+```text
+task1
+task2
+task3
+```
+
+unless an internal database key is separately used.
+
+The public TaskID should be collision-resistant.
+
+---
+
+# 15. IDEMPOTENCY
+
+Task creation and transitions must account for duplicate requests.
+
+For example:
+
+```text
+same request
+same idempotency key
+```
+
+must not create duplicate tasks.
+
+Implement idempotency where it is useful and technically justified.
+
+Do not invent unnecessary distributed-system complexity.
+
+---
+
+# 16. TASK PRIORITY
+
+Implement a controlled priority model.
+
+Example:
+
+```text
+CRITICAL
+HIGH
+NORMAL
+LOW
+```
+
+Priority should influence task ordering when tasks are queried for execution.
+
+However:
+
+**Task Manager does not execute tasks.**
+
+It only exposes ordering information.
+
+Do not implement a worker queue yet.
+
+---
+
+# 17. TASK OWNERSHIP
+
+Support ownership metadata.
+
+Possible values:
+
+```text
+SYSTEM
+USER
+AGENT
+SERVICE
+```
+
+Do not create fake agents.
+
+An agent owner can be represented as an ID even though the Agent Manager does not exist yet.
+
+---
+
+# 18. PARENT TASK
+
+Support hierarchical relationships.
+
+A task may have:
+
+```text
+parent_task_id
+```
+
+This prepares the system for future task decomposition.
+
+Do NOT implement automatic decomposition.
+
+Example:
+
+```text
+Parent Task
+   ├── Child Task A
+   ├── Child Task B
+   └── Child Task C
+```
+
+The Task Manager only stores and validates the relationship.
+
+---
+
+# 19. TASK DEPENDENCIES
+
+Support explicit task dependencies.
+
+Example:
+
+```text
+Task A
+   ↓
+Task B
+```
+
+Meaning:
+
+```text
+B cannot become READY until A satisfies the required dependency condition.
+```
+
+Implement a dependency model.
+
+At minimum support:
+
+```text
+dependency_task_id
+dependency_type
+```
+
+Do not implement AI dependency discovery.
+
+---
+
+# 20. DEPENDENCY VALIDATION
+
+Prevent:
+
+```text
+A → A
+```
+
+and cycles:
+
+```text
+A → B
+B → C
+C → A
+```
+
+A dependency cycle must be rejected.
+
+Test it.
+
+---
+
+# 21. TASK READINESS
+
+The Task Manager should be able to determine whether a task is ready.
+
+Example:
+
+```text
+Task A = COMPLETED
+Task B depends on A
+Task B = READY
+```
+
+If:
+
+```text
+Task A = RUNNING
+```
+
+then B remains:
+
+```text
+PENDING/BLOCKED
+```
+
+depending on the defined state model.
+
+Do not silently start tasks.
+
+---
+
+# 22. TASK CANCELLATION
+
+Implement cancellation as a controlled state transition.
+
+Cancellation must:
+
+* validate state
+* record reason
+* record timestamp
+* persist
+* publish event
+
+Cancellation of an already terminal task must have deterministic behavior.
+
+Do not physically delete the task merely because it was cancelled.
+
+Task history must remain.
+
+---
+
+# 23. TASK PAUSE/RESUME
+
+If PAUSED is included:
+
+Implement real semantics.
+
+```text
+RUNNING
+   ↓
+PAUSED
+   ↓
+RUNNING
+```
+
+Do not pretend a task has paused if no execution system exists.
+
+At this stage the Task Manager only manages task state.
+
+Document that execution suspension will be implemented later.
+
+---
+
+# 24. TASK FAILURE
+
+A task failure must contain structured information.
+
+At minimum:
+
+```text
+error_code
+error_message
+failed_at
+failure_category
+retryable
+```
+
+Do not store raw credentials or secrets inside failure messages.
+
+Do not expose stack traces as user-facing task descriptions.
+
+Store diagnostic information separately where appropriate.
+
+---
+
+# 25. RETRY METADATA
+
+Do not implement automatic retries yet.
+
+But support metadata such as:
+
+```text
+attempt_count
+max_attempts
+last_attempt_at
+```
+
+only if it is needed by later execution systems.
+
+Do not increment attempts simply because a task was created.
+
+---
+
+# 26. TASK VERSIONING
+
+Implement optimistic versioning where useful.
+
+Example:
+
+```text
+version = 1
+
+update
+↓
+version = 2
+```
+
+A stale update must not silently overwrite a newer task state.
+
+Example:
+
+```text
+Client A reads version 3
+Client B updates → version 4
+Client A tries update version 3
+→ reject
+```
+
+Test this if implemented.
+
+---
+
+# 27. CONCURRENCY
+
+The Task Manager must safely handle concurrent updates.
+
+Test:
+
+```text
+two updates to same task
+two cancellation requests
+two start requests
+update + cancellation race
+```
+
+Only one valid state transition should win.
+
+The losing operation must receive deterministic information.
+
+---
+
+# 28. TASK QUERIES
+
+Implement useful task retrieval.
+
+Support queries such as:
+
+```text
+get(task_id)
+
+list(
+    status=...
+)
+
+list(
+    priority=...
+)
+
+list(
+    owner=...
+)
+
+list(
+    parent_task_id=...
+)
+
+list(
+    correlation_id=...
+)
+```
+
+Do not build a huge generic query language.
+
+---
+
+# 29. PAGINATION
+
+If list operations can return many tasks, support bounded retrieval.
+
+Example:
+
+```text
+limit
+offset/cursor
+```
+
+Do not load thousands or millions of tasks into memory unnecessarily.
+
+Use deterministic ordering.
+
+---
+
+# 30. TASK HISTORY
+
+Maintain a task history/audit trail.
+
+At minimum record:
+
+```text
+created
+status changed
+updated
+cancelled
+failed
+completed
+```
+
+Do not rely solely on current state.
+
+Later JARVIS should be able to answer:
+
+> "What happened to this task?"
+
+without reconstructing everything from logs.
+
+---
+
+# 31. AUDIT INTEGRATION
+
+Important task actions must integrate with the authoritative audit system.
+
+Audit:
+
+* task creation
+* state transitions
+* cancellation
+* failure
+* permission-related task changes
+
+Do not create another audit logger.
+
+---
+
+# 32. SECURITY
+
+Task metadata may contain sensitive information.
+
+Do not log:
+
+* API keys
+* passwords
+* authentication tokens
+* private keys
+* secret values
+
+Apply existing redaction.
+
+Do not allow arbitrary task metadata to bypass validation.
+
+---
+
+# 33. USER INPUT VALIDATION
+
+Reject:
+
+* empty task titles
+* invalid IDs
+* invalid priority
+* invalid state
+* malformed dependency
+* circular dependency
+* invalid parent
+* excessive input size
+
+Do not silently truncate data without documentation.
+
+---
+
+# 34. TASK SIZE LIMITS
+
+Prevent uncontrolled task payload growth.
+
+Define sensible limits for:
+
+* title
+* description
+* metadata
+* error message
+
+Do not allow megabytes of arbitrary data to be inserted into task metadata.
+
+If larger artifacts are needed later, store references instead.
+
+---
+
+# 35. PERSISTENCE AFTER RESTART
+
+This is mandatory.
+
+Test:
+
+```text
+JARVIS running
+    ↓
+create task
+    ↓
+persist
+    ↓
+shutdown
+    ↓
+restart
+    ↓
+load task
+```
+
+The task must still exist with correct state.
+
+Do not use an in-memory dictionary as the source of truth.
+
+---
+
+# 36. RECOVERY
+
+On startup, the Task Manager must inspect persisted tasks.
+
+Identify tasks left in non-terminal states after an unexpected shutdown.
+
+For example:
+
+```text
+RUNNING
+PAUSED
+```
+
+Do NOT automatically mark them completed.
+
+Do NOT automatically resume them unless explicitly designed.
+
+Instead classify them as recoverable/interrupted according to the defined state model.
+
+If a new status is required, define it explicitly.
+
+---
+
+# 37. CRASH RECOVERY TEST
+
+Perform a controlled simulation:
+
+```text
+create task
+→ transition RUNNING
+→ terminate process unexpectedly
+→ restart
+```
+
+Verify:
+
+* task still exists
+* state is correctly recovered
+* no duplicate task
+* history remains
+* recovery decision is deterministic
+
+Do not fake a restart test.
+
+---
+
+# 38. EVENT DUPLICATION
+
+Test duplicate operations.
+
+Examples:
+
+```text
+create request repeated
+start transition repeated
+cancel request repeated
+complete transition repeated
+```
+
+Ensure events are not emitted incorrectly for invalid repeated transitions.
+
+Do not claim exactly-once event semantics unless actually implemented.
+
+---
+
+# 39. DATABASE FAILURE TEST
+
+Test behavior when persistence fails.
+
+Simulate:
+
+```text
+database unavailable
+database write failure
+transaction failure
+```
+
+Expected:
+
+* operation fails safely
+* task state is not falsely reported as persisted
+* error is recorded
+* no false success event is emitted
+
+This is mandatory.
+
+---
+
+# 40. EVENT BUS FAILURE TEST
+
+Test what happens if event publication fails after task persistence.
+
+Document the consistency strategy.
+
+Possible result:
+
+```text
+task persisted
+event delivery failed
+operation marked partially successful
+retry/recovery mechanism records failure
+```
+
+Do not silently ignore the problem.
+
+Do not falsely claim atomicity.
+
+---
+
+# 41. TASK MANAGER API
+
+Create a clean service API.
+
+Conceptually:
+
+```text
+create_task()
+get_task()
+list_tasks()
+update_task()
+transition_task()
+cancel_task()
+pause_task()
+resume_task()
+add_dependency()
+remove_dependency()
+get_dependencies()
+get_history()
+recover_tasks()
+```
+
+Do not expose raw database operations to higher-level systems.
+
+---
+
+# 42. NO EXECUTION ENGINE
+
+The Task Manager must NOT execute tasks.
+
+No:
+
+```text
+subprocess
+LLM
+agent
+browser
+Windows automation
+tool execution
+```
+
+The Task Manager manages task state.
+
+Execution belongs to later orchestration/agent phases.
+
+---
+
+# 43. RUNTIME INTEGRATION
+
+Integrate Task Manager into Batch 4 runtime.
+
+Startup:
+
+```text
+Runtime
+ ↓
+Event Bus
+ ↓
+Task Manager
+ ↓
+Task Repository
+```
+
+Shutdown must persist/flush safely.
+
+Task Manager must not start at module import time.
+
+---
+
+# 44. EVENT BUS INTEGRATION TEST
+
+Verify actual event flow:
+
+```text
+create task
+     ↓
+TaskCreated event
+     ↓
+real subscriber
+     ↓
+handler receives correct task ID
+```
+
+Then:
+
+```text
+transition task
+     ↓
+TaskStarted/TaskCompleted/etc.
+     ↓
+subscriber
+```
+
+Use the real Batch 5 event bus.
+
+Do not mock the event bus for the main integration test.
+
+Unit tests may use controlled test doubles where appropriate.
+
+---
+
+# 45. DATABASE TEST ISOLATION
+
+Tests must use isolated temporary database state.
+
+Do not modify the real development task database during tests.
+
+Each test run must be repeatable.
+
+Clean up temporary resources.
+
+---
+
+# 46. PERFORMANCE TEST
+
+Measure:
+
+* task creation
+* task retrieval
+* state transition
+* task listing
+* dependency validation
+
+Use realistic test sizes.
+
+For example:
+
+```text
+100
+1,000
+10,000
+```
+
+where practical.
+
+Do not fabricate numbers.
+
+Report actual measurements.
+
+Do not prematurely optimize.
+
+---
+
+# 47. REQUIRED TEST MATRIX
+
+### Creation
+
+* valid task
+* invalid task
+* duplicate request
+
+### Retrieval
+
+* existing task
+* missing task
+
+### State
+
+* valid transitions
+* invalid transitions
+* repeated transitions
+
+### Dependencies
+
+* valid dependency
+* self dependency
+* circular dependency
+* missing dependency
+
+### Cancellation
+
+* pending
+* running
+* completed
+* already cancelled
+
+### Persistence
+
+* save
+* reload
+* restart recovery
+
+### Concurrency
+
+* concurrent updates
+* stale version
+* transition race
+
+### Failures
+
+* DB failure
+* event failure
+* serialization failure
+
+### Security
+
+* secret redaction
+* oversized metadata
+* invalid input
+
+---
+
+# 48. NEGATIVE TESTS
+
+Mandatory:
+
+1. empty task title
+2. invalid priority
+3. invalid task ID
+4. invalid transition
+5. self dependency
+6. circular dependency
+7. missing parent
+8. stale version update
+9. duplicate cancellation
+10. database failure
+11. event publication failure
+12. corrupted persisted record
+13. oversized metadata
+14. restart with interrupted task
+
+Every test must have an explicit expected result.
+
+---
+
+# 49. TEST QUALITY
+
+Do NOT write:
+
+```python
+assert task is not None
+```
+
+as the only assertion.
+
+Tests must verify actual state.
+
+Example:
+
+```text
+status
+version
+timestamps
+database record
+event payload
+history
+dependency relationship
+```
+
+Test observable behavior.
+
+---
+
+# 50. MCP EXCLUSION
+
+Explicitly verify:
+
+```text
+MCP implementation added: NO
+```
+
+Do not install any MCP server in Batch 6.
+
+Do not create:
+
+```text
+mcp/
+mcp_client/
+mcp_server/
+mcp_registry/
+```
+
+unless they already exist and are being removed/classified.
+
+The future MCP phase will be separate.
+
+---
+
+# 51. FULL REGRESSION
+
+Run all previous quality gates:
+
+```text
+compile
+lint
+format
+type check
+security
+secret scan
+pytest
+coverage
+```
+
+Run the entire test suite.
+
+Do not only execute Task Manager tests.
+
+---
+
+# 52. REQUIRED FINAL REPORT
+
+Produce exactly:
+
+## BATCH 6 RESULT
+
+### 1. Baseline
+
+* Batch 5 status
+* Python version
+* OS
+* Git status
+* existing tests
+
+### 2. Task Architecture
+
+* Task model
+* Task Manager
+* repository
+* persistence
+* state machine
+* dependency model
+
+### 3. Files Created
+
+Exact paths.
+
+### 4. Files Modified
+
+Exact paths.
+
+### 5. Persistence
+
+Explain exactly how tasks are persisted.
+
+### 6. State Machine
+
+List valid transitions.
+
+### 7. Event Bus Integration
+
+List actual task events.
+
+### 8. Recovery
+
+Explain restart/crash recovery behavior.
+
+### 9. Concurrency
+
+Explain concurrency/version handling.
+
+### 10. Failure Handling
+
+Report database/event failure behavior.
+
+### 11. Tests
+
+Report:
+
+```text
+collected:
+passed:
+failed:
+skipped:
+errors:
+coverage:
+```
+
+### 12. Negative Tests
+
+List each test and result.
+
+### 13. Restart Test
+
+Provide actual restart/recovery evidence.
+
+### 14. Performance
+
+Provide actual measurements.
+
+### 15. Security
+
+Report:
+
+* secret handling
+* validation
+* audit
+* authorization boundaries
+
+### 16. MCP Check
+
+```text
+MCP implementation added: NO
+```
+
+### 17. Known Defects
+
+List every unresolved issue.
+
+### 18. Unverified Items
+
+List everything not actually tested.
+
+### 19. Architecture Deviations
+
+List all deviations.
+
+### 20. Final Status
+
+Use exactly one:
+
+IMPLEMENTED AND VERIFIED
+
+PARTIALLY IMPLEMENTED
+
+FAILED
+
+BLOCKED
+
+NOT VERIFIED
+
+No percentages.
+
+No "production ready."
+
+No unsupported claims.
+
+---
+
+# 53. STOP CONDITION
+
+STOP after Batch 6.
+
+Do not implement Batch 7.
+
+Do not implement:
+
+* orchestration
+* autonomous planning
+* agents
+* LLM
+* MCP
+* scheduler
+* voice
+* memory
+
+Batch 6 is complete only when JARVIS has a real persistent Task Manager whose state survives restart and whose changes are integrated with the Batch 5 event bus.
+
+
+# JARVIS — BATCH 7
+
+## CORE ORCHESTRATION & RUNTIME COORDINATION
+
+You are implementing Batch 7 of the JARVIS project.
+
+Previous batches established:
+
+* Batch 4 → Runtime lifecycle
+* Batch 5 → Internal Event Bus
+* Batch 6 → Persistent Task Manager
+
+This batch connects those systems through one authoritative orchestration layer.
+
+The objective is to create the deterministic core coordinator responsible for coordinating application-level operations.
+
+This is NOT an AI planner.
+
+This is NOT autonomous intelligence.
+
+This is NOT an agent manager.
+
+This is NOT an execution engine.
+
+---
+
+# 1. ABSOLUTE RULES
+
+DO NOT implement:
+
+* LLMs
+* LLM routing
+* AI planning
+* autonomous reasoning
+* agents
+* agent spawning
+* agent delegation
+* MCP
+* MCP servers
+* MCP clients
+* MCP credentials
+* voice
+* wake word
+* STT
+* TTS
+* vision
+* OCR
+* browser automation
+* Windows automation
+* cybersecurity execution
+* Telegram
+* external integrations
+* memory
+* Obsidian
+* vector databases
+* scheduler
+* recurring jobs
+
+These belong to later batches.
+
+Do not create placeholders for these systems.
+
+---
+
+# 2. PRIMARY OBJECTIVE
+
+Create one authoritative orchestration layer that coordinates:
+
+```text
+Runtime
+   ↓
+Event Bus
+   ↓
+Task Manager
+   ↓
+Core Operations
+```
+
+The orchestrator must provide deterministic control over:
+
+* task lifecycle coordination
+* application-level commands
+* event reactions
+* task state coordination
+* graceful shutdown
+* failure propagation
+* cancellation
+* operation correlation
+* orchestration status
+* idempotency where required
+
+---
+
+# 3. ARCHITECTURAL PRINCIPLE
+
+The architecture should become:
+
+```text
+                 JARVIS RUNTIME
+                       │
+                       ▼
+                 ORCHESTRATOR
+                 /           \
+                ▼             ▼
+           EVENT BUS      TASK MANAGER
+                │             │
+                └──────┬──────┘
+                       ▼
+                  CORE SERVICES
+```
+
+The Orchestrator coordinates.
+
+The Event Bus transports events.
+
+The Task Manager owns task state.
+
+The Runtime owns application lifecycle.
+
+Do not merge these responsibilities.
+
+---
+
+# 4. SEARCH EXISTING IMPLEMENTATIONS
+
+Before implementation search for:
+
+```text
+Orchestrator
+Coordinator
+ApplicationController
+CommandGateway
+WorkflowManager
+ExecutionManager
+TaskCoordinator
+```
+
+Classify all results.
+
+There must be one authoritative orchestration implementation.
+
+If duplicates exist, consolidate rather than adding another competing coordinator.
+
+---
+
+# 5. ORCHESTRATOR RESPONSIBILITIES
+
+The Orchestrator should be responsible for:
+
+1. receiving approved application-level requests
+2. creating or locating tasks
+3. coordinating task state
+4. responding to relevant events
+5. initiating controlled operations
+6. handling cancellation
+7. coordinating shutdown
+8. tracking operation correlation
+9. reporting operation status
+10. propagating failures
+
+It must NOT directly perform external work.
+
+---
+
+# 6. REQUEST → ORCHESTRATION FLOW
+
+Create a deterministic flow:
+
+```text
+Request
+   ↓
+Validate
+   ↓
+Authorize if required
+   ↓
+Create/locate Task
+   ↓
+Publish event
+   ↓
+Orchestrator receives event
+   ↓
+Coordinate operation
+   ↓
+Task state transition
+   ↓
+Verification/result
+```
+
+At this stage verification should only use the infrastructure already available.
+
+Do not implement the future Verification Kernel yet.
+
+---
+
+# 7. COMMAND BOUNDARY
+
+Create a clear application command boundary.
+
+Potential commands:
+
+```text
+CreateTask
+StartTask
+PauseTask
+ResumeTask
+CancelTask
+GetTask
+ListTasks
+ShutdownApplication
+GetRuntimeStatus
+```
+
+Only implement commands that are actually required.
+
+Do not create hundreds of speculative commands.
+
+Commands must be validated before orchestration.
+
+---
+
+# 8. COMMAND HANDLING
+
+A command must not directly modify internal state without going through the authoritative service.
+
+Example:
+
+```text
+StartTask
+   ↓
+Orchestrator
+   ↓
+TaskManager.transition_task()
+```
+
+Not:
+
+```text
+StartTask
+   ↓
+database.update(...)
+```
+
+The Task Manager remains the owner of task state.
+
+---
+
+# 9. COMMAND RESULTS
+
+Use the existing Batch 2 Response contract.
+
+Responses should clearly identify:
+
+```text
+success
+request_id
+correlation_id
+task_id where applicable
+status
+message
+error information where applicable
+```
+
+Do not return raw internal objects.
+
+Responses must be serializable.
+
+---
+
+# 10. CORRELATION
+
+Every orchestrated operation must have traceability.
+
+Example:
+
+```text
+Request
+correlation_id = C1
+
+TaskCreated
+correlation_id = C1
+
+TaskStarted
+correlation_id = C1
+
+TaskCompleted
+correlation_id = C1
+```
+
+Use existing IDs.
+
+Do not create another correlation system.
+
+---
+
+# 11. CAUSATION
+
+Where applicable:
+
+```text
+Command
+   ↓
+Event
+   ↓
+Task transition
+   ↓
+Event
+```
+
+Maintain causation relationships.
+
+This should allow logs/audits to answer:
+
+> Why did this task change state?
+
+---
+
+# 12. IDEMPOTENCY
+
+Commands that may be retried must have deterministic behavior.
+
+Example:
+
+```text
+CancelTask(task_id)
+CancelTask(task_id)
+```
+
+The second request must not corrupt state.
+
+For creation commands, use idempotency keys where appropriate.
+
+Do not create duplicate tasks because a request was accidentally repeated.
+
+---
+
+# 13. ORCHESTRATOR STATE
+
+The Orchestrator may maintain bounded operation state.
+
+For example:
+
+```text
+active_operations
+correlation mappings
+cancellation signals
+```
+
+Do NOT store the authoritative task state in memory.
+
+Task Manager remains authoritative.
+
+Do not create an additional task database.
+
+---
+
+# 14. EVENT SUBSCRIPTIONS
+
+The Orchestrator should subscribe to relevant events through Batch 5.
+
+Examples:
+
+```text
+TaskCreated
+TaskReady
+TaskStarted
+TaskCompleted
+TaskFailed
+TaskCancelled
+RuntimeStopping
+RuntimeStopped
+```
+
+Only subscribe to events it actually needs.
+
+Do not create unnecessary event handlers.
+
+---
+
+# 15. EVENT HANDLER DISCIPLINE
+
+Event handlers must remain small.
+
+Bad:
+
+```text
+event handler
+→ perform entire business workflow
+→ call LLM
+→ execute browser
+→ modify files
+```
+
+Good:
+
+```text
+event handler
+→ validate event
+→ determine orchestration action
+→ delegate to appropriate authoritative service
+```
+
+Future agents/tools will handle actual execution.
+
+---
+
+# 16. TASK START COORDINATION
+
+When a task becomes READY, the Orchestrator may coordinate the transition:
+
+```text
+READY
+ ↓
+RUNNING
+```
+
+But it must NOT execute the task.
+
+At this stage:
+
+```text
+RUNNING
+```
+
+means:
+
+> the system has formally entered the task's execution lifecycle.
+
+Actual work execution belongs to later batches.
+
+Document this explicitly.
+
+---
+
+# 17. TASK COMPLETION
+
+The Orchestrator must not mark tasks COMPLETED merely because an execution request was issued.
+
+Completion requires an actual completion signal from the responsible execution subsystem.
+
+Since no execution engine exists yet, do not fabricate completion.
+
+This is critical.
+
+Do NOT implement:
+
+```text
+start_task()
+→ immediately COMPLETED
+```
+
+unless the task itself is a legitimate zero-work administrative operation.
+
+---
+
+# 18. TASK FAILURE
+
+Failure must propagate correctly.
+
+Example:
+
+```text
+Execution subsystem
+       ↓
+TaskFailed
+       ↓
+Event Bus
+       ↓
+Orchestrator
+       ↓
+Task Manager
+       ↓
+FAILED
+```
+
+Do not swallow failure events.
+
+---
+
+# 19. CANCELLATION
+
+Implement orchestration-level cancellation.
+
+Flow:
+
+```text
+CancelTask
+   ↓
+Orchestrator
+   ↓
+Task Manager
+   ↓
+CANCELLED
+```
+
+If actual execution exists later, cancellation signals will also need to reach the executor.
+
+Do not implement future execution cancellation now.
+
+---
+
+# 20. SHUTDOWN COORDINATION
+
+Integrate Orchestrator with Runtime shutdown.
+
+Expected:
+
+```text
+RuntimeStopping
+       ↓
+Orchestrator stops accepting new operations
+       ↓
+active operations handled according to policy
+       ↓
+Task Manager flushed/stopped
+       ↓
+Event Bus stopped
+       ↓
+RuntimeStopped
+```
+
+Do not introduce shutdown behavior that conflicts with Batch 4.
+
+---
+
+# 21. SHUTDOWN ORDER
+
+Verify the actual dependency order.
+
+A sensible structure is:
+
+```text
+STOP ACCEPTING REQUESTS
+        ↓
+ORCHESTRATOR STOP
+        ↓
+TASK MANAGER STOP
+        ↓
+EVENT BUS STOP
+        ↓
+OTHER COMPONENTS
+        ↓
+RUNTIME STOPPED
+```
+
+Use the actual dependency graph.
+
+Do not blindly copy this order if Batch 4 established a different valid lifecycle.
+
+---
+
+# 22. FAILURE PROPAGATION
+
+If a core dependency fails:
+
+```text
+Event Bus failure
+Task Manager failure
+Runtime failure
+```
+
+the Orchestrator must not continue pretending the system is healthy.
+
+Define the appropriate behavior.
+
+Possible:
+
+```text
+ORCHESTRATOR DEGRADED
+```
+
+or:
+
+```text
+RUNTIME FAILED
+```
+
+depending on severity.
+
+Do not invent a health state without integrating it into the existing health contract.
+
+---
+
+# 23. PARTIAL FAILURE
+
+Test:
+
+```text
+Task operation begins
+       ↓
+Task Manager succeeds
+       ↓
+next coordination operation fails
+```
+
+The Orchestrator must detect the partial state.
+
+Do not claim the entire operation succeeded.
+
+Record:
+
+```text
+requested
+accepted
+started
+completed
+failed
+partially completed
+not verified
+```
+
+Use the existing response/status contracts.
+
+---
+
+# 24. NO FAKE ROLLBACK
+
+Do not claim rollback if no rollback mechanism exists.
+
+If a partial operation cannot currently be rolled back:
+
+```text
+PARTIAL
+ROLLBACK NOT AVAILABLE
+```
+
+must be represented accurately.
+
+Rollback infrastructure will be strengthened later.
+
+---
+
+# 25. OPERATION CONTEXT
+
+Create a controlled operation context if needed.
+
+It may contain:
+
+```text
+request_id
+correlation_id
+task_id
+session_id
+source
+deadline/timeout
+cancellation state
+```
+
+Do not put arbitrary global state into it.
+
+---
+
+# 26. TIMEOUTS
+
+Orchestration operations must not hang indefinitely.
+
+Use configurable timeouts where appropriate.
+
+A timeout should produce:
+
+```text
+operation timeout
+task state unchanged or failed according to policy
+audit/log entry
+clear response
+```
+
+Do not silently convert timeout to success.
+
+---
+
+# 27. CONCURRENCY
+
+Test multiple operations simultaneously.
+
+Examples:
+
+```text
+Task A start
+Task B start
+Task C cancel
+Task D query
+```
+
+Ensure operations do not corrupt each other's state.
+
+Test:
+
+```text
+start + cancel same task
+start + start same task
+cancel + cancel same task
+```
+
+Results must be deterministic.
+
+---
+
+# 28. COMMAND VALIDATION
+
+Reject invalid commands before execution.
+
+Examples:
+
+```text
+missing task_id
+invalid command
+malformed request
+invalid status
+invalid correlation ID
+oversized metadata
+```
+
+Use the existing contract validation.
+
+Do not duplicate validation logic unnecessarily.
+
+---
+
+# 29. AUTHORIZATION BOUNDARY
+
+Batch 12–15 will implement the complete authentication/authorization system.
+
+For Batch 7:
+
+* respect any existing policy hooks
+* do not bypass future authorization boundaries
+* do not invent a second authorization system
+
+If authorization is not yet implemented, clearly document:
+
+```text
+Authorization enforcement: DEFERRED TO SECURITY PHASE
+```
+
+Do not pretend unrestricted commands are production-authorized.
+
+---
+
+# 30. AUDIT
+
+Important orchestration actions must integrate with the existing AuditEvent mechanism.
+
+Audit:
+
+* command received
+* command rejected
+* task created
+* task started
+* task cancelled
+* task transition
+* orchestration failure
+* shutdown request
+
+Do not create another audit system.
+
+---
+
+# 31. LOGGING
+
+Use existing logging.
+
+Useful events:
+
+```text
+orchestrator_initialized
+command_received
+command_rejected
+operation_started
+operation_completed
+operation_failed
+operation_cancelled
+orchestrator_stopping
+orchestrator_stopped
+```
+
+Every log should include correlation information where appropriate.
+
+Never log secrets.
+
+---
+
+# 32. RUNTIME STATUS
+
+Extend runtime status so it can report:
+
+```text
+runtime state
+event bus state
+task manager state
+orchestrator state
+active operations
+```
+
+Do not expose internal object references.
+
+Keep status serializable.
+
+---
+
+# 33. ORCHESTRATOR LIFECYCLE
+
+Implement:
+
+```text
+CREATED
+STARTING
+RUNNING
+STOPPING
+STOPPED
+FAILED
+```
+
+Use existing lifecycle conventions.
+
+Invalid transitions must be rejected.
+
+Repeated start/stop must be deterministic.
+
+---
+
+# 34. COMPONENT REGISTRATION
+
+Register the Orchestrator through the Batch 4 component registry.
+
+Do NOT instantiate it independently from `main.py`.
+
+Expected:
+
+```text
+Runtime
+  ↓
+Component Registry
+  ↓
+Event Bus
+Task Manager
+Orchestrator
+```
+
+The runtime remains the lifecycle owner.
+
+---
+
+# 35. DEPENDENCY ORDER
+
+The Orchestrator depends on:
+
+```text
+Event Bus
+Task Manager
+```
+
+Therefore it must not start before those dependencies are available.
+
+The dependency system must detect incorrect registration/order.
+
+---
+
+# 36. TEST COMMAND FLOW
+
+Create real tests such as:
+
+```text
+CreateTask command
+    ↓
+Orchestrator
+    ↓
+TaskManager
+    ↓
+Database
+    ↓
+TaskCreated event
+    ↓
+subscriber
+```
+
+This must use real implementations for the integration test.
+
+Do not mock the entire system and call that integration testing.
+
+---
+
+# 37. END-TO-END CORE FLOW
+
+Create at least one complete foundation flow:
+
+```text
+Application starts
+      ↓
+Runtime RUNNING
+      ↓
+Orchestrator RUNNING
+      ↓
+CreateTask command
+      ↓
+Task persisted
+      ↓
+TaskCreated event
+      ↓
+Task queried
+      ↓
+Task cancellation
+      ↓
+TaskCancelled event
+      ↓
+Shutdown
+      ↓
+Application STOPPED
+```
+
+Execute this flow for real.
+
+Capture actual evidence.
+
+---
+
+# 38. RESTART FLOW
+
+Verify:
+
+```text
+Start JARVIS
+↓
+Create task
+↓
+Shutdown
+↓
+Start JARVIS again
+↓
+Task exists
+↓
+Orchestrator can query it
+```
+
+Do not fabricate restart evidence.
+
+---
+
+# 39. FAILURE TEST MATRIX
+
+Test:
+
+### Event Bus unavailable
+
+Expected:
+
+* orchestrator startup failure or degraded state according to architecture
+
+### Task Manager unavailable
+
+Expected:
+
+* orchestrator cannot claim task operations are successful
+
+### Task creation failure
+
+Expected:
+
+* command returns failure
+
+### Event publication failure
+
+Expected:
+
+* operation reports correct partial/error state
+
+### Invalid command
+
+Expected:
+
+* rejection
+
+### Duplicate command
+
+Expected:
+
+* deterministic/idempotent result
+
+### Timeout
+
+Expected:
+
+* explicit timeout state/result
+
+### Concurrent cancellation
+
+Expected:
+
+* deterministic state
+
+---
+
+# 40. NO AUTONOMOUS EXECUTION
+
+This is critical.
+
+The Orchestrator must NOT interpret natural language.
+
+It must NOT decide:
+
+> "The user probably wants me to do X."
+
+It must NOT call an LLM.
+
+It must NOT spawn an agent.
+
+It must NOT execute a tool.
+
+It must NOT modify files.
+
+Those capabilities arrive later.
+
+At this stage it coordinates explicit structured commands.
+
+---
+
+# 41. NO MCP
+
+Search the repository for:
+
+```text
+MCP
+mcp
+modelcontextprotocol
+mcp-server
+mcp_client
+```
+
+Report findings.
+
+Expected:
+
+```text
+MCP implementation added: NO
+```
+
+Do not install anything MCP-related.
+
+The MCP phase remains separate.
+
+---
+
+# 42. PERFORMANCE TEST
+
+Measure:
+
+* command processing latency
+* task creation latency
+* task query latency
+* task cancellation latency
+* event propagation latency
+
+Do not establish arbitrary performance claims.
+
+Report actual measurements.
+
+---
+
+# 43. RESOURCE TEST
+
+Verify repeated operations do not continuously increase:
+
+* threads
+* asyncio tasks
+* event subscriptions
+* memory
+* database connections
+
+Perform repeated:
+
+```text
+start
+create
+query
+cancel
+shutdown
+restart
+```
+
+where practical.
+
+Document observed behavior.
+
+---
+
+# 44. QUALITY GATES
+
+Run all previous quality gates:
+
+```text
+compile
+lint
+format
+type check
+security scan
+secret scan
+pytest
+coverage
+```
+
+Run the complete regression suite.
+
+Do not run only Batch 7 tests.
+
+---
+
+# 45. REQUIRED FINAL REPORT
+
+Produce exactly:
+
+## BATCH 7 RESULT
+
+### 1. Baseline
+
+* Batch 6 status
+* Python version
+* OS
+* Git status
+* existing tests
+
+### 2. Architecture
+
+* Orchestrator location
+* responsibilities
+* dependencies
+* relationship with Runtime
+* relationship with Event Bus
+* relationship with Task Manager
+
+### 3. Files Created
+
+Exact paths.
+
+### 4. Files Modified
+
+Exact paths.
+
+### 5. Command Flow
+
+Show actual request → orchestration → task → event flow.
+
+### 6. Lifecycle
+
+List actual Orchestrator lifecycle states and transitions.
+
+### 7. Shutdown
+
+Show actual shutdown coordination.
+
+### 8. Failure Handling
+
+List actual failure behavior.
+
+### 9. Concurrency
+
+List tests and actual results.
+
+### 10. Restart
+
+Provide actual restart evidence.
+
+### 11. End-to-End Core Flow
+
+Provide actual command and result.
+
+### 12. Performance
+
+Provide measured values.
+
+### 13. Resource Behavior
+
+Report findings.
+
+### 14. Full Tests
+
+Report:
+
+```text
+collected:
+passed:
+failed:
+skipped:
+errors:
+coverage:
+```
+
+### 15. Negative Tests
+
+List every negative test and result.
+
+### 16. Security
+
+Report:
+
+* authorization boundary
+* audit
+* logging
+* secret handling
+
+### 17. MCP Check
+
+```text
+MCP implementation added: NO
+```
+
+### 18. Known Defects
+
+List every unresolved issue.
+
+### 19. Unverified Items
+
+List everything not actually tested.
+
+### 20. Architecture Deviations
+
+List every deviation.
+
+### 21. Final Status
+
+Use exactly one:
+
+IMPLEMENTED AND VERIFIED
+
+PARTIALLY IMPLEMENTED
+
+FAILED
+
+BLOCKED
+
+NOT VERIFIED
+
+Do not provide percentages.
+
+Do not say "production ready."
+
+Do not claim functionality that was not executed.
+
+---
+
+# 46. STOP CONDITION
+
+STOP after Batch 7.
+
+Do not start Batch 8.
+
+Do not implement:
+
+* configuration redesign
+* `.env` redesign
+* secrets manager
+* authentication
+* authorization
+* LLM
+* agents
+* MCP
+* memory
+* voice
+* vision
+* scheduling
+
+The next batch is Batch 8 — Configuration Management.
+
+Batch 7 is complete only when Runtime, Event Bus, Task Manager, and Orchestrator operate as one deterministic, testable core without introducing autonomous behavior.

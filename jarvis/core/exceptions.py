@@ -93,6 +93,30 @@ class TaskValidationError(TaskError, ValueError):
     pass
 
 
+class OrchestrationError(JarvisError):
+    """Base exception class for all orchestration layer failures."""
+
+    pass
+
+
+class InvalidCommandError(OrchestrationError, ValueError):
+    """Raised when an orchestrator command fails validation or is unrecognized."""
+
+    pass
+
+
+class CommandExecutionError(OrchestrationError):
+    """Raised when an orchestrator command execution encounters an operational failure."""
+
+    pass
+
+
+class OperationTimeoutError(OrchestrationError):
+    """Raised when an orchestrator command exceeds its execution timeout."""
+
+    pass
+
+
 class ResourceLimitError(JarvisError):
     """Raised when memory, CPU, or process resource budgets are exceeded."""
 

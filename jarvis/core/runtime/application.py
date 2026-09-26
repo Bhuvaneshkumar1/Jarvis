@@ -20,8 +20,8 @@ from jarvis.core.exceptions import (
 )
 
 
-from jarvis.core.events import (
-    EventBus,
+from jarvis.core.events.bus import EventBus
+from jarvis.core.events.contracts import (
     RuntimeStartingEvent,
     RuntimeStartedEvent,
     RuntimeStoppingEvent,
@@ -34,9 +34,8 @@ from jarvis.core.events import (
     ComponentStoppedEvent,
     ComponentFailedEvent,
 )
-
-
-from jarvis.core.tasks import TaskManager
+from jarvis.core.tasks.manager import TaskManager
+from jarvis.core.orchestration.orchestrator import Orchestrator
 
 
 class JarvisApplication:
@@ -64,6 +63,7 @@ class JarvisApplication:
         logger: Optional[JarvisLogger] = None,
         event_bus: Optional[EventBus] = None,
         task_manager: Optional[TaskManager] = None,
+        orchestrator: Optional[Orchestrator] = None,
         init_timeout: float = 10.0,
         start_timeout: float = 10.0,
         shutdown_timeout: float = 10.0,
@@ -72,6 +72,11 @@ class JarvisApplication:
         self.logger: JarvisLogger = logger or JarvisLogger(component="Runtime")
         self.event_bus: EventBus = event_bus or EventBus(logger=JarvisLogger(component="EventBus"))
         self.task_manager: TaskManager = task_manager or TaskManager(event_bus=self.event_bus, logger=JarvisLogger(component="TaskManager"))
+        self.orchestrator: Orchestrator = orchestrator or Orchestrator(
+            event_bus=self.event_bus,
+            task_manager=self.task_manager,
+            logger=JarvisLogger(component="Orchestrator"),
+        )
         self.registry: ComponentRegistry = ComponentRegistry()
         self.context: RuntimeContext = RuntimeContext(settings=self.settings, logger=self.logger)
 
@@ -87,9 +92,10 @@ class JarvisApplication:
         self._shutdown_lock: asyncio.Lock = asyncio.Lock()
         self._shutdown_task: Optional[asyncio.Task] = None
 
-        # Automatically register EventBus and TaskManager into registry
+        # Automatically register EventBus, TaskManager, and Orchestrator into registry
         self.register_component(self.event_bus)
         self.register_component(self.task_manager)
+        self.register_component(self.orchestrator)
 
     @property
     def state(self) -> RuntimeState:

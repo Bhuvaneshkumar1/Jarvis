@@ -36,6 +36,9 @@ def test_core_and_contracts_imports():
         "jarvis.core.tasks.contracts",
         "jarvis.core.tasks.repository",
         "jarvis.core.tasks.manager",
+        "jarvis.core.orchestration",
+        "jarvis.core.orchestration.contracts",
+        "jarvis.core.orchestration.orchestrator",
     ]
     for mod_name in modules:
         mod = importlib.import_module(mod_name)
