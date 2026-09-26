@@ -10249,3 +10249,2946 @@ The next batch is:
 
 Batch 8 is complete only when every current JARVIS component obtains configuration through the authoritative typed configuration system and invalid configuration prevents unsafe startup.
 
+# JARVIS — BATCH 9
+
+## ENVIRONMENT SECURITY, .ENV VALIDATION & CONFIGURATION HARDENING
+
+You are implementing Batch 9 of the JARVIS project.
+
+Previous batches established:
+
+* Batch 4 → Runtime lifecycle
+* Batch 5 → Internal Event Bus
+* Batch 6 → Persistent Task Manager
+* Batch 7 → Core Orchestrator
+* Batch 8 → Centralized typed configuration
+
+This batch hardens the boundary between:
+
+```text
+.env
+Environment Variables
+Configuration
+Application Runtime
+```
+
+The objective is to make environment handling deterministic, secure, validated, auditable, and resistant to accidental credential exposure.
+
+This is NOT the full Secrets Manager.
+
+Batch 10 will implement the actual Secrets Management subsystem.
+
+---
+
+# 1. ABSOLUTE RULES
+
+DO NOT implement:
+
+* encrypted credential vault
+* password-protected secret database
+* secret rotation
+* key management
+* credential lifecycle management
+* LLM providers
+* MCP
+* MCP servers
+* MCP clients
+* MCP credentials
+* agents
+* autonomous planning
+* memory
+* Obsidian
+* voice
+* STT
+* TTS
+* vision
+* OCR
+* browser automation
+* Windows automation
+* Telegram
+* external integrations
+* scheduler
+
+Do not add future functionality merely because the environment contains variables for it.
+
+---
+
+# 2. PRIMARY OBJECTIVE
+
+Harden environment handling.
+
+Implement real functionality for:
+
+1. `.env` discovery
+2. `.env` loading
+3. `.env` validation
+4. `.env` permission/security checks where supported
+5. required-variable validation
+6. unknown-variable detection
+7. variable naming validation
+8. duplicate-variable detection
+9. dangerous configuration detection
+10. secret classification
+11. safe diagnostics
+12. `.gitignore` verification
+13. repository secret scanning
+14. environment isolation
+15. test-environment isolation
+16. configuration/environment consistency
+17. startup enforcement
+
+---
+
+# 3. EXISTING `.ENV` RULE
+
+There is already a `.env` file in the JARVIS project directory.
+
+Treat it as sensitive.
+
+NEVER:
+
+* print its contents
+* include its values in the final report
+* copy its values into `.env.example`
+* copy its values into Python source
+* commit it
+* expose it in logs
+* include it in test output
+* send it to an external API
+* include it in an LLM prompt
+* display it through diagnostics
+
+You may inspect variable NAMES and whether required values are present.
+
+Never reveal actual values.
+
+---
+
+# 4. FIRST STEP — BASELINE
+
+Before modification:
+
+Run:
+
+```bash
+git status
+```
+
+Then inspect:
+
+```text
+.env
+.env.example
+.gitignore
+pyproject.toml
+requirements.txt
+requirements-dev.txt
+```
+
+Do not print secret contents.
+
+Determine:
+
+* whether `.env` exists
+* whether Git tracks `.env`
+* whether `.env.example` exists
+* whether `.gitignore` protects `.env`
+* which environment variables are currently referenced
+* which variables are classified as secrets
+* whether duplicate configuration loaders exist
+
+Record the baseline safely.
+
+---
+
+# 5. NEVER USE `cat .env`
+
+Do not execute commands that dump `.env` contents.
+
+Do not use:
+
+```bash
+cat .env
+type .env
+Get-Content .env
+```
+
+unless the output is explicitly filtered to variable names only and cannot reveal values.
+
+Prefer programmatic parsing that returns:
+
+```text
+variable name
+present/absent
+classification
+```
+
+rather than raw file contents.
+
+---
+
+# 6. ENVIRONMENT VARIABLE REGISTRY
+
+Create one authoritative registry describing environment variables.
+
+Conceptually:
+
+```text
+EnvironmentVariableDefinition
+```
+
+Fields may include:
+
+```text
+name
+type
+required
+secret
+default
+allowed_values
+min_value
+max_value
+description
+environment_scope
+deprecated
+future
+```
+
+Example:
+
+```text
+NVIDIA_API_KEY
+type = secret
+required = false
+future = true
+```
+
+Do not store the actual secret.
+
+---
+
+# 7. VARIABLE CLASSIFICATION
+
+Classify variables as:
+
+```text
+PUBLIC
+INTERNAL
+SENSITIVE
+SECRET
+FUTURE
+DEPRECATED
+```
+
+Examples:
+
+```text
+JARVIS_ENV       → PUBLIC/INTERNAL
+LOG_LEVEL        → PUBLIC
+DATABASE_PATH    → INTERNAL
+API_KEY          → SECRET
+PASSWORD         → SECRET
+TOKEN            → SECRET
+```
+
+Classification must be explicit.
+
+Do not infer secrecy solely from variable names if the registry already defines it.
+
+---
+
+# 8. SECRET VARIABLE DETECTION
+
+Implement a defense-in-depth detector for likely secrets.
+
+Patterns may include:
+
+```text
+API_KEY
+TOKEN
+PASSWORD
+SECRET
+PRIVATE_KEY
+CLIENT_SECRET
+ACCESS_KEY
+AUTH_TOKEN
+BOT_TOKEN
+```
+
+This detector should identify variables that may require secret treatment.
+
+However, do not automatically classify every occurrence as a secret without considering the registry.
+
+False positives should be documented.
+
+---
+
+# 9. UNKNOWN VARIABLES
+
+Detect environment variables that are not recognized by the JARVIS registry.
+
+Do not automatically fail startup for every unknown OS environment variable.
+
+Windows contains many unrelated environment variables.
+
+Instead distinguish:
+
+```text
+KNOWN JARVIS VARIABLE
+UNKNOWN JARVIS-LIKE VARIABLE
+UNRELATED SYSTEM VARIABLE
+```
+
+For example, variables prefixed:
+
+```text
+JARVIS_
+```
+
+should be checked strictly.
+
+Provider variables explicitly supported by the project should also be recognized.
+
+---
+
+# 10. JARVIS PREFIX
+
+Use a consistent naming convention.
+
+Core application variables should preferably use:
+
+```text
+JARVIS_
+```
+
+Examples:
+
+```text
+JARVIS_ENV
+JARVIS_LOG_LEVEL
+JARVIS_DATABASE_PATH
+JARVIS_MAX_MEMORY_GB
+JARVIS_EVENT_QUEUE_SIZE
+```
+
+Do not rename existing variables blindly.
+
+If Batch 8 already established names, preserve them unless there is a documented correction.
+
+---
+
+# 11. DUPLICATE VARIABLES
+
+Detect duplicate variable definitions inside `.env`.
+
+Example:
+
+```text
+JARVIS_ENV=development
+JARVIS_ENV=production
+```
+
+This must be treated as an error.
+
+Do not silently use the last occurrence.
+
+Do not silently use the first occurrence.
+
+Report:
+
+```text
+Duplicate environment variable: JARVIS_ENV
+```
+
+without revealing its values.
+
+---
+
+# 12. MALFORMED `.ENV`
+
+Detect malformed entries such as:
+
+```text
+=abc
+JARVIS_ENV
+JARVIS_ENV==
+invalid variable names
+```
+
+Define valid parsing behavior.
+
+Malformed required configuration must fail validation.
+
+Do not silently ignore malformed lines unless they are valid comments/formatting according to the selected `.env` parser.
+
+---
+
+# 13. VARIABLE NAME VALIDATION
+
+Validate names according to the environment/configuration standard.
+
+Reject dangerous names such as malformed or ambiguous keys.
+
+Do not allow arbitrary configuration injection through malformed names.
+
+---
+
+# 14. VALUE VALIDATION
+
+Use the Batch 8 typed configuration system.
+
+Do not duplicate type conversion logic.
+
+Example:
+
+```text
+JARVIS_MAX_MEMORY_GB=abc
+```
+
+must fail.
+
+Example:
+
+```text
+JARVIS_MAX_MEMORY_GB=8
+```
+
+must produce integer `8`.
+
+The environment security layer validates the environment boundary.
+
+The configuration layer owns typed application values.
+
+---
+
+# 15. PRECEDENCE SECURITY
+
+Verify the exact precedence established in Batch 8.
+
+For example:
+
+```text
+defaults
+↓
+config file
+↓
+.env
+↓
+process environment
+```
+
+Test that an attacker cannot unintentionally override a critical setting merely through an unexpected lower-priority source.
+
+Document the precedence.
+
+---
+
+# 16. PROCESS ENVIRONMENT OVERRIDE
+
+Test:
+
+```text
+.env:
+JARVIS_ENV=development
+
+process environment:
+JARVIS_ENV=test
+```
+
+Verify the documented precedence.
+
+Do not allow precedence to vary depending on import order.
+
+---
+
+# 17. TEST ENVIRONMENT ISOLATION
+
+Tests must not accidentally load the user's real `.env` secrets.
+
+Create a controlled test environment.
+
+The test suite must explicitly establish:
+
+```text
+JARVIS_ENV=test
+```
+
+and use test-safe configuration.
+
+If the application currently loads `.env` automatically during tests, fix this.
+
+Tests must not depend on the user's personal credentials.
+
+---
+
+# 18. PRODUCTION ENVIRONMENT
+
+Production configuration must be explicit.
+
+Do not allow:
+
+```text
+missing JARVIS_ENV
+```
+
+to automatically mean production.
+
+Do not accidentally enable:
+
+```text
+debug=true
+```
+
+in production.
+
+Validate production-specific safety requirements where appropriate.
+
+Do not claim the application is production secure merely because this validation exists.
+
+---
+
+# 19. DEBUG SAFETY
+
+Ensure debug mode cannot be silently enabled in production.
+
+Example:
+
+```text
+JARVIS_ENV=production
+JARVIS_DEBUG=true
+```
+
+must either:
+
+* fail validation
+* or require an explicitly documented override mechanism
+
+Do not allow accidental production debug logging.
+
+---
+
+# 20. DEVELOPMENT SAFETY
+
+Development mode may enable diagnostics, but secrets must still remain protected.
+
+Development must NOT mean:
+
+```text
+log everything
+print configuration
+dump environment
+disable security
+```
+
+Never implement such behavior.
+
+---
+
+# 21. TEST SAFETY
+
+Test environment must:
+
+* use temporary database paths
+* avoid real credentials
+* avoid external services
+* avoid real user files
+* avoid production configuration
+* avoid modifying the real `.env`
+
+---
+
+# 22. `.ENV.EXAMPLE`
+
+Verify `.env.example`.
+
+It must contain:
+
+* variable names
+* safe placeholder values
+* descriptions/comments where useful
+
+It must NOT contain:
+
+* actual API keys
+* actual tokens
+* actual passwords
+* real private keys
+* real session cookies
+* copied production credentials
+
+Use:
+
+```text
+YOUR_API_KEY_HERE
+```
+
+or equivalent placeholders.
+
+---
+
+# 23. `.GITIGNORE`
+
+Ensure `.gitignore` contains protection for:
+
+```text
+.env
+.env.*
+!.env.example
+```
+
+Adjust carefully if the repository intentionally needs other environment files.
+
+Verify that `.env.example` remains trackable.
+
+Do not use an overly broad rule that hides required project configuration.
+
+---
+
+# 24. GIT TRACKING TEST
+
+Run a real check equivalent to:
+
+```bash
+git ls-files .env
+```
+
+Expected:
+
+```text
+no output
+```
+
+If `.env` is tracked:
+
+STOP and fix it safely.
+
+Do not remove the user's local `.env` file.
+
+Remove it from Git tracking only if appropriate.
+
+Do not commit the change.
+
+---
+
+# 25. SECRET SEARCH
+
+Search tracked repository content for likely credentials.
+
+Use an actual secret scanner where practical.
+
+Also perform targeted searches for:
+
+```text
+api_key
+apikey
+token
+password
+secret
+private_key
+client_secret
+authorization
+bearer
+```
+
+Classify results.
+
+Do not print secret values.
+
+If a likely secret is discovered:
+
+```text
+SECRET EXPOSURE — BLOCKER
+```
+
+Do not claim the batch is successful.
+
+---
+
+# 26. SAFE SECRET REPORTING
+
+If a secret-like value is detected, report only:
+
+```text
+file
+line number if safe
+variable name
+classification
+severity
+```
+
+Never print:
+
+```text
+actual secret
+```
+
+Do not reveal prefixes/suffixes either.
+
+---
+
+# 27. ENVIRONMENT SNAPSHOT
+
+Implement a safe diagnostic snapshot.
+
+Example:
+
+```text
+JARVIS ENVIRONMENT
+==================
+
+Environment: development
+Config source: .env + process environment
+
+JARVIS_LOG_LEVEL: SET
+JARVIS_DATABASE_PATH: SET
+JARVIS_MAX_MEMORY_GB: SET
+
+Secrets:
+NVIDIA_API_KEY: SET
+OPENROUTER_API_KEY: SET
+OPENAI_API_KEY: NOT SET
+```
+
+No values.
+
+---
+
+# 28. ENVIRONMENT VALIDATION COMMAND
+
+Provide a real command.
+
+For example:
+
+```bash
+python scripts/validate_environment.py
+```
+
+or an equivalent module command.
+
+It must actually:
+
+1. locate environment sources
+2. parse them
+3. detect malformed variables
+4. detect duplicates
+5. validate known variables
+6. classify secrets
+7. verify `.gitignore`
+8. verify Git tracking
+9. perform secret scanning where configured
+10. produce safe diagnostics
+11. return non-zero on mandatory failures
+
+Do not create a script that merely prints "environment valid."
+
+---
+
+# 29. COMMAND EXIT CODES
+
+Define deterministic results.
+
+Example:
+
+```text
+0 → valid
+1 → validation failure
+2 → security failure
+3 → configuration/environment error
+```
+
+Use a simple documented scheme.
+
+Do not return `0` after a mandatory security failure.
+
+---
+
+# 30. ENVIRONMENT SECURITY LEVEL
+
+Create an explicit validation result:
+
+```text
+VALID
+WARNING
+FAILED
+BLOCKED
+```
+
+Do not call an environment secure simply because no obvious secret was detected.
+
+Use precise wording.
+
+---
+
+# 31. FILE PERMISSIONS
+
+Because the deployment target is Windows, do not blindly apply Linux `chmod` assumptions.
+
+Inspect whether meaningful access-control checks are possible on Windows.
+
+If implemented:
+
+* identify the `.env` owner
+* inspect access permissions
+* detect overly broad access where reliably possible
+
+If reliable permission verification cannot be implemented cross-platform:
+
+```text
+NOT VERIFIED — Windows ACL verification not implemented
+```
+
+Do not fake it.
+
+---
+
+# 32. PATH SECURITY
+
+Validate sensitive paths.
+
+Prevent configuration from unexpectedly pointing critical data to:
+
+```text
+temporary directories
+public/shared locations
+system directories
+unexpected network paths
+```
+
+Only enforce restrictions where there is a real security requirement.
+
+Do not block legitimate Windows paths without evidence.
+
+---
+
+# 33. ENVIRONMENT INJECTION
+
+Test malicious-looking values.
+
+Examples:
+
+```text
+JARVIS_DATABASE_PATH=../../unexpected
+JARVIS_LOG_LEVEL=$(command)
+JARVIS_DEBUG=true
+```
+
+Configuration must treat values as data.
+
+Never execute environment variable contents as commands.
+
+Do not pass configuration directly into shell commands without safe handling.
+
+---
+
+# 34. COMMAND INJECTION TEST
+
+If any configuration value is eventually passed to a subprocess, ensure it is not interpreted as shell syntax.
+
+This batch does NOT implement terminal execution.
+
+Therefore, establish safe configuration boundaries and document that command execution belongs to later tool infrastructure.
+
+Do not build a fake terminal implementation to test this.
+
+---
+
+# 35. ENVIRONMENT LOGGING
+
+Audit all environment/configuration-related logging.
+
+There must be no code such as:
+
+```python
+logger.info(os.environ)
+```
+
+or:
+
+```python
+print(config.model_dump())
+```
+
+if that includes secrets.
+
+Search for:
+
+```text
+os.environ
+dict(os.environ)
+dotenv_values
+config.__dict__
+model_dump()
+vars(config)
+```
+
+Classify each occurrence.
+
+---
+
+# 36. ERROR HANDLING
+
+Environment errors must be actionable.
+
+Example:
+
+```text
+EnvironmentValidationError:
+JARVIS_MAX_MEMORY_GB must be >= 1.
+```
+
+For secret values:
+
+```text
+EnvironmentValidationError:
+NVIDIA_API_KEY is missing.
+```
+
+Never:
+
+```text
+NVIDIA_API_KEY=<actual value>
+```
+
+---
+
+# 37. STARTUP ENFORCEMENT
+
+Integrate environment validation into the actual runtime startup.
+
+Expected:
+
+```text
+Process
+ ↓
+Environment validation
+ ↓
+Configuration loading
+ ↓
+Configuration validation
+ ↓
+Runtime
+```
+
+If environment validation fails:
+
+```text
+Runtime must NOT enter RUNNING.
+```
+
+Test this using an isolated test environment.
+
+---
+
+# 38. STARTUP FAILURE TESTS
+
+Test:
+
+### Missing required variable
+
+Expected:
+
+* startup blocked
+
+### Invalid variable
+
+Expected:
+
+* startup blocked
+
+### Duplicate variable
+
+Expected:
+
+* startup blocked
+
+### Unsafe production debug configuration
+
+Expected:
+
+* startup blocked or explicitly controlled
+
+### Secret scanner detects repository secret
+
+Expected:
+
+* security gate fails
+
+---
+
+# 39. ENVIRONMENT DRIFT
+
+Detect configuration variables expected by the application but missing from `.env.example`.
+
+Example:
+
+```text
+Code requires:
+JARVIS_X
+
+.env.example:
+does not define JARVIS_X
+```
+
+Report:
+
+```text
+ENVIRONMENT DOCUMENTATION DRIFT
+```
+
+This should be a validation failure if the variable is required.
+
+---
+
+# 40. UNUSED VARIABLE DETECTION
+
+Where practical, detect variables present in `.env.example` but not referenced by the current configuration registry.
+
+Classify as:
+
+```text
+CURRENT
+FUTURE
+DEPRECATED
+UNUSED
+```
+
+Do not automatically delete variables.
+
+Future provider credentials can remain documented if explicitly marked FUTURE.
+
+---
+
+# 41. DEPRECATED VARIABLES
+
+If older variable names exist:
+
+```text
+OLD_JARVIS_CONFIG
+NEW_JARVIS_CONFIG
+```
+
+do not silently accept both forever.
+
+Define:
+
+```text
+deprecated
+replacement
+migration message
+```
+
+Only implement compatibility aliases if genuinely required.
+
+---
+
+# 42. CONFIGURATION DRIFT REPORT
+
+The validation command should identify:
+
+```text
+Missing required variables
+Unknown JARVIS variables
+Deprecated variables
+Duplicate variables
+Variables missing from .env.example
+Malformed entries
+Secret exposures
+Unsafe production settings
+```
+
+Keep the output safe.
+
+---
+
+# 43. NO SECRET MANAGER YET
+
+Explicitly document:
+
+```text
+Secrets Manager: DEFERRED TO BATCH 10
+```
+
+The `.env` file remains the current development credential source.
+
+Do not pretend `.env` is a secure production secret vault.
+
+---
+
+# 44. NO MCP
+
+This is mandatory.
+
+Search for:
+
+```text
+MCP
+mcp
+modelcontextprotocol
+mcp-server
+mcp_client
+```
+
+Do not install or implement anything related to MCP.
+
+Expected report:
+
+```text
+MCP implementation added: NO
+```
+
+The dedicated MCP phase remains separate and will later contain the real MCP credentials, servers, clients, permission mapping, sandboxing, connectivity checks, and verification.
+
+---
+
+# 45. REQUIRED TEST MATRIX
+
+### `.env`
+
+* exists
+* missing
+* malformed
+* duplicate variable
+* safe parsing
+
+### Git
+
+* `.env` ignored
+* `.env` untracked
+* `.env.example` trackable
+
+### Configuration
+
+* valid environment
+* invalid type
+* invalid range
+* unknown JARVIS variable
+* deprecated variable
+* missing required variable
+
+### Security
+
+* fake secret detection
+* secret redaction
+* no secret logging
+* environment injection attempt
+
+### Environment separation
+
+* development
+* test
+* production
+
+### Runtime
+
+* valid environment → startup
+* invalid environment → startup blocked
+
+---
+
+# 46. MANDATORY NEGATIVE TESTS
+
+Test at least:
+
+1. duplicate variable
+2. malformed variable
+3. invalid integer
+4. invalid boolean
+5. invalid enum
+6. missing required variable
+7. unknown `JARVIS_*` variable
+8. unsafe production debug
+9. fake secret exposure
+10. secret appearing in diagnostic output
+11. `.env` tracked by Git simulation
+12. test environment attempting to load production configuration
+13. path traversal-style configuration
+14. command-like environment value
+15. environment/configuration drift
+
+Every negative test must have a documented expected result.
+
+---
+
+# 47. FULL REGRESSION
+
+Run:
+
+```text
+compile
+lint
+format
+type check
+security scan
+secret scan
+pytest
+coverage
+```
+
+Run ALL tests from Batches 1–8.
+
+Do not only run environment tests.
+
+---
+
+# 48. REAL-WORLD VALIDATION
+
+Use the actual project environment.
+
+You may inspect whether variables are:
+
+```text
+SET
+NOT SET
+```
+
+but never reveal values.
+
+Verify that the actual JARVIS startup can use the existing `.env` successfully if its required configuration is valid.
+
+If the existing `.env` contains invalid configuration, do not modify the credentials blindly.
+
+Report the exact variable NAME and validation problem, not its value.
+
+---
+
+# 49. DO NOT MODIFY USER CREDENTIALS
+
+Do NOT:
+
+* regenerate API keys
+* replace tokens
+* rotate credentials
+* delete credentials
+* modify credential values
+* copy credentials
+* migrate credentials to another file
+
+Batch 10 will establish the controlled secret-management mechanism.
+
+---
+
+# 50. REQUIRED FINAL REPORT
+
+Produce exactly:
+
+## BATCH 9 RESULT
+
+### 1. Baseline
+
+* Batch 8 status
+* Python
+* OS
+* Git status
+* `.env` present: YES/NO
+* `.env` tracked: YES/NO
+* `.env.example`: YES/NO
+
+### 2. Environment Architecture
+
+* environment loader
+* variable registry
+* validation
+* precedence
+* security classification
+
+### 3. Files Created
+
+Exact paths.
+
+### 4. Files Modified
+
+Exact paths.
+
+### 5. Variables
+
+Report variable names and classification only.
+
+NEVER report actual values.
+
+### 6. `.env` Security
+
+Report:
+
+* ignored
+* tracked/untracked
+* duplicate detection
+* malformed detection
+* secret handling
+
+### 7. Configuration Drift
+
+Report:
+
+* missing variables
+* unknown variables
+* deprecated variables
+* `.env.example` drift
+
+### 8. Secret Scanning
+
+Report actual scanner and result.
+
+Do NOT expose secret values.
+
+### 9. Runtime Integration
+
+Explain environment validation during startup.
+
+### 10. Negative Tests
+
+List every negative test and result.
+
+### 11. Tests
+
+```text
+collected:
+passed:
+failed:
+skipped:
+errors:
+coverage:
+```
+
+### 12. Quality Gates
+
+Report:
+
+* compile
+* lint
+* format
+* type
+* security
+* secret scan
+
+### 13. MCP Check
+
+```text
+MCP implementation added: NO
+```
+
+### 14. Known Defects
+
+List every unresolved issue.
+
+### 15. Unverified Items
+
+List everything not actually tested.
+
+### 16. Architecture Deviations
+
+List deviations.
+
+### 17. Credential Changes
+
+Expected:
+
+```text
+Existing user credentials modified: NO
+Existing user credentials exposed: NO
+```
+
+### 18. Final Status
+
+Use exactly one:
+
+IMPLEMENTED AND VERIFIED
+
+PARTIALLY IMPLEMENTED
+
+FAILED
+
+BLOCKED
+
+NOT VERIFIED
+
+No percentages.
+
+No "production ready."
+
+No unsupported security claims.
+
+---
+
+# 51. STOP CONDITION
+
+STOP after Batch 9.
+
+Do NOT implement Batch 10.
+
+Do not implement the Secrets Manager.
+
+Do not implement authentication.
+
+Do not implement authorization.
+
+Do not implement LLMs.
+
+Do not implement agents.
+
+Do not implement MCP.
+
+Do not implement memory.
+
+Do not implement voice.
+
+Do not implement integrations.
+
+The next batch is:
+
+# BATCH 10 — SECRETS MANAGEMENT & CREDENTIAL SECURITY
+
+Batch 9 is complete only when the JARVIS environment boundary is validated, `.env` is protected, configuration drift is detectable, secrets are never exposed through diagnostics/logging, and invalid environments prevent unsafe startup.
+
+
+# JARVIS — BATCH 10
+
+## Secrets Management & Credential Security
+
+You are implementing **Batch 10** of the JARVIS production-grade autonomous AI assistant.
+
+This is an implementation task, not a design exercise and not a demo.
+
+The repository already contains the configuration foundation from B8 and environment-security work from B9. **Do not rebuild those systems. Extend them correctly.**
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Implement a real, production-oriented **Secrets Management and Credential Security subsystem**.
+
+The subsystem must provide:
+
+* secure secret loading
+* encrypted local secret storage
+* secret lifecycle management
+* credential classification
+* controlled secret access
+* secret redaction
+* secret rotation support
+* credential validation
+* credential access auditing
+* separation between configuration and secrets
+* protection against accidental secret exposure
+* secure integration with the existing configuration system
+* secure runtime access for future LLM/API/integration modules
+
+Do NOT implement MCP in this batch.
+
+MCP will be implemented in a dedicated future phase.
+
+---
+
+# 2. NON-NEGOTIABLE ENGINEERING RULES
+
+Follow these rules throughout the batch.
+
+## 2.1 No fake implementation
+
+Do NOT create:
+
+* placeholder secret managers
+* fake encryption
+* plaintext "encrypted" files
+* dummy credential providers
+* hardcoded API keys
+* fake rotation
+* fake validation
+* fake audit entries
+* mocked production behavior presented as implemented
+* empty classes
+* 2–3 line placeholder modules
+
+If a feature cannot genuinely be implemented in this batch:
+
+```text
+STATUS: UNIMPLEMENTED
+```
+
+Do not disguise it as complete.
+
+---
+
+# 3. EXISTING ARCHITECTURE MUST BE PRESERVED
+
+Before changing anything:
+
+1. Inspect the existing repository.
+2. Inspect B8 configuration implementation.
+3. Inspect B9 environment-security implementation.
+4. Identify the existing configuration contracts.
+5. Identify existing logging/audit infrastructure.
+6. Identify existing database infrastructure.
+7. Identify existing security contracts.
+8. Identify existing test utilities.
+9. Run the current test suite.
+
+Do not create duplicate systems.
+
+There must remain one authoritative:
+
+* configuration system
+* secret access abstraction
+* security policy boundary
+* audit mechanism
+* logging mechanism
+
+---
+
+# 4. SECRET CLASSIFICATION
+
+Implement explicit secret classification.
+
+At minimum support:
+
+```text
+PUBLIC
+INTERNAL
+SENSITIVE
+SECRET
+CRITICAL_SECRET
+```
+
+Examples:
+
+### PUBLIC
+
+```text
+APP_NAME
+APP_VERSION
+LOG_LEVEL
+```
+
+### INTERNAL
+
+```text
+NON_SECRET_ENDPOINT
+MODEL_NAME
+FEATURE_FLAGS
+```
+
+### SENSITIVE
+
+```text
+USER_IDENTIFIER
+NON_AUTHENTICATED_SERVICE_METADATA
+```
+
+### SECRET
+
+```text
+API_KEY
+BOT_TOKEN
+DATABASE_PASSWORD
+SMTP_PASSWORD
+OAUTH_CLIENT_SECRET
+```
+
+### CRITICAL_SECRET
+
+```text
+MASTER_ENCRYPTION_KEY
+MASTER_SECRET
+PRIVATE_KEY
+SIGNING_KEY
+RECOVERY_SECRET
+```
+
+Classification must be represented in code, not only documentation.
+
+---
+
+# 5. SECRET TYPES
+
+Create strongly typed secret representations.
+
+Example conceptual structure:
+
+```text
+SecretIdentifier
+SecretMetadata
+SecretValue
+SecretClassification
+SecretProvider
+SecretAccessRequest
+SecretAccessResult
+SecretRotationRequest
+SecretRotationResult
+SecretValidationResult
+```
+
+Do not expose raw secret values through normal object representations.
+
+For example:
+
+```python
+repr(secret)
+str(secret)
+```
+
+must never reveal the secret.
+
+Logging a secret object must also never reveal its value.
+
+---
+
+# 6. SECRET PROVIDER ARCHITECTURE
+
+Create a provider abstraction.
+
+Example:
+
+```text
+SecretProvider
+    ├── EnvironmentSecretProvider
+    ├── EncryptedFileSecretProvider
+    └── FutureExternalSecretProvider
+```
+
+The abstraction must allow future providers without changing JARVIS core code.
+
+The system must support provider priority/fallback where appropriate.
+
+However:
+
+**Do NOT silently fall back to plaintext storage.**
+
+---
+
+# 7. ENVIRONMENT SECRET PROVIDER
+
+Implement real environment-variable secret loading.
+
+Integrate with the existing B9 environment handling.
+
+Example:
+
+```text
+NVIDIA_API_KEY
+OPENROUTER_API_KEY
+OPENAI_API_KEY
+TELEGRAM_BOT_TOKEN
+GITHUB_TOKEN
+GOOGLE_CLIENT_SECRET
+```
+
+Do not assume these exact variables are all present.
+
+The system must:
+
+* detect whether a secret exists
+* classify it
+* validate its format where possible
+* return metadata without exposing its value
+* support runtime retrieval through the secret manager
+
+Example metadata:
+
+```text
+identifier: NVIDIA_API_KEY
+classification: SECRET
+source: environment
+present: true
+valid_format: true
+```
+
+Never output:
+
+```text
+NVIDIA_API_KEY=actual-secret
+```
+
+in logs, reports, exceptions, or CLI output.
+
+---
+
+# 8. ENCRYPTED LOCAL SECRET STORE
+
+Implement a genuine encrypted local secret store.
+
+Do NOT store secrets as plaintext JSON.
+
+Example prohibited structure:
+
+```json
+{
+    "api_key": "actual-secret"
+}
+```
+
+The local secret store must use authenticated encryption.
+
+Prefer a modern authenticated-encryption mechanism available through a well-maintained cryptographic library.
+
+The implementation must provide:
+
+```text
+encrypt
+decrypt
+write
+read
+update
+delete
+exists
+rotate
+```
+
+with integrity verification.
+
+Tampering with encrypted secret storage must be detected.
+
+---
+
+# 9. MASTER KEY DESIGN
+
+Do not hardcode the encryption key.
+
+Do not place the master key directly in source code.
+
+Do not commit it to Git.
+
+Do not print it.
+
+The design must clearly separate:
+
+```text
+master key
+encrypted secret store
+secret metadata
+runtime secret values
+```
+
+Implement secure master-key loading.
+
+The system must detect:
+
+* missing master key
+* malformed master key
+* invalid key length
+* corrupted encrypted store
+* authentication/tag failure
+* unsupported encryption format/version
+
+Do not silently generate a new master key that makes existing secrets inaccessible.
+
+If automatic first-time initialization is implemented, it must be explicit and safe.
+
+---
+
+# 10. SECRET STORE FORMAT
+
+Create a versioned encrypted storage format.
+
+Example conceptual metadata:
+
+```text
+format_version
+algorithm
+key_identifier
+created_at
+updated_at
+entries
+integrity information
+```
+
+Do not expose secret values in metadata.
+
+Support future migration of the secret format.
+
+If the encrypted store format changes:
+
+```text
+old format
+    ↓
+migration
+    ↓
+new format
+```
+
+must be deliberate and testable.
+
+---
+
+# 11. SECRET ACCESS CONTROL
+
+A secret must not be accessible simply because code imports the secret manager.
+
+Create a controlled access mechanism.
+
+Every secret access request should contain information such as:
+
+```text
+requester
+secret_identifier
+purpose
+classification
+requested_operation
+authorization_context
+correlation_id
+```
+
+The security layer must be able to determine whether the requester may access the secret.
+
+Examples:
+
+```text
+LLM router → NVIDIA_API_KEY
+Telegram integration → TELEGRAM_BOT_TOKEN
+GitHub integration → GITHUB_TOKEN
+Database subsystem → DATABASE_PASSWORD
+```
+
+A component must not be able to request arbitrary secrets without policy evaluation.
+
+---
+
+# 12. LEAST PRIVILEGE
+
+Implement least-privilege secret access.
+
+For example:
+
+```text
+telegram module
+    → TELEGRAM_BOT_TOKEN
+```
+
+does NOT automatically imply:
+
+```text
+telegram module
+    → GITHUB_TOKEN
+    → DATABASE_PASSWORD
+    → MASTER_SECRET
+```
+
+Secret permissions should be scoped.
+
+At minimum support:
+
+```text
+component identity
+allowed secret identifiers
+maximum classification
+allowed operations
+```
+
+---
+
+# 13. CRITICAL SECRET PROTECTION
+
+`CRITICAL_SECRET` values require additional protection.
+
+Examples:
+
+```text
+MASTER_ENCRYPTION_KEY
+PRIVATE_KEY
+SIGNING_KEY
+RECOVERY_SECRET
+```
+
+Access should require stronger authorization than ordinary API keys.
+
+The policy must prevent ordinary application modules from reading critical secrets.
+
+Do not create a universal:
+
+```python
+get_any_secret()
+```
+
+that bypasses policy.
+
+---
+
+# 14. SECRET REDACTION
+
+Create one authoritative secret-redaction utility.
+
+It must prevent accidental disclosure in:
+
+* logs
+* exceptions
+* tracebacks
+* audit records
+* CLI output
+* test reports
+* error messages
+* structured JSON
+* event payloads
+
+Redaction must handle:
+
+```text
+raw secret
+key=value
+JSON
+dict
+nested structures
+URLs containing credentials
+authorization headers
+Bearer tokens
+environment dumps
+```
+
+Example:
+
+```text
+Authorization: Bearer [REDACTED]
+```
+
+not:
+
+```text
+Authorization: Bearer eyJ...
+```
+
+---
+
+# 15. PARTIAL SECRET LEAK PREVENTION
+
+Do not assume replacing only the complete secret is sufficient.
+
+Prevent leakage through:
+
+```text
+first 4 characters
+last 4 characters
+prefixes
+suffixes
+URLs
+headers
+exceptions
+debug output
+```
+
+Where practical, maintain fingerprints/hashes internally for detection without storing plaintext copies unnecessarily.
+
+Never print "helpful" secret previews such as:
+
+```text
+sk-ab12...9xyz
+```
+
+unless there is an explicit security-reviewed requirement.
+
+Default behavior must be full redaction.
+
+---
+
+# 16. SECRET LIFETIME
+
+Avoid unnecessary long-lived plaintext secrets.
+
+Implement controlled retrieval.
+
+Where practical:
+
+```text
+request secret
+    ↓
+authorize
+    ↓
+retrieve
+    ↓
+use
+    ↓
+release
+```
+
+Do not store raw credentials in:
+
+* global variables
+* arbitrary caches
+* task payloads
+* event history
+* normal application state
+* persistent task database
+* audit logs
+
+---
+
+# 17. SECRET ROTATION
+
+Implement real rotation support.
+
+The architecture must support:
+
+```text
+old secret
+    ↓
+new secret
+    ↓
+validation
+    ↓
+atomic update
+    ↓
+old secret retirement
+```
+
+Rotation must not destroy the existing valid secret before the new secret has been validated.
+
+If an external provider is required for actual remote rotation, implement the local rotation workflow and clearly mark provider-specific remote rotation as:
+
+```text
+UNIMPLEMENTED
+```
+
+unless genuinely implemented and tested.
+
+---
+
+# 18. CREDENTIAL VALIDATION
+
+Create credential validation abstractions.
+
+Example:
+
+```text
+CredentialValidator
+```
+
+It should support provider-specific validation in future.
+
+At minimum implement:
+
+* presence validation
+* format validation where deterministic
+* length validation where appropriate
+* malformed-value detection
+* environment mismatch detection
+
+Do not send credentials to external services merely to "test" them unless the user has explicitly configured that provider and the integration is authorized.
+
+Never perform destructive credential tests.
+
+---
+
+# 19. CONFIGURATION INTEGRATION
+
+Integrate with B8/B9.
+
+The architecture must clearly separate:
+
+```text
+configuration
+    ↓
+non-secret settings
+
+secret manager
+    ↓
+credentials
+```
+
+Example:
+
+```python
+config.llm.provider
+```
+
+may expose:
+
+```text
+"nvidia"
+```
+
+but:
+
+```python
+config.llm.api_key
+```
+
+must NOT contain a raw secret if the secret manager is responsible for credentials.
+
+Use a secret reference where appropriate:
+
+```text
+NVIDIA_API_KEY
+```
+
+rather than embedding the secret itself into normal configuration objects.
+
+---
+
+# 20. DATABASE STORAGE RULE
+
+Never store raw credentials in the normal JARVIS task/state database.
+
+The database may store:
+
+```text
+secret_identifier
+provider
+classification
+status
+created_at
+updated_at
+rotation_state
+fingerprint
+```
+
+but never:
+
+```text
+raw secret value
+```
+
+unless the value is inside the dedicated encrypted secret store.
+
+---
+
+# 21. AUDIT
+
+Every sensitive secret operation must be auditable.
+
+Audit events should include:
+
+```text
+timestamp
+requester
+operation
+secret_identifier
+classification
+decision
+correlation_id
+result
+```
+
+Do NOT include:
+
+```text
+secret_value
+master_key
+plaintext credential
+```
+
+Example:
+
+```text
+SECRET_ACCESS
+requester=llm_router
+secret=NVIDIA_API_KEY
+decision=ALLOW
+result=SUCCESS
+```
+
+This is acceptable.
+
+This is NOT acceptable:
+
+```text
+NVIDIA_API_KEY=nvapi-xxxxxxxx
+```
+
+---
+
+# 22. DENIED ACCESS AUDITING
+
+Denied requests must also be logged.
+
+Example:
+
+```text
+SECRET_ACCESS
+requester=browser_agent
+secret=MASTER_ENCRYPTION_KEY
+decision=DENY
+reason=INSUFFICIENT_PERMISSION
+```
+
+Do not reveal the secret.
+
+---
+
+# 23. FAILURE HANDLING
+
+Test and correctly handle:
+
+```text
+missing secret
+invalid secret
+missing master key
+invalid master key
+corrupt encrypted store
+wrong encryption key
+tampered ciphertext
+permission denied
+unknown secret identifier
+provider unavailable
+rotation failure
+validation failure
+concurrent update
+partial write
+disk failure
+permission error
+```
+
+For sensitive state changes:
+
+```text
+failure
+→ stop
+→ preserve last known valid state
+→ rollback where applicable
+→ audit
+→ report
+```
+
+Do not silently continue with an invalid credential.
+
+---
+
+# 24. ATOMIC SECRET UPDATES
+
+Secret writes and rotations must be crash-safe.
+
+Do not simply:
+
+```text
+open(file, "w")
+write(...)
+```
+
+over the only valid secret store.
+
+Use a safe update strategy such as:
+
+```text
+prepare new encrypted state
+→ validate
+→ write temporary file
+→ fsync where appropriate
+→ atomic replacement
+→ verify
+```
+
+The exact implementation must match the platform and filesystem semantics.
+
+Test interruption/failure paths where practical.
+
+---
+
+# 25. FILE PERMISSIONS
+
+Apply restrictive filesystem permissions to secret storage.
+
+On Windows, implement the appropriate access-control mechanism available to the runtime.
+
+Do not simply document:
+
+```text
+"Make sure the file is private."
+```
+
+Actually enforce or validate the permissions where practical.
+
+If the platform behavior differs, detect and report it.
+
+---
+
+# 26. CLI SECURITY
+
+If you add commands such as:
+
+```text
+jarvis secrets list
+jarvis secrets status
+jarvis secrets validate
+jarvis secrets rotate
+```
+
+they must never print secret values.
+
+Example:
+
+```text
+NVIDIA_API_KEY
+  source: environment
+  classification: SECRET
+  present: yes
+  valid_format: yes
+```
+
+not:
+
+```text
+NVIDIA_API_KEY=...
+```
+
+If secret creation requires interactive input, disable terminal echo.
+
+Never pass secrets through command-line arguments when avoidable because command arguments can appear in process listings/history.
+
+---
+
+# 27. ENVIRONMENT FILE SECURITY
+
+B9 already handled environment security.
+
+Verify that:
+
+```text
+.env
+```
+
+is:
+
+* ignored by Git
+* not tracked
+* excluded from normal reports
+* excluded from debug dumps
+* excluded from test artifacts
+* excluded from generated documentation
+
+Do not modify existing credentials.
+
+Do not replace real credentials with fake values.
+
+---
+
+# 28. TEST CREDENTIALS
+
+Tests must use dedicated test secrets.
+
+Do not use:
+
+* real API keys
+* real Telegram tokens
+* real GitHub tokens
+* real production passwords
+* real private keys
+
+Test secrets must be clearly marked:
+
+```text
+TEST_ONLY
+```
+
+and must never be valid production credentials.
+
+---
+
+# 29. SECURITY TESTS
+
+Create comprehensive tests.
+
+At minimum:
+
+### Secret loading
+
+* existing environment secret
+* missing environment secret
+* malformed environment secret
+* empty secret
+* whitespace secret
+
+### Encryption
+
+* encrypt/decrypt
+* wrong key
+* tampered ciphertext
+* corrupted store
+* invalid format version
+* unsupported algorithm
+
+### Access control
+
+* authorized component
+* unauthorized component
+* critical-secret denial
+* unknown secret
+* invalid requester
+* expired/invalid authorization context
+
+### Redaction
+
+* plain secret
+* JSON secret
+* nested dictionary
+* header
+* bearer token
+* URL credential
+* exception containing secret
+* structured log event
+
+### Rotation
+
+* successful rotation
+* validation failure
+* write failure
+* corrupted new state
+* concurrent rotation
+* rollback
+
+### Persistence
+
+* restart
+* reload
+* crash during write
+* atomic replacement
+* database state remains secret-free
+
+---
+
+# 30. SECRET LEAK TEST
+
+Create a dedicated automated test that scans generated:
+
+```text
+logs/
+test reports/
+audit records/
+temporary files/
+CLI output/
+```
+
+for known test secret values.
+
+The test must fail if any raw test secret is found outside the dedicated encrypted test store.
+
+---
+
+# 31. STATIC SECRET SCANNING
+
+Extend the existing security/quality gate where appropriate.
+
+Scan for:
+
+```text
+API key patterns
+private key markers
+password assignments
+token assignments
+common credential formats
+```
+
+Avoid producing false claims that the scanner provides complete protection.
+
+Record its actual capabilities and limitations.
+
+---
+
+# 32. MEMORY SAFETY
+
+Do not make unrealistic claims such as:
+
+```text
+Python guarantees secure memory wiping.
+```
+
+Python does not provide guaranteed zeroization semantics for ordinary immutable strings.
+
+Therefore:
+
+* minimize plaintext lifetime
+* avoid unnecessary copies
+* avoid logging
+* avoid persistent storage
+* document memory limitations honestly
+
+Do not claim memory-level zeroization unless genuinely implemented and supported.
+
+---
+
+# 33. PERFORMANCE
+
+Secret retrieval must not unnecessarily become a major latency bottleneck.
+
+Measure:
+
+```text
+environment retrieval
+encrypted-store retrieval
+decryption
+authorization
+redaction
+```
+
+Do not introduce unsafe global plaintext caching simply for performance.
+
+If caching is introduced, it must have:
+
+* strict scope
+* expiration
+* invalidation
+* access control
+* no persistence
+* auditability
+
+Prefer no raw-secret cache unless justified by actual measurements.
+
+---
+
+# 34. CONCURRENCY
+
+Test concurrent:
+
+```text
+secret reads
+secret updates
+secret rotations
+```
+
+Ensure that:
+
+* readers never observe partially written state
+* writers do not corrupt the store
+* rotation remains atomic
+* locking behavior is deterministic
+
+---
+
+# 35. REQUIRED CODE QUALITY
+
+All implementation must follow the existing repository standards.
+
+Required:
+
+* type hints
+* clear interfaces
+* structured exceptions
+* documentation for security-sensitive code
+* deterministic tests
+* no duplicated secret-management logic
+* no circular imports
+* no import-time side effects
+* no dead code
+* no unexplained magic values
+
+Security-sensitive code must be especially explicit.
+
+---
+
+# 36. REQUIRED DOCUMENTATION
+
+Update documentation with:
+
+```text
+docs/security/secrets.md
+```
+
+Include:
+
+* architecture
+* providers
+* encryption design
+* key management
+* secret classifications
+* access control
+* redaction
+* rotation
+* audit behavior
+* threat model
+* known limitations
+* operational procedures
+* recovery considerations
+
+Do not put actual credentials into documentation.
+
+---
+
+# 37. INTEGRATION TEST
+
+Build a real end-to-end test:
+
+```text
+application
+    ↓
+configuration
+    ↓
+secret reference
+    ↓
+authorization
+    ↓
+secret provider
+    ↓
+encrypted store/environment
+    ↓
+secret retrieval
+    ↓
+component use
+    ↓
+redaction
+    ↓
+audit
+```
+
+The test must verify that the actual secret value never enters:
+
+```text
+task database
+audit log
+normal application log
+event history
+error report
+```
+
+---
+
+# 38. NEGATIVE END-TO-END TEST
+
+Test:
+
+```text
+unauthorized component
+    ↓
+requests critical secret
+    ↓
+policy denies
+    ↓
+no secret returned
+    ↓
+denial audited
+```
+
+Then test:
+
+```text
+corrupted encrypted store
+    ↓
+secret retrieval fails
+    ↓
+application does not silently use fallback credentials
+    ↓
+failure is reported
+```
+
+---
+
+# 39. REGRESSION REQUIREMENT
+
+Before Batch 10:
+
+```text
+run baseline tests
+```
+
+After implementation:
+
+```text
+run all previous tests
+```
+
+Compare results.
+
+No previous passing test may be silently removed or weakened.
+
+If a previous test becomes invalid because of a genuine architectural change:
+
+1. document why
+2. replace it with an equivalent or stronger test
+3. record the change in the final report
+
+---
+
+# 40. REQUIRED SEARCH FOR FAKE IMPLEMENTATION
+
+Before finishing, scan the repository for:
+
+```text
+TODO
+FIXME
+pass
+NotImplemented
+placeholder
+dummy
+fake
+mock
+stub
+example_secret
+test_secret
+hardcoded
+api_key=
+password=
+token=
+private_key
+```
+
+Do not blindly treat every occurrence as a vulnerability.
+
+Classify every relevant result:
+
+```text
+LEGITIMATE_TEST
+DOCUMENTATION
+IMPLEMENTED
+STUB
+SECURITY ISSUE
+FALSE POSITIVE
+```
+
+Any actual production stub must be reported.
+
+---
+
+# 41. MCP RESTRICTION
+
+This batch must contain:
+
+```text
+MCP implementation: NO
+```
+
+Do NOT add:
+
+```text
+MCP client
+MCP server
+MCP registry
+MCP transport
+MCP credentials
+MCP discovery
+MCP adapters
+```
+
+Do not create MCP placeholders.
+
+MCP will be implemented later in its own dedicated phase.
+
+---
+
+# 42. REQUIRED COMMAND EXECUTION
+
+Do not merely write commands in documentation.
+
+Actually execute the applicable commands.
+
+At minimum run:
+
+```bash
+pytest
+```
+
+plus the repository's configured:
+
+```text
+lint
+format check
+type check
+security scan
+secret scan
+coverage
+quality gate
+```
+
+Use the actual project commands discovered from:
+
+```text
+pyproject.toml
+Makefile
+scripts/
+CI configuration
+```
+
+Do not invent successful results.
+
+---
+
+# 43. REQUIRED MANUAL VERIFICATION
+
+Where automated testing cannot prove a security property, perform a manual verification.
+
+Examples:
+
+```text
+inspect encrypted secret store
+confirm plaintext is absent
+inspect Git tracking
+inspect logs
+inspect audit records
+inspect generated test artifacts
+inspect process output
+```
+
+Record actual observations.
+
+---
+
+# 44. PRODUCTION SECURITY CHECK
+
+Before finishing, answer objectively:
+
+```text
+Can a normal application component retrieve any arbitrary secret?
+Can a normal log contain a secret?
+Can the task database contain a raw credential?
+Can a failed rotation destroy the only valid credential?
+Can a corrupted secret store go unnoticed?
+Can the master key be hardcoded?
+Can CLI output expose credentials?
+Can tests accidentally use production credentials?
+Can a secret be exposed through an exception?
+Can an unauthorized component retrieve a critical secret?
+```
+
+Every answer must be backed by code/tests/evidence.
+
+---
+
+# 45. REQUIRED FINAL REPORT
+
+At the end, produce:
+
+```text
+==================================================
+JARVIS BATCH 10 FINAL REPORT
+==================================================
+
+1. ENVIRONMENT BASELINE
+- Git commit:
+- Python version:
+- OS:
+- Existing tests before Batch 10:
+- Existing quality status:
+
+2. IMPLEMENTED FILES
+- path
+- purpose
+- status
+
+3. SECRET ARCHITECTURE
+- providers:
+- classifications:
+- encryption:
+- key handling:
+- access control:
+- redaction:
+- rotation:
+- audit:
+
+4. ENVIRONMENT CREDENTIALS
+List variable NAMES ONLY.
+Never print values.
+
+5. ENCRYPTED STORE
+- location:
+- format version:
+- encryption mechanism:
+- integrity protection:
+- permission protection:
+
+6. ACCESS CONTROL
+- requester identity:
+- authorization:
+- least privilege:
+- critical secret protection:
+
+7. REDACTION
+- logs:
+- exceptions:
+- audit:
+- CLI:
+- structured data:
+
+8. ROTATION
+- implemented:
+- tested:
+- rollback:
+- limitations:
+
+9. TEST RESULTS
+- unit:
+- integration:
+- security:
+- negative:
+- concurrency:
+- persistence:
+- regression:
+- secret leak:
+- quality gates:
+
+10. ACTUAL COMMANDS EXECUTED
+List exact commands.
+
+11. ACTUAL RESULTS
+List actual outputs/results.
+Do not fabricate.
+
+12. SECURITY FINDINGS
+- vulnerabilities:
+- warnings:
+- limitations:
+
+13. STUBS / MOCKS / UNIMPLEMENTED
+List every one.
+
+14. MCP STATUS
+MCP implementation: NO
+
+15. ARCHITECTURE DEVIATIONS
+List every deviation.
+
+16. CREDENTIAL CHANGES
+- credentials created:
+- credentials modified:
+- credentials deleted:
+- credentials rotated:
+
+17. UNVERIFIED ITEMS
+Anything that could not be verified.
+
+18. BLOCKERS
+Anything preventing production use.
+
+19. FINAL STATUS
+Choose exactly one:
+
+IMPLEMENTED
+TESTED
+VERIFIED
+PARTIAL
+BROKEN
+BLOCKED
+NOT PRODUCTION READY
+```
+
+Do not use:
+
+```text
+95% complete
+almost done
+looks good
+should work
+production ready
+```
+
+unless the evidence genuinely supports the exact status.
+
+---
+
+# 46. STOP CONDITION
+
+Stop after Batch 10.
+
+Do not begin Batch 11.
+
+Do not implement unrelated features.
+
+Do not add LLM providers.
+
+Do not add agents.
+
+Do not add voice.
+
+Do not add Telegram.
+
+Do not add MCP.
+
+Do not add autonomous execution.
+
+Do not restructure unrelated modules.
+
+The only objective is:
+
+**secure, real, testable secrets and credential management integrated with the existing B8/B9 configuration foundation.**
+
+If a security requirement cannot be safely implemented, stop and report the blocker rather than weakening the security boundary.
+
+==================================================
+END OF BATCH 10
+===============
+
+```
+
+Batch 11 will follow the security foundation and can address the next planned security layer, while keeping MCP deferred to its dedicated phase.
+```
