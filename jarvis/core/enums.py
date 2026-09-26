@@ -44,10 +44,12 @@ class ResponseStatus(str, Enum):
 
 class TaskStatus(str, Enum):
     CREATED = "CREATED"
+    PENDING = "PENDING"
     PLANNED = "PLANNED"
     WAITING_APPROVAL = "WAITING_APPROVAL"
     READY = "READY"
     RUNNING = "RUNNING"
+    PAUSED = "PAUSED"
     WAITING = "WAITING"
     VERIFYING = "VERIFYING"
     COMPLETED = "COMPLETED"
@@ -56,6 +58,7 @@ class TaskStatus(str, Enum):
     ROLLED_BACK = "ROLLED_BACK"
     CANCELLED = "CANCELLED"
     BLOCKED = "BLOCKED"
+    INTERRUPTED = "INTERRUPTED"
 
 
 class TaskPriority(str, Enum):

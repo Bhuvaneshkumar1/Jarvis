@@ -36,6 +36,9 @@ from jarvis.core.events import (
 )
 
 
+from jarvis.core.tasks import TaskManager
+
+
 class JarvisApplication:
     """
     Authoritative owner of JARVIS runtime lifecycle, component orchestration,
@@ -60,6 +63,7 @@ class JarvisApplication:
         settings: Optional[Settings] = None,
         logger: Optional[JarvisLogger] = None,
         event_bus: Optional[EventBus] = None,
+        task_manager: Optional[TaskManager] = None,
         init_timeout: float = 10.0,
         start_timeout: float = 10.0,
         shutdown_timeout: float = 10.0,
@@ -67,6 +71,7 @@ class JarvisApplication:
         self.settings: Settings = settings or get_settings()
         self.logger: JarvisLogger = logger or JarvisLogger(component="Runtime")
         self.event_bus: EventBus = event_bus or EventBus(logger=JarvisLogger(component="EventBus"))
+        self.task_manager: TaskManager = task_manager or TaskManager(event_bus=self.event_bus, logger=JarvisLogger(component="TaskManager"))
         self.registry: ComponentRegistry = ComponentRegistry()
         self.context: RuntimeContext = RuntimeContext(settings=self.settings, logger=self.logger)
 
@@ -82,8 +87,9 @@ class JarvisApplication:
         self._shutdown_lock: asyncio.Lock = asyncio.Lock()
         self._shutdown_task: Optional[asyncio.Task] = None
 
-        # Automatically register EventBus into registry
+        # Automatically register EventBus and TaskManager into registry
         self.register_component(self.event_bus)
+        self.register_component(self.task_manager)
 
     @property
     def state(self) -> RuntimeState:

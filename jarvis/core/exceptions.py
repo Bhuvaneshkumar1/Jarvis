@@ -63,6 +63,36 @@ class TaskError(JarvisError):
     pass
 
 
+class TaskNotFoundError(TaskError):
+    """Raised when a task ID is not found in persistent repository."""
+
+    pass
+
+
+class InvalidTaskTransitionError(TaskError):
+    """Raised when an invalid task status transition is requested."""
+
+    pass
+
+
+class TaskVersionConflictError(TaskError):
+    """Raised when an optimistic locking version conflict occurs on task update."""
+
+    pass
+
+
+class TaskDependencyError(TaskError):
+    """Raised when a task dependency cycle or self-dependency is detected."""
+
+    pass
+
+
+class TaskValidationError(TaskError, ValueError):
+    """Raised when task parameters, title, or metadata fail validation checks."""
+
+    pass
+
+
 class ResourceLimitError(JarvisError):
     """Raised when memory, CPU, or process resource budgets are exceeded."""
 

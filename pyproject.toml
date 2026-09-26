@@ -18,6 +18,7 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
     "mypy>=1.8.0",
     "ruff>=0.2.0",
 ]
@@ -29,6 +30,10 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v --strict-markers"
+asyncio_mode = "auto"
+markers = [
+    "asyncio: mark test as async",
+]
 
 [tool.mypy]
 python_version = "3.12"
