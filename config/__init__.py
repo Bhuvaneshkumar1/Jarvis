@@ -1,5 +1,5 @@
 """
-JARVIS Centralized Configuration & Environment Security Management Package (Batches 8 & 9).
+JARVIS Centralized Configuration, Environment Security & Hardening Package (Batches 8, 9, 10 & 11).
 """
 
 from config.settings import (
@@ -19,6 +19,12 @@ from config.env_security import (
     detect_environment_drift,
     enforce_environment_security,
     scan_repository_for_secrets,
+)
+from config.hardening import (
+    validate_path_security,
+    validate_cross_field_dependencies,
+    compute_config_fingerprint,
+    enforce_fail_closed_startup,
 )
 from jarvis.core.exceptions import (
     ConfigurationError,
@@ -41,6 +47,10 @@ __all__ = [
     "detect_environment_drift",
     "enforce_environment_security",
     "scan_repository_for_secrets",
+    "validate_path_security",
+    "validate_cross_field_dependencies",
+    "compute_config_fingerprint",
+    "enforce_fail_closed_startup",
     "ConfigurationError",
     "EnvironmentValidationError",
     "EnvironmentSecurityError",
