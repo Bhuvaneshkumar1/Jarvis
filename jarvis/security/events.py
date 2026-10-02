@@ -44,3 +44,35 @@ class PinAuthenticationBlockedEvent(Event):
 
 class SessionRevokedDueToLockoutEvent(Event):
     event_type: str = "SessionRevokedDueToLockout"
+
+
+class SecurityQuestionEnrolledEvent(Event):
+    event_type: str = "SecurityQuestionEnrolled"
+
+
+class SecurityQuestionUpdatedEvent(Event):
+    event_type: str = "SecurityQuestionUpdated"
+
+
+class SecurityRecoveryStartedEvent(Event):
+    event_type: str = "SecurityRecoveryStarted"
+
+
+class SecurityRecoveryAnswerFailedEvent(Event):
+    event_type: str = "SecurityRecoveryAnswerFailed"
+
+
+class SecurityRecoveryAnswerVerifiedEvent(Event):
+    event_type: str = "SecurityRecoveryAnswerVerified"
+
+
+class SecurityRecoveryLockoutStartedEvent(Event):
+    event_type: str = "SecurityRecoveryLockoutStarted"
+
+
+class SecurityPinResetCompletedEvent(Event):
+    event_type: str = "SecurityPinResetCompleted"
+
+
+class SecurityRecoveryDeniedEvent(Event):
+    event_type: str = "SecurityRecoveryDenied"

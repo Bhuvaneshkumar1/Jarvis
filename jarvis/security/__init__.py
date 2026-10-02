@@ -1,6 +1,6 @@
 """
-JARVIS Security Subsystem (Batch 12 & Batch 13).
-Authoritative entry point for PIN policy, secure storage, verification, sessions, attempt tracking, and 3-attempt lockout.
+JARVIS Security Subsystem (Batches 12, 13, 14).
+Authoritative entry point for PIN policy, secure storage, verification, sessions, 3-attempt lockout, and security question recovery.
 """
 
 from jarvis.security.contracts import (
@@ -17,7 +17,16 @@ from jarvis.security.session_manager import SessionManager
 from jarvis.security.rate_limit import AttemptTracker
 from jarvis.security.lockout_models import LockoutStatus, LockoutReason, LockoutState
 from jarvis.security.lockout_store import LockoutStore
-from jarvis.security.lockout_manager import LockoutManager, LockoutRecoveryService
+from jarvis.security.lockout_manager import LockoutManager
+from jarvis.security.recovery_models import (
+    RecoveryStateEnum,
+    SecurityQuestionCredential,
+    RecoveryChallenge,
+    RecoveryLockoutState,
+)
+from jarvis.security.recovery_crypto import RecoveryAnswerHasher, normalize_answer
+from jarvis.security.recovery_store import RecoveryStore
+from jarvis.security.recovery_service import RecoveryService, LockoutRecoveryService
 from jarvis.security.auth_manager import AuthenticationManager
 from jarvis.security.events import (
     AuthenticationSucceededEvent,
@@ -30,6 +39,14 @@ from jarvis.security.events import (
     PinLockoutTriggeredEvent,
     PinAuthenticationBlockedEvent,
     SessionRevokedDueToLockoutEvent,
+    SecurityQuestionEnrolledEvent,
+    SecurityQuestionUpdatedEvent,
+    SecurityRecoveryStartedEvent,
+    SecurityRecoveryAnswerFailedEvent,
+    SecurityRecoveryAnswerVerifiedEvent,
+    SecurityRecoveryLockoutStartedEvent,
+    SecurityPinResetCompletedEvent,
+    SecurityRecoveryDeniedEvent,
 )
 
 __all__ = [
@@ -48,6 +65,14 @@ __all__ = [
     "LockoutState",
     "LockoutStore",
     "LockoutManager",
+    "RecoveryStateEnum",
+    "SecurityQuestionCredential",
+    "RecoveryChallenge",
+    "RecoveryLockoutState",
+    "RecoveryAnswerHasher",
+    "normalize_answer",
+    "RecoveryStore",
+    "RecoveryService",
     "LockoutRecoveryService",
     "AuthenticationManager",
     "AuthenticationSucceededEvent",
@@ -60,4 +85,12 @@ __all__ = [
     "PinLockoutTriggeredEvent",
     "PinAuthenticationBlockedEvent",
     "SessionRevokedDueToLockoutEvent",
+    "SecurityQuestionEnrolledEvent",
+    "SecurityQuestionUpdatedEvent",
+    "SecurityRecoveryStartedEvent",
+    "SecurityRecoveryAnswerFailedEvent",
+    "SecurityRecoveryAnswerVerifiedEvent",
+    "SecurityRecoveryLockoutStartedEvent",
+    "SecurityPinResetCompletedEvent",
+    "SecurityRecoveryDeniedEvent",
 ]

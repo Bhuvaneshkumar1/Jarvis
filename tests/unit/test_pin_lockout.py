@@ -196,7 +196,7 @@ def test_concurrent_failed_attempts(auth_manager):
 def test_lockout_recovery_service_interface():
     svc = LockoutRecoveryService()
     req = svc.request_recovery("user")
-    assert req["supported"] is False
+    assert req["supported"] is True
 
     assert svc.validate_recovery_context("user") is False
 

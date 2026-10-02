@@ -10,20 +10,25 @@ from jarvis.security.lockout_store import LockoutStore
 from jarvis.core.exceptions import AuthorizationError
 
 
+from jarvis.security.recovery_store import RecoveryStore
+
+
 class LockoutManager:
     """
     Authoritative Lockout Manager enforcing 3-consecutive-failure PIN lockout policy,
-    atomic state updates, and persistent lockout tracking across restarts.
+    60-minute recovery lockout checks, atomic state updates, and persistent lockout tracking across restarts.
     """
 
     def __init__(
         self,
         max_attempts: int = 3,
         store: Optional[LockoutStore] = None,
+        recovery_store: Optional[RecoveryStore] = None,
         clock_fn: Optional[Callable[[], float]] = None,
     ):
         self.max_attempts = max_attempts
         self.store = store or LockoutStore()
+        self.recovery_store = recovery_store or RecoveryStore()
         self.clock_fn = clock_fn or time.time
         self._lock = threading.Lock()
 
@@ -33,8 +38,27 @@ class LockoutManager:
     def check_lockout(self, principal_id: str = "user") -> LockoutState:
         """
         Loads and returns the current lockout state for principal.
+        Includes checking 60-minute recovery lockout expiry.
         """
-        return self.store.load_lockout_state(principal_id)
+        state = self.store.load_lockout_state(principal_id)
+        if self.recovery_store:
+            rec_state = self.recovery_store.load_recovery_state(principal_id)
+            if rec_state.recovery_locked:
+                now = self._now()
+                if rec_state.recovery_lockout_expires_at and now < rec_state.recovery_lockout_expires_at:
+                    return state.model_copy(update={"locked": True, "lockout_reason": LockoutReason.SECURITY_RECOVERY_PENDING})
+                else:
+                    # Expired: clear recovery lock
+                    cleared_rec = rec_state.model_copy(
+                        update={
+                            "recovery_locked": False,
+                            "recovery_locked_at": None,
+                            "recovery_lockout_expires_at": None,
+                            "updated_at": now,
+                        }
+                    )
+                    self.recovery_store.save_recovery_state(cleared_rec)
+        return state
 
     def record_failure(self, principal_id: str = "user") -> Tuple[LockoutState, bool]:
         """
