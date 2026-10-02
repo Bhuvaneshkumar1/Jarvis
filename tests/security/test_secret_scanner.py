@@ -17,5 +17,5 @@ def test_secret_scanner_regex_matching():
 
 
 def test_safe_placeholder_ignored():
-    sample_placeholder = "OPENROUTER_API_KEY=YOUR_API_KEY_HERE_TOKEN_PLACEHOLDER"
+    sample_placeholder = "OPENROUTER_API_KEY=YOUR_API_KEY_HERE_0"
     assert any(ph in sample_placeholder for ph in SAFE_PLACEHOLDERS)
