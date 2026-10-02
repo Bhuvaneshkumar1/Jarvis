@@ -17,7 +17,7 @@ def test_daily_log_filename_format(temp_dir):
 
 def test_secret_redaction():
     raw_msg = (
-        "Attempting connect with OPENROUTER_API_KEY=TOKEN_PLACEHOLDER and GITHUB_TOKEN=TOKEN_PLACEHOLDER"
+        "Attempting connect with OPENROUTER_API_KEY=sk-or-v1 and GITHUB_TOKEN=ghp"
     )
     sanitized = redact_sensitive_data(raw_msg)
     assert "TOKEN_PLACEHOLDER" not in sanitized
