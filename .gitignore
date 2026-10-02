@@ -15,4 +15,4 @@ build/
 *.db-shm
 data/
 backups/
-test/
+tests/
