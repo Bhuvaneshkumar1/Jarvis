@@ -1,7 +1,18 @@
+"""
+Backward-Compatible Delegation Bridge to Centralized Security Policy Engine (Batch 15).
+"""
+
 from enum import Enum
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from pydantic import BaseModel
 from jarvis.core.config import get_settings
+from jarvis.security.policy import (
+    PolicyEngine as CentralPolicyEngine,
+    AuthorizationRequest,
+    Principal,
+    PrincipalType,
+    RiskLevel as PolicyRiskLevel,
+)
 
 
 class ActionType(str, Enum):
@@ -43,133 +54,42 @@ class PolicyDecision(BaseModel):
 class PolicyEngine:
     """
     Security & Authorization Policy Engine enforcing Rule 10 and Rule 26 (Fail Closed).
-    One single authoritative policy implementation.
+    Wraps the Centralized Security Policy Engine (Batch 15).
     """
 
-    def __init__(self, settings=None):
+    def __init__(self, settings=None, central_engine: Optional[CentralPolicyEngine] = None):
         self.settings = settings or get_settings()
+        self.central_engine = central_engine or CentralPolicyEngine()
 
     def evaluate(self, request: ActionRequest) -> PolicyDecision:
-        # 1. READ Operations
-        if request.action_type == ActionType.READ:
-            return PolicyDecision(
-                allowed=True,
-                requires_user_approval=False,
-                reason="READ operations are allowed by default under Rule 10.",
-                risk_level=request.risk_level,
-            )
+        principal = Principal(
+            principal_id=request.metadata.get("principal_id", "user"),
+            principal_type=PrincipalType.USER,
+            permissions=["*"],
+        )
 
-        # 2. CREATE Operations
-        if request.action_type == ActionType.CREATE:
-            if self.settings.allow_auto_create:
-                return PolicyDecision(
-                    allowed=True,
-                    requires_user_approval=False,
-                    reason="CREATE operation permitted under task creation policy.",
-                    risk_level=request.risk_level,
-                )
-            elif request.user_approved:
-                return PolicyDecision(
-                    allowed=True,
-                    requires_user_approval=False,
-                    reason="CREATE operation explicitly approved by user.",
-                    risk_level=request.risk_level,
-                )
-            else:
-                return PolicyDecision(
-                    allowed=False,
-                    requires_user_approval=True,
-                    reason="CREATE operation requires explicit user approval.",
-                    risk_level=request.risk_level,
-                )
+        meta = dict(request.metadata)
+        if request.task_has_explicit_modify_approval:
+            meta["task_has_explicit_modify_approval"] = True
 
-        # 3. MODIFY / UPDATE Operations
-        if request.action_type == ActionType.MODIFY:
-            if request.task_has_explicit_modify_approval or request.user_approved:
-                return PolicyDecision(
-                    allowed=True,
-                    requires_user_approval=False,
-                    reason="MODIFY permitted by task approval scope or user approval.",
-                    risk_level=request.risk_level,
-                )
-            if self.settings.require_approval_for_modify:
-                return PolicyDecision(
-                    allowed=False,
-                    requires_user_approval=True,
-                    reason="Modification of existing target requires explicit user approval (Rule 10).",
-                    risk_level=RiskLevel.MEDIUM,
-                )
+        auth_req = AuthorizationRequest(
+            principal=principal,
+            action=request.action_type.value,
+            resource=request.target,
+            requested_risk_level=PolicyRiskLevel(request.risk_level.value),
+            user_approved=request.user_approved,
+            metadata=meta,
+        )
 
-        # 4. DELETE Operations
-        if request.action_type == ActionType.DELETE:
-            if request.user_approved:
-                return PolicyDecision(
-                    allowed=True,
-                    requires_user_approval=False,
-                    reason="DELETE operation approved by user.",
-                    risk_level=request.risk_level,
-                )
-            return PolicyDecision(
-                allowed=False,
-                requires_user_approval=True,
-                reason="DELETION requires explicit user approval under Rule 10.",
-                risk_level=RiskLevel.HIGH,
-            )
+        # Handle task_has_explicit_modify_approval or user_approved override
+        if request.action_type == ActionType.MODIFY and request.task_has_explicit_modify_approval:
+            auth_req.user_approved = True
 
-        # 5. GIT COMMIT / PUSH Operations
-        if request.action_type in [ActionType.GIT_COMMIT, ActionType.GIT_PUSH]:
-            if request.user_approved:
-                return PolicyDecision(
-                    allowed=True,
-                    requires_user_approval=False,
-                    reason=f"{request.action_type} approved by user.",
-                    risk_level=request.risk_level,
-                )
-            return PolicyDecision(
-                allowed=False,
-                requires_user_approval=True,
-                reason=f"{request.action_type} requires explicit user approval under Rule 10.",
-                risk_level=RiskLevel.HIGH,
-            )
-
-        # 6. FINANCIAL Operations
-        if request.action_type == ActionType.FINANCIAL:
-            if request.user_approved:
-                return PolicyDecision(
-                    allowed=True,
-                    requires_user_approval=False,
-                    reason="FINANCIAL action approved by user.",
-                    risk_level=RiskLevel.CRITICAL,
-                )
-            return PolicyDecision(
-                allowed=False,
-                requires_user_approval=True,
-                reason="FINANCIAL operations strictly require explicit user approval (Rule 10).",
-                risk_level=RiskLevel.CRITICAL,
-            )
-
-        # 7. HIGH / CRITICAL RISK Operations Fail-Closed check
-        if request.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
-            if not request.user_approved:
-                return PolicyDecision(
-                    allowed=False,
-                    requires_user_approval=True,
-                    reason=f"Action marked as {request.risk_level} risk level requires user approval (Rule 10/26).",
-                    risk_level=request.risk_level,
-                )
-
-        # Default Fail-Closed (Rule 26)
-        if request.user_approved:
-            return PolicyDecision(
-                allowed=True,
-                requires_user_approval=False,
-                reason="Action permitted following explicit user approval.",
-                risk_level=request.risk_level,
-            )
+        decision = self.central_engine.evaluate(auth_req)
 
         return PolicyDecision(
-            allowed=False,
-            requires_user_approval=True,
-            reason="FAIL CLOSED: Action not explicitly authorized by security policy (Rule 26).",
-            risk_level=request.risk_level,
+            allowed=decision.allowed,
+            requires_user_approval=decision.requires_user_approval,
+            reason=decision.reason,
+            risk_level=RiskLevel(decision.effective_risk.value),
         )

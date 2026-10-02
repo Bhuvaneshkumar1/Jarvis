@@ -202,6 +202,22 @@ class EventBus(LifecycleComponent):
         }
         self._history.append(history_entry)
 
+    def publish_sync(self, event: Event) -> None:
+        """
+        Synchronous publish helper for non-async callers.
+        If an event loop is running, schedules publish as a task.
+        """
+        if self._state != RuntimeState.RUNNING:
+            return
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.publish(event))
+        except RuntimeError:
+            if self._queue and not self._queue.full():
+                self._sequence_counter += 1
+                self._queue.put_nowait((event.priority.value, self._sequence_counter, event))
+                self._metrics["published_count"] += 1
+
     async def _dispatch_loop(self) -> None:
         """Background worker loop fetching and dispatching queued events."""
         while self._state == RuntimeState.RUNNING:

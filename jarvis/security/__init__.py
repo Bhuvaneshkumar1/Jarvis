@@ -1,6 +1,7 @@
 """
-JARVIS Security Subsystem (Batches 12, 13, 14).
-Authoritative entry point for PIN policy, secure storage, verification, sessions, 3-attempt lockout, and security question recovery.
+JARVIS Security Subsystem (Batches 12, 13, 14, 15).
+Authoritative entry point for PIN policy, secure storage, verification, sessions,
+3-attempt lockout, security question recovery, and centralized policy engine.
 """
 
 from jarvis.security.contracts import (
@@ -48,6 +49,34 @@ from jarvis.security.events import (
     SecurityPinResetCompletedEvent,
     SecurityRecoveryDeniedEvent,
 )
+from jarvis.security.policy import (
+    PolicyEngine,
+    ApprovalEngine,
+    PolicyRepository,
+    Principal,
+    PrincipalType,
+    RiskLevel,
+    PolicyDecisionType,
+    ApprovalStatus,
+    CyberScopeCategory,
+    AuthorizationRequest,
+    PolicyDecision,
+    ApprovalRequest,
+    ScopedApproval,
+    CyberAuthorizationContext,
+    PolicyError,
+    AuthorizationDeniedError,
+    ApprovalError,
+    ApprovalRequiredError,
+    ApprovalNotFoundError,
+    ApprovalExpiredError,
+    ApprovalAlreadyConsumedError,
+    ApprovalInvalidError,
+    ScopeViolationError,
+    DelegationError,
+    PolicyConfigurationError,
+    CyberAuthorizationError,
+)
 
 __all__ = [
     "AuthenticationStatus",
@@ -93,4 +122,30 @@ __all__ = [
     "SecurityRecoveryLockoutStartedEvent",
     "SecurityPinResetCompletedEvent",
     "SecurityRecoveryDeniedEvent",
+    "PolicyEngine",
+    "ApprovalEngine",
+    "PolicyRepository",
+    "Principal",
+    "PrincipalType",
+    "RiskLevel",
+    "PolicyDecisionType",
+    "ApprovalStatus",
+    "CyberScopeCategory",
+    "AuthorizationRequest",
+    "PolicyDecision",
+    "ApprovalRequest",
+    "ScopedApproval",
+    "CyberAuthorizationContext",
+    "PolicyError",
+    "AuthorizationDeniedError",
+    "ApprovalError",
+    "ApprovalRequiredError",
+    "ApprovalNotFoundError",
+    "ApprovalExpiredError",
+    "ApprovalAlreadyConsumedError",
+    "ApprovalInvalidError",
+    "ScopeViolationError",
+    "DelegationError",
+    "PolicyConfigurationError",
+    "CyberAuthorizationError",
 ]
