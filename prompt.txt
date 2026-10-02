@@ -23767,3 +23767,4 @@ FINAL ENGINEERING REQUIREMENT
 The NVIDIA provider must perform genuine inference through NVIDIA's API using the existing JARVIS LLM abstraction.
 A successful import, a mocked response, or a passing unit-test suite alone is not proof of live NVIDIA connectivity.
 Implement the actual integration, execute all feasible tests, preserve security boundaries and report exactly what has been verified.
+
