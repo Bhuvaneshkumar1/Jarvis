@@ -258,7 +258,13 @@ class OpenRouterProvider(AbstractLLMProvider):
 
     def _build_payload(self, request: LLMRequest, stream: bool = False) -> Dict[str, Any]:
         """Constructs OpenAPI-compliant chat completions request payload."""
-        messages = [{"role": msg.role.value if hasattr(msg.role, "value") else str(msg.role), "content": msg.content} for msg in request.messages]
+        messages = [
+            {
+                "role": msg.role.value if hasattr(msg.role, "value") else str(msg.role),
+                "content": msg.content,
+            }
+            for msg in request.messages
+        ]
 
         if request.system_instructions:
             messages.insert(0, {"role": "system", "content": request.system_instructions})
@@ -456,7 +462,7 @@ class OpenRouterProvider(AbstractLLMProvider):
                     LLMToolCall(
                         tool_call_id=tc.get("id", f"call-{uuid.uuid4().hex[:8]}"),
                         tool_name=fn.get("name", "unknown"),
-                        arguments=args if isinstance(args, dict) else {"raw": str(args)},
+                        arguments=(args if isinstance(args, dict) else {"raw": str(args)}),
                     )
                 )
 

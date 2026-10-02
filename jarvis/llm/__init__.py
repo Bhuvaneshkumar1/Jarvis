@@ -19,6 +19,9 @@ from jarvis.llm.exceptions import (
     LLMConfigurationError,
     LLMInternalError,
     LLMPrivacyViolationError,
+    LLMProviderInitializationError,
+    LLMInferenceError,
+    LLMTimeoutError,
 )
 from jarvis.llm.contracts import (
     ChatMessage,
@@ -45,6 +48,7 @@ from jarvis.llm.factory import (
 from jarvis.llm.test_provider import TestDeterministicLLMProvider
 from jarvis.llm.providers.nvidia import NVIDIAProvider
 from jarvis.llm.providers.openrouter import OpenRouterProvider
+from jarvis.llm.providers.local import LocalLLMProvider
 
 __all__ = [
     "LLMError",
@@ -63,6 +67,9 @@ __all__ = [
     "LLMConfigurationError",
     "LLMInternalError",
     "LLMPrivacyViolationError",
+    "LLMProviderInitializationError",
+    "LLMInferenceError",
+    "LLMTimeoutError",
     "ChatMessage",
     "LLMRequest",
     "LLMResponse",
@@ -84,4 +91,5 @@ __all__ = [
     "TestDeterministicLLMProvider",
     "NVIDIAProvider",
     "OpenRouterProvider",
+    "LocalLLMProvider",
 ]

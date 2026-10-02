@@ -212,7 +212,7 @@ class NVIDIAProvider(AbstractLLMProvider):
                             supports_streaming=True,
                             supports_structured_output=True,
                             supports_tool_calling=True,
-                            context_window=128000 if "vision" in mid or "3.3" in mid else 8192,
+                            context_window=(128000 if "vision" in mid or "3.3" in mid else 8192),
                             max_output_tokens=4096,
                         )
                         new_cache[mid] = cap

@@ -23768,3 +23768,1790 @@ The NVIDIA provider must perform genuine inference through NVIDIA's API using th
 A successful import, a mocked response, or a passing unit-test suite alone is not proof of live NVIDIA connectivity.
 Implement the actual integration, execute all feasible tests, preserve security boundaries and report exactly what has been verified.
 
+# BATCH 22 — OPENROUTER PROVIDER INTEGRATION
+
+## JARVIS: Production-Grade Autonomous AI Assistant
+
+**Role:** Senior Python Backend Engineer, AI Infrastructure Engineer, and Test Engineer.
+
+**Project:** JARVIS — built from scratch.
+
+**Batch:** 22 of 60
+**Phase:** LLM Provider Infrastructure
+**Task:** Implement a fully functional OpenRouter LLM provider.
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Implement a complete, production-oriented OpenRouter provider that integrates with the existing JARVIS LLM architecture.
+
+This is a real integration task, not a demonstration.
+
+The implementation must support:
+
+1. OpenRouter API authentication.
+2. Model discovery and metadata retrieval.
+3. Chat completions.
+4. Streaming responses.
+5. Structured output, where supported by the selected model.
+6. Tool-call response normalization, without executing tools directly.
+7. Timeout and retry handling.
+8. Rate-limit handling.
+9. Provider health checks.
+10. Error normalization.
+11. Privacy enforcement.
+12. Comprehensive automated testing.
+
+Reuse the existing provider contracts, error hierarchy, configuration system, secrets manager, event system and audit infrastructure wherever applicable.
+
+Do not create a second LLM architecture.
+
+Do not modify unrelated subsystems.
+
+Do not implement OpenRouter routing or automatic provider fallback in this batch. Those belong to Batch 24.
+
+---
+
+# 2. MANDATORY PRE-IMPLEMENTATION AUDIT
+
+Before writing code, inspect the repository and the results of previous batches.
+
+Specifically inspect:
+
+* Batch 20: LLM provider abstraction.
+* Batch 21: NVIDIA NIM provider.
+* Existing provider interfaces and data models.
+* Configuration loader and environment-variable registry.
+* Secrets manager and credential retrieval.
+* Existing HTTP client dependencies.
+* Exception hierarchy.
+* Logging and audit interfaces.
+* Existing test fixtures and CI quality gates.
+
+Determine the exact contracts that the OpenRouter provider must implement.
+
+Do not assume that the NVIDIA implementation is interchangeable with OpenRouter. Reuse shared abstractions while respecting provider-specific behavior.
+
+Create a baseline report documenting:
+
+* Existing relevant files.
+* Existing interfaces and method signatures.
+* Current test results.
+* Existing provider implementation patterns.
+* Missing dependencies or contracts.
+* Compatibility risks.
+
+If a required interface does not exist, stop and report the dependency. Do not silently create a conflicting interface.
+
+Do not overwrite existing working code without justification.
+
+---
+
+# 3. REQUIRED PROJECT STRUCTURE
+
+Follow the repository's established structure. If Batch 20 and Batch 21 established the following pattern, use it:
+
+```
+jarvis/
+    llm/
+        providers/
+            openrouter.py
+        models/
+        exceptions.py
+        registry.py
+
+tests/
+    unit/
+        llm/
+            providers/
+                test_openrouter.py
+    integration/
+        llm/
+            test_openrouter_integration.py
+```
+
+Do not create duplicate directories if equivalent ones already exist.
+
+Keep the OpenRouter-specific implementation isolated from provider-independent logic.
+
+Avoid unnecessary abstractions and excessive file fragmentation.
+
+---
+
+# 4. OPENROUTER API CONFIGURATION
+
+Use the official OpenRouter API.
+
+Base URL:
+
+```
+https://openrouter.ai/api/v1
+```
+
+Required endpoints:
+
+```
+GET  /models
+POST /chat/completions
+```
+
+Authentication:
+
+```
+Authorization: Bearer <OPENROUTER_API_KEY>
+```
+
+Read the API key from the existing secure configuration and secrets infrastructure.
+
+Environment variable:
+
+```
+OPENROUTER_API_KEY=
+```
+
+Optional configuration, if supported by the existing configuration architecture:
+
+```
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_HTTP_REFERER=
+OPENROUTER_APP_TITLE=
+OPENROUTER_DEFAULT_MODEL=
+OPENROUTER_TIMEOUT_SECONDS=60
+OPENROUTER_MAX_RETRIES=3
+```
+
+Do not introduce duplicate configuration sources.
+
+The base URL must be validated to prevent accidental requests to untrusted endpoints. Only allow alternative endpoints through an explicit, documented development or testing configuration.
+
+Optional headers:
+
+```
+HTTP-Referer
+X-Title
+```
+
+Only send optional metadata when configured. Do not fabricate application URLs or identify the user unnecessarily.
+
+The API key must never be:
+
+* Hardcoded in Python.
+* Committed to Git.
+* Printed to the terminal.
+* Included in exception messages.
+* Written to ordinary logs.
+* Exposed through model metadata.
+* Included in test snapshots.
+
+If credentials are absent, the provider must report a clear, actionable configuration error without crashing the whole JARVIS runtime.
+
+---
+
+# 5. OPENROUTER PROVIDER IMPLEMENTATION
+
+Implement a concrete OpenRouter provider using the existing Batch 20 provider interface.
+
+The implementation must provide the operations required by that interface, including the equivalent of:
+
+* Provider identification.
+* Capability reporting.
+* Model listing.
+* Chat completion.
+* Streaming completion.
+* Health checking.
+* Graceful client shutdown.
+
+Use the exact method names and return types established in Batch 20. Do not invent competing interfaces.
+
+## 5.1 Provider identity
+
+The provider must have a stable identifier:
+
+```
+openrouter
+```
+
+It must be registered using the existing provider registry.
+
+Provider initialization must not make an unnecessary network request.
+
+Network access should happen only when an operation requires it.
+
+## 5.2 HTTP client
+
+Use the repository's established asynchronous HTTP client where possible.
+
+If no suitable client exists, select an actively maintained asynchronous HTTP library and document the dependency.
+
+Requirements:
+
+* Connection pooling.
+* Explicit connection and read timeouts.
+* TLS certificate verification.
+* Configurable connection limits.
+* Safe client lifecycle management.
+* Proper response-body cleanup.
+* Cancellation-safe asynchronous operations.
+
+Do not disable TLS verification.
+
+Avoid creating a new HTTP client for every request.
+
+The provider must close its owned HTTP resources during shutdown. It must not close shared resources owned by another component.
+
+## 5.3 Model discovery
+
+Implement:
+
+```
+GET /models
+```
+
+The provider must parse the returned model catalog into the existing normalized model metadata contract.
+
+Where available, extract:
+
+* Model ID.
+* Model name.
+* Context length.
+* Supported modalities.
+* Input and output pricing.
+* Supported parameter metadata.
+* Provider-specific model information.
+
+Do not assume every model returns identical metadata.
+
+Handle missing fields, unexpected types, malformed responses and unknown metadata safely.
+
+Preserve the original model ID exactly. Do not invent aliases or silently rewrite model names.
+
+Support explicit model selection by model ID.
+
+Cache model metadata only if the existing architecture supports caching. Apply a configurable expiry and ensure failed refreshes do not corrupt a valid cached catalog.
+
+Do not treat the presence of a model in the catalog as proof that it is available for inference.
+
+## 5.4 Chat completions
+
+Implement:
+
+```
+POST /chat/completions
+```
+
+Support the message format and request options required by the existing LLM interface.
+
+Where supported by the architecture, handle:
+
+* System messages.
+* User messages.
+* Assistant messages.
+* Tool-call messages.
+* Temperature.
+* Maximum output tokens.
+* Stop sequences.
+* Top-p.
+* Frequency penalty.
+* Presence penalty.
+* Seed.
+* Response-format configuration.
+* Request cancellation.
+
+Validate requests before sending them.
+
+Do not silently discard unsupported options. Reject them with a normalized, actionable error or handle them through an explicitly documented compatibility policy.
+
+Normalize successful responses into the existing provider-independent response object.
+
+Preserve relevant usage metadata, including input tokens, output tokens and total tokens, when supplied by the API.
+
+Do not assume usage information is always present.
+
+Do not fabricate usage data.
+
+---
+
+# 6. STREAMING SUPPORT
+
+Implement real streaming using the API's supported server-sent event format.
+
+Requirements:
+
+* Parse SSE events incrementally.
+* Handle partial network chunks.
+* Handle multiple events in a single network chunk.
+* Normalize streamed text deltas.
+* Preserve supported tool-call deltas.
+* Handle the stream termination event.
+* Handle malformed events safely.
+* Detect premature connection termination.
+* Propagate cancellation.
+* Close network streams on completion, error or cancellation.
+
+Do not buffer the entire stream before returning data.
+
+Do not convert a streaming request into an ordinary non-streaming request.
+
+Ensure that partial output is not reported as a successfully completed response when the stream terminates unexpectedly.
+
+If the existing contract supports stream completion metadata, populate it accurately.
+
+Streaming errors must follow the existing normalized exception model.
+
+---
+
+# 7. TOOL-CALL NORMALIZATION
+
+OpenRouter may return tool calls through its chat completion API.
+
+The provider must normalize supported tool-call data into the existing LLM response contract.
+
+It must:
+
+* Preserve tool names.
+* Preserve call IDs.
+* Preserve arguments.
+* Handle arguments delivered incrementally in streams.
+* Detect malformed JSON arguments.
+* Avoid inventing missing tool-call fields.
+* Preserve multiple tool calls and their order.
+
+**Critical security requirement:**
+
+The OpenRouter provider must never execute returned tool calls.
+
+Tool execution remains the responsibility of JARVIS's authorized tool execution pipeline, including its policy, permission, approval and verification checks.
+
+An LLM response is untrusted input, even if the provider API reports success.
+
+---
+
+# 8. STRUCTURED OUTPUT
+
+Implement structured-output support only to the extent supported by the existing LLM contract and the selected model.
+
+Support the API's documented response-format mechanisms where applicable.
+
+Requirements:
+
+* Validate the local schema before making a request.
+* Avoid claiming that every model supports structured output.
+* Handle provider-side rejection of unsupported formats.
+* Validate the returned output against the requested schema when the existing architecture requires it.
+* Distinguish malformed model output from transport or provider errors.
+* Never silently replace invalid output with fabricated valid data.
+
+Do not introduce an independent schema-validation framework if the repository already provides one.
+
+---
+
+# 9. ERROR HANDLING
+
+Map OpenRouter API failures into the existing normalized LLM exception hierarchy.
+
+Cover at least:
+
+| Condition          | Required behavior           |
+| ------------------ | --------------------------- |
+| HTTP 400           | Invalid request error       |
+| HTTP 401           | Authentication error        |
+| HTTP 403           | Permission or access error  |
+| HTTP 404           | Model or endpoint not found |
+| HTTP 408           | Timeout-related error       |
+| HTTP 429           | Rate-limit error            |
+| HTTP 5xx           | Provider service error      |
+| DNS failure        | Connection error            |
+| TLS failure        | Secure connection error     |
+| Connection timeout | Timeout error               |
+| Read timeout       | Timeout error               |
+| Malformed JSON     | Response parsing error      |
+| Invalid SSE event  | Streaming protocol error    |
+| Missing API key    | Configuration error         |
+| Unknown failure    | Sanitized provider error    |
+
+Adapt this mapping to the existing exception classes. Do not create a duplicate hierarchy.
+
+Preserve safe diagnostic information, such as HTTP status and provider error codes, where available.
+
+Never expose API keys, authorization headers or sensitive prompt contents in error messages.
+
+---
+
+# 10. RETRY AND RATE-LIMIT POLICY
+
+Implement bounded retries using the existing retry infrastructure, if available.
+
+Default maximum retries:
+
+```
+3
+```
+
+Retries must be bounded and must not create infinite loops.
+
+Use exponential backoff with jitter where appropriate.
+
+Respect valid Retry-After information when supplied.
+
+Retry only failures that are considered transient.
+
+Examples of potentially retryable failures:
+
+* Connection errors.
+* Temporary service errors.
+* Rate limiting, subject to the retry budget.
+* Selected transient timeouts.
+
+Do not retry:
+
+* Invalid requests.
+* Invalid model identifiers.
+* Authentication failures.
+* Authorization failures.
+* Malformed local configuration.
+
+Do not automatically retry a streaming request after output has already been delivered. Doing so can duplicate generated content.
+
+For ordinary completions, distinguish between requests known not to have been processed and requests whose processing outcome is uncertain. Do not assume a timed-out request is safe to replay.
+
+Do not implement provider fallback in this batch.
+
+---
+
+# 11. PRIVACY AND SECURITY
+
+Integrate the provider with the existing privacy and policy architecture.
+
+Required behavior:
+
+1. Respect data classification provided by JARVIS.
+2. Reject requests that are prohibited from being sent to external providers.
+3. Do not bypass authorization or approval checks.
+4. Do not log complete prompts by default.
+5. Redact credentials and sensitive headers.
+6. Do not persist model prompts unless an existing approved feature explicitly requires it.
+7. Avoid including unnecessary user metadata in requests.
+8. Do not allow arbitrary untrusted model endpoints in production configuration.
+
+Sensitive information must never be sent to OpenRouter when the existing policy classifies it as local-only.
+
+The provider must not make its own independent decision to override a privacy restriction.
+
+Test that privacy-denied requests produce zero outbound HTTP requests.
+
+---
+
+# 12. HEALTH CHECKING
+
+Implement the health-check behavior required by the provider contract.
+
+Distinguish between:
+
+* Not configured.
+* Configured but not yet checked.
+* Healthy.
+* Degraded.
+* Unavailable.
+* Authentication failure.
+
+A health check must not generate a paid model completion.
+
+Where practical, use a lightweight API operation, such as model discovery, with a strict timeout.
+
+Do not report a provider as healthy merely because the Python module imports or the HTTP client initializes.
+
+If the health check fails, return a structured status and sanitized reason.
+
+Do not make a temporary provider outage crash the entire JARVIS runtime.
+
+---
+
+# 13. REGISTRY INTEGRATION
+
+Register the OpenRouter provider using the existing LLM provider registry.
+
+Verify:
+
+* The provider can be instantiated through the registry.
+* Provider identity is unique.
+* Duplicate registration is rejected or handled according to existing registry policy.
+* Provider initialization does not trigger unwanted network activity.
+* Missing credentials are reported without crashing unrelated providers.
+* Shutdown releases resources correctly.
+
+Do not implement automatic provider selection or fallback here.
+
+Do not modify the NVIDIA provider unless a verified compatibility issue requires a narrowly scoped change.
+
+---
+
+# 14. CONFIGURATION AND ENVIRONMENT
+
+Update `.env.example` with the OpenRouter configuration fields that are actually supported.
+
+Do not overwrite the user's existing `.env` file.
+
+Do not insert fake API keys or fabricated working credentials.
+
+Ensure that:
+
+* Configuration validation catches malformed values.
+* Secrets are resolved through the existing secrets infrastructure.
+* The provider can run in offline test mode.
+* Production and test configurations are isolated.
+* Missing optional settings use documented defaults.
+* Invalid production configuration fails safely.
+
+If an existing `.env` variable already provides the same information, reuse it rather than creating a duplicate.
+
+Never print actual environment values in the implementation report.
+
+---
+
+# 15. TESTING REQUIREMENTS
+
+Write meaningful automated tests using the repository's existing testing framework.
+
+Mock HTTP responses for deterministic unit tests. Mocks must not be described as real API integration tests.
+
+## 15.1 Unit tests
+
+Cover:
+
+* Provider initialization.
+* Provider identity.
+* Missing credentials.
+* Valid configuration.
+* Invalid configuration.
+* Authentication header generation.
+* Optional header handling.
+* Model discovery.
+* Model metadata normalization.
+* Missing model metadata.
+* Chat request serialization.
+* Successful response normalization.
+* Usage metadata handling.
+* Tool-call normalization.
+* Structured-output validation.
+* Error mapping.
+* Retry behavior.
+* Rate-limit handling.
+* Timeout behavior.
+* Client shutdown.
+
+## 15.2 Streaming tests
+
+Test:
+
+* Multiple text deltas.
+* Split SSE events.
+* Multiple events in one chunk.
+* Tool-call deltas.
+* Normal stream termination.
+* Malformed SSE data.
+* Premature disconnection.
+* Cancellation.
+* Stream cleanup.
+* No duplicate output after a partial stream failure.
+
+## 15.3 Security tests
+
+Test:
+
+* API key is absent from logs.
+* API key is absent from exceptions.
+* Authorization headers are redacted.
+* Privacy-denied prompts are not transmitted.
+* Untrusted base URLs are rejected in production.
+* Returned tool calls are never executed by the provider.
+* Invalid model output is not treated as trusted structured data.
+
+## 15.4 Failure tests
+
+Test:
+
+* HTTP 400.
+* HTTP 401.
+* HTTP 403.
+* HTTP 404.
+* HTTP 408.
+* HTTP 429.
+* HTTP 500.
+* HTTP 502.
+* HTTP 503.
+* DNS failure.
+* TLS failure.
+* Connection timeout.
+* Read timeout.
+* Malformed JSON.
+* Unexpected response structure.
+* Retry exhaustion.
+* Cancellation during an active request.
+
+## 15.5 Integration tests
+
+Create opt-in live integration tests using a real OpenRouter API key.
+
+These tests must be explicitly marked and skipped when credentials or network access are unavailable.
+
+When credentials are available, test:
+
+1. Authentication.
+2. Model discovery.
+3. One small, explicitly selected model completion.
+4. Streaming completion, if supported by the selected model.
+5. Response normalization.
+6. Resource cleanup.
+
+Use a low-cost model only when explicitly configured. Never silently select an expensive model.
+
+Do not run paid API tests as part of ordinary offline CI.
+
+Record whether live tests were actually executed. A skipped live test is not a passing live integration test.
+
+---
+
+# 16. PERFORMANCE AND RESOURCE CONTROL
+
+Avoid unnecessary memory allocation and network requests.
+
+Requirements:
+
+* Reuse HTTP connections.
+* Avoid loading unnecessary model catalogs repeatedly.
+* Stream responses incrementally.
+* Apply bounded concurrency consistent with the existing architecture.
+* Prevent unbounded queues or retry loops.
+* Respect cancellation.
+* Avoid blocking the main event loop.
+
+Measure basic latency for deterministic mocked operations and record live latency only when real API tests are run.
+
+Do not claim that the provider meets a latency target without actual measurements.
+
+The integration must not introduce an uncontrolled increase in JARVIS's idle resource consumption.
+
+---
+
+# 17. OBSERVABILITY AND AUDIT
+
+Use the existing logging and audit infrastructure.
+
+Record operational events such as:
+
+* Provider initialization.
+* Provider availability changes.
+* Model catalog refresh outcomes.
+* Request start and completion.
+* Request failures.
+* Retry attempts.
+* Streaming termination.
+* Provider shutdown.
+
+Record safe metadata, such as:
+
+* Provider ID.
+* Model ID.
+* Request ID, if available.
+* Duration.
+* Token usage, if supplied.
+* HTTP status.
+* Error category.
+
+Do not log raw prompts, sensitive responses, API keys or authorization headers by default.
+
+Do not invent audit events that the existing audit contract cannot represent without documenting the required contract change.
+
+---
+
+# 18. CODE QUALITY
+
+All code must follow the repository's established standards.
+
+Requirements:
+
+* Strong type annotations.
+* Clear asynchronous boundaries.
+* Small, maintainable methods.
+* Explicit error handling.
+* No unexplained broad exception suppression.
+* No dead code.
+* No duplicate provider implementation.
+* No empty implementation files.
+* No fake test assertions.
+* No hardcoded credentials.
+* No unnecessary dependencies.
+* No import-time network calls.
+
+Run the available formatter, linter, type checker, security checks and test suite.
+
+Fix regressions introduced by this batch. Do not conceal unrelated pre-existing failures.
+
+---
+
+# 19. DOCUMENTATION
+
+Update the relevant documentation with:
+
+* OpenRouter provider architecture.
+* Supported operations.
+* Configuration fields.
+* Model selection.
+* Authentication setup.
+* Streaming behavior.
+* Retry policy.
+* Privacy restrictions.
+* Error handling.
+* How to run offline tests.
+* How to run opt-in live tests.
+* Known limitations.
+
+Do not document unimplemented features as supported.
+
+Do not include real credentials or sensitive environment values.
+
+---
+
+# 20. STRICT ACCEPTANCE CRITERIA
+
+The batch may be marked IMPLEMENTED only if:
+
+* The provider implements the existing LLM interface.
+* Registry integration works.
+* Real request serialization is implemented.
+* Response normalization is implemented.
+* Model discovery is implemented.
+* Streaming is implemented according to the contract.
+* Errors are normalized.
+* Retries are bounded.
+* Privacy enforcement is effective.
+* Credentials are handled securely.
+* Meaningful automated tests exist.
+* Relevant quality gates have been executed.
+
+The batch may be marked VERIFIED only when the applicable tests and integration evidence support that claim.
+
+If live credentials are unavailable, clearly distinguish offline verification from live API verification.
+
+Do not label an untested feature as VERIFIED.
+
+Do not claim production readiness based on unit tests alone.
+
+---
+
+# 21. PROHIBITED SHORTCUTS
+
+Do not:
+
+* Create a two- or three-line placeholder and call it complete.
+* Return hardcoded model lists as real model discovery.
+* Return fabricated AI responses.
+* Simulate successful API calls in production code.
+* Replace failed tests with weaker assertions.
+* Skip failing tests without documenting the reason.
+* Hide exceptions to make tests pass.
+* Claim a live API test passed when it was skipped.
+* Modify unrelated components to simplify implementation.
+* Implement MCP in this batch.
+* Implement OpenRouter fallback or intelligent routing in this batch.
+* Expose API keys in the final report.
+* Automatically proceed to Batch 23.
+
+---
+
+# 22. FINAL EXECUTION REPORT
+
+After implementation, provide a factual report containing:
+
+### A. Implementation summary
+
+List every file created or modified and explain its actual purpose.
+
+### B. Feature status
+
+For each feature, use one of these statuses:
+
+* IMPLEMENTED
+* TESTED
+* VERIFIED
+* PARTIAL
+* STUB
+* MOCK
+* UNIMPLEMENTED
+* BROKEN
+* BLOCKED
+* UNKNOWN
+
+Do not use a single overall status to hide incomplete components.
+
+### C. Test evidence
+
+Report:
+
+* Exact commands executed.
+* Number of tests collected.
+* Number passed.
+* Number failed.
+* Number skipped.
+* Relevant coverage.
+* Lint and type-check results.
+* Security-check results.
+* Live API test results, if executed.
+
+Include actual test output or a concise, traceable summary.
+
+### D. Integration evidence
+
+Demonstrate that the provider is registered and can be invoked through the existing architecture.
+
+Distinguish mocked execution from real OpenRouter requests.
+
+### E. Security evidence
+
+Report the results of credential-redaction, privacy-denial, untrusted endpoint and tool-call isolation tests.
+
+### F. Remaining defects
+
+List all known limitations, unresolved errors and blockers.
+
+### G. Final batch status
+
+Choose exactly one:
+
+* **COMPLETED AND VERIFIED**
+* **IMPLEMENTED, LIVE VERIFICATION PENDING**
+* **PARTIALLY IMPLEMENTED**
+* **BLOCKED**
+* **FAILED**
+
+Explain the selected status using actual evidence.
+
+Do not assign arbitrary confidence percentages.
+
+Do not proceed to Batch 23 without explicit instruction.
+
+---
+
+# FINAL INSTRUCTION
+
+Implement Batch 22 against the actual repository. Inspect first, make the smallest justified changes, execute the available tests and report only what the evidence supports.
+
+If a required prerequisite is missing, stop and report the exact blocker instead of fabricating a workaround.
+
+The goal is a functional, secure, maintainable OpenRouter provider that fits JARVIS's existing architecture—not an impressive-looking implementation report.
+
+
+# BATCH 23 — LOCAL LLM PROVIDER INTEGRATION
+
+## JARVIS: Production-Grade Autonomous AI Assistant
+
+**Role:** Senior AI Infrastructure Engineer, Python Backend Engineer, Local Inference Engineer and Test Engineer.
+
+**Batch:** 23 of 60
+**Phase:** LLM Provider Infrastructure
+**Task:** Implement a production-oriented local LLM provider.
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Implement a real local LLM provider that enables JARVIS to run supported language models directly on the user's Windows computer.
+
+The implementation must support:
+
+1. Local model runtime integration.
+2. Model discovery and registration.
+3. Model loading and unloading.
+4. Chat completion.
+5. Streaming responses.
+6. Structured output, where supported.
+7. Context-length and token-limit handling.
+8. Runtime health checks.
+9. CPU and memory monitoring.
+10. Resource-aware inference.
+11. Model availability detection.
+12. Privacy-preserving local inference.
+13. Graceful startup and shutdown.
+14. Comprehensive automated testing.
+
+The implementation must use a real inference runtime, not simulated model responses.
+
+The provider must implement the existing LLM interface established in Batch 20.
+
+It must coexist with the NVIDIA NIM and OpenRouter providers without modifying their behavior unnecessarily.
+
+**Important:** JARVIS must remain usable if no local model is installed. A missing model must produce a clear, recoverable status rather than crashing the application.
+
+Do not implement intelligent provider routing or automatic fallback in this batch. Those belong to Batch 24.
+
+---
+
+# 2. PRE-IMPLEMENTATION AUDIT
+
+Before writing code, inspect the repository and the outcomes of previous batches.
+
+Inspect:
+
+* Batch 20: LLM provider abstraction.
+* Batch 21: NVIDIA NIM provider.
+* Batch 22: OpenRouter provider.
+* Existing provider registry.
+* Configuration and environment-variable registry.
+* Secrets manager.
+* Runtime lifecycle.
+* Task manager.
+* Logging and audit interfaces.
+* Health-monitoring contracts.
+* Existing dependency management.
+* Current automated tests.
+
+Determine which local inference interfaces the architecture already supports.
+
+Create a baseline report covering:
+
+* Existing LLM contracts.
+* Existing provider registration.
+* Available inference-related dependencies.
+* Current Python version.
+* Existing resource-monitoring capabilities.
+* Current test status.
+* Relevant architectural limitations.
+
+Do not create a duplicate LLM abstraction or a second provider registry.
+
+Do not replace working provider implementations.
+
+If a required contract is missing, report the issue and make only a narrowly justified, backward-compatible change.
+
+---
+
+# 3. LOCAL INFERENCE RUNTIME
+
+Implement the local provider using **llama.cpp through its maintained Python bindings (`llama-cpp-python`)**, unless the repository already contains a functional, compatible local inference runtime.
+
+Use a single authoritative runtime adapter.
+
+For the llama.cpp implementation, support GGUF models.
+
+The provider must be able to initialize and operate without requiring NVIDIA CUDA.
+
+CPU inference must be supported.
+
+CUDA acceleration may be supported when the installed runtime and hardware actually provide it. Do not assume that CUDA is available.
+
+Do not make GPU acceleration a mandatory dependency.
+
+If a different local runtime is already established in the repository, document the reason for retaining it and implement the same provider contract around it instead of introducing a competing runtime.
+
+Do not install multiple large inference runtimes without a demonstrated requirement.
+
+---
+
+# 4. REQUIRED ARCHITECTURE
+
+Follow the existing repository layout.
+
+A possible organization, if compatible with the existing architecture:
+
+```
+jarvis/
+    llm/
+        providers/
+            local.py
+        local_runtime/
+            base.py
+            llama_cpp_runtime.py
+            model_manager.py
+            resource_manager.py
+
+tests/
+    unit/
+        llm/
+            providers/
+                test_local.py
+            local_runtime/
+                test_model_manager.py
+                test_resource_manager.py
+    integration/
+        llm/
+            test_local_integration.py
+```
+
+Do not duplicate existing directories or interfaces.
+
+Keep these responsibilities separate:
+
+* Provider: implements the existing LLM interface.
+* Runtime adapter: performs actual inference.
+* Model manager: handles model discovery and lifecycle.
+* Resource manager: enforces resource limits.
+* Registry: provides access to the provider.
+* Policy engine: authorizes operations and data access.
+* Verification subsystem: validates results.
+
+Do not allow the local provider to bypass JARVIS's authorization or audit infrastructure.
+
+---
+
+# 5. MODEL STORAGE AND DISCOVERY
+
+Use a dedicated, configurable model directory.
+
+Suggested default:
+
+```
+data/models/
+```
+
+Do not place large model files inside the source-code directories.
+
+Support:
+
+* Local GGUF model discovery.
+* Explicit model selection.
+* Model metadata inspection.
+* Model file existence checks.
+* Model file readability checks.
+* Model size reporting.
+* Model loading status.
+* Model unloading status.
+* Model compatibility validation.
+
+Do not download models automatically during startup.
+
+Do not assume that every GGUF file is compatible with every runtime version.
+
+Validate the model format and report unsupported or corrupted files clearly.
+
+Where model metadata is available, extract:
+
+* Model identifier.
+* File path.
+* File size.
+* Quantization information.
+* Architecture metadata.
+* Context-length information.
+* Runtime compatibility information.
+
+Do not invent missing metadata.
+
+Avoid scanning unrelated directories or following untrusted symbolic links outside the configured model directory.
+
+Model discovery must not load every model into memory.
+
+---
+
+# 6. MODEL CONFIGURATION
+
+Integrate local-model configuration with the existing configuration architecture.
+
+Support the following settings where compatible with existing contracts:
+
+```
+LOCAL_LLM_ENABLED=false
+LOCAL_LLM_MODEL_PATH=
+LOCAL_LLM_CONTEXT_LENGTH=2048
+LOCAL_LLM_MAX_TOKENS=512
+LOCAL_LLM_THREADS=
+LOCAL_LLM_GPU_LAYERS=0
+LOCAL_LLM_MAX_MEMORY_MB=4096
+LOCAL_LLM_LOAD_TIMEOUT_SECONDS=120
+LOCAL_LLM_INFERENCE_TIMEOUT_SECONDS=120
+```
+
+Use the actual supported configuration names and avoid duplicate settings.
+
+Defaults must be conservative and appropriate for CPU-only inference.
+
+The model path must be validated before loading.
+
+Thread count must be bounded.
+
+Context length and token limits must be validated against the model's supported capabilities.
+
+Do not treat GPU-layer configuration as proof that GPU acceleration is active.
+
+The provider must report the actual runtime configuration, not just the requested configuration.
+
+Do not modify the user's existing `.env` file.
+
+Update `.env.example` only with the settings actually implemented.
+
+---
+
+# 7. MODEL LIFECYCLE MANAGEMENT
+
+Implement a proper model lifecycle.
+
+Supported states should include:
+
+* NOT_CONFIGURED
+* DISCOVERED
+* LOADING
+* LOADED
+* BUSY
+* UNLOADING
+* UNLOADED
+* FAILED
+* UNAVAILABLE
+
+Adapt the states to the existing task and component lifecycle contracts where appropriate.
+
+Implement:
+
+1. Model discovery.
+2. Model compatibility validation.
+3. Model loading.
+4. Inference execution.
+5. Controlled unloading.
+6. Runtime cleanup.
+7. Recovery after load failure.
+8. Shutdown handling.
+
+Requirements:
+
+* Prevent duplicate concurrent loads of the same model.
+* Avoid unsafe concurrent model mutation.
+* Define behavior for inference requests during loading and unloading.
+* Apply load timeouts.
+* Handle interrupted loading.
+* Ensure resources are released after failures.
+* Do not unload a model while an active inference request is using it.
+* Make lifecycle operations idempotent where appropriate.
+
+A failed model load must not leave the provider falsely reporting the model as loaded.
+
+Do not automatically download missing models.
+
+---
+
+# 8. CHAT COMPLETION
+
+Implement chat completion through the existing LLM provider interface.
+
+Support the existing normalized message types, including:
+
+* System messages.
+* User messages.
+* Assistant messages.
+* Tool-call messages, if supported by the runtime adapter.
+
+Implement the options supported by the chosen runtime, including where applicable:
+
+* Temperature.
+* Maximum output tokens.
+* Top-p.
+* Stop sequences.
+* Seed.
+* Context length.
+* Repeat penalty.
+
+Validate requests before inference.
+
+Do not silently ignore unsupported parameters.
+
+Use an explicit compatibility policy for optional features.
+
+Normalize results into the existing provider-independent response contract.
+
+Where supported, capture:
+
+* Generated content.
+* Finish reason.
+* Prompt token count.
+* Completion token count.
+* Total token count.
+* Model identifier.
+* Inference duration.
+
+Do not fabricate token usage or timing information.
+
+If the runtime cannot provide an accurate usage value, mark it unavailable rather than inventing one.
+
+---
+
+# 9. STREAMING SUPPORT
+
+Implement real incremental token streaming.
+
+Requirements:
+
+* Return generated text incrementally.
+* Avoid buffering the entire generated response.
+* Respect the existing stream interface.
+* Propagate cancellation.
+* Enforce inference timeouts.
+* Detect runtime failures during generation.
+* Release runtime resources after stream termination.
+* Support graceful consumer disconnection.
+
+Test the stream with an actual local model when one is available.
+
+For deterministic unit tests, use a fake runtime adapter, but never describe fake streaming as real inference.
+
+If the stream terminates unexpectedly, do not report a successful completed response.
+
+Do not silently restart a partially delivered stream because doing so could duplicate output.
+
+---
+
+# 10. STRUCTURED OUTPUT AND TOOL CALLS
+
+Implement structured-output support only where the local runtime and selected model support it.
+
+Where feasible:
+
+* Validate the requested schema.
+* Apply the runtime's documented constrained-generation features.
+* Validate generated output.
+* Return normalized validation errors.
+* Distinguish invalid model output from runtime failures.
+
+Do not claim guaranteed JSON generation merely because a prompt requests JSON.
+
+For tool calls:
+
+* Normalize supported tool-call output.
+* Validate its structure.
+* Preserve call identifiers and arguments where available.
+* Treat model-generated tool calls as untrusted.
+
+**Critical:** The local provider must never execute tools directly.
+
+All tool execution must pass through JARVIS's central authorization, approval, policy, execution and verification pipeline.
+
+If a model or runtime does not support native tool calling, report the limitation accurately. Do not fabricate native tool-call support.
+
+---
+
+# 11. RESOURCE MANAGEMENT
+
+JARVIS is expected to run on a Windows computer with limited memory.
+
+The overall application has these resource targets:
+
+* Idle memory: approximately 2–3 GB.
+* Maximum memory: 8 GB.
+
+These are whole-application targets, not a dedicated memory allowance for the local model.
+
+The local provider must not consume the entire available memory.
+
+Implement resource-aware model loading and inference.
+
+Requirements:
+
+1. Estimate the model's memory requirements where possible.
+2. Account for model weights, context cache and runtime overhead.
+3. Check available system memory before loading.
+4. Respect the configured local-model memory limit.
+5. Bound inference concurrency.
+6. Limit excessive thread creation.
+7. Avoid loading multiple large models simultaneously by default.
+8. Detect resource exhaustion.
+9. Release model resources during controlled unloading.
+10. Report actual memory measurements when available.
+
+Do not rely exclusively on GGUF file size to estimate runtime memory consumption.
+
+Do not claim that a model fits within memory without accounting for runtime overhead.
+
+If a model cannot safely be loaded, reject the operation with a clear resource error.
+
+Do not forcibly terminate unrelated processes to free memory.
+
+Do not make unsupported claims about memory reclamation by the Python runtime.
+
+---
+
+# 12. CPU AND GPU SUPPORT
+
+CPU inference must work without special hardware.
+
+Implement configurable thread management and prevent uncontrolled thread creation.
+
+GPU acceleration must be optional.
+
+If GPU support is requested:
+
+* Check whether the runtime was built with compatible GPU support.
+* Check whether the relevant hardware is available.
+* Validate the requested GPU-layer configuration.
+* Report whether acceleration was actually activated.
+* Fail safely when acceleration is unavailable.
+
+Do not silently fall back to CPU while reporting that GPU acceleration is active.
+
+A CPU fallback may be allowed only when the configuration and resource constraints permit it. Report the actual execution mode.
+
+Do not install GPU-specific packages or drivers automatically.
+
+---
+
+# 13. PRIVACY AND SECURITY
+
+Local inference is intended to support private tasks, but local execution does not automatically make every operation safe.
+
+Integrate with the existing privacy and authorization architecture.
+
+Requirements:
+
+* Respect data classification.
+* Keep local-only prompts out of external provider requests.
+* Do not transmit prompts or model contents to external telemetry.
+* Do not download models automatically.
+* Validate model paths.
+* Prevent path traversal.
+* Restrict access to configured model directories.
+* Redact sensitive content from logs.
+* Do not expose filesystem paths unnecessarily in user-facing errors.
+* Do not execute model-generated tool calls directly.
+
+Local inference must not bypass JARVIS's policy engine, even though it does not require a remote API key.
+
+If a model file is malformed or untrusted, fail safely rather than attempting unsafe loading behavior.
+
+Never treat local model output as trusted instructions.
+
+---
+
+# 14. ERROR HANDLING
+
+Integrate with the existing LLM exception hierarchy.
+
+Normalize errors for at least:
+
+| Failure                        | Required behavior             |
+| ------------------------------ | ----------------------------- |
+| Missing model                  | Model unavailable             |
+| Invalid model file             | Model validation error        |
+| Unsupported architecture       | Compatibility error           |
+| Runtime dependency missing     | Dependency error              |
+| Model load timeout             | Timeout error                 |
+| Inference timeout              | Timeout error                 |
+| Out of memory                  | Resource error                |
+| Unsupported parameter          | Validation error              |
+| Invalid response format        | Output validation error       |
+| Runtime initialization failure | Provider initialization error |
+| Inference crash                | Runtime execution error       |
+| Cancellation                   | Cancellation handling         |
+| Unexpected failure             | Sanitized provider error      |
+
+Do not introduce a duplicate exception hierarchy.
+
+Do not suppress exceptions to make model loading appear successful.
+
+Do not leave partially initialized runtime objects active after a failed initialization.
+
+---
+
+# 15. HEALTH CHECKS
+
+Implement the existing provider health-check contract.
+
+Distinguish:
+
+* Disabled.
+* Not configured.
+* Model unavailable.
+* Model discovered.
+* Runtime unavailable.
+* Model loaded.
+* Healthy.
+* Degraded.
+* Resource constrained.
+* Failed.
+
+Health checks must not trigger expensive inference by default.
+
+A health check must not load a large model just to report availability.
+
+Report whether the provider is:
+
+* Installed.
+* Configured.
+* Able to discover the configured model.
+* Able to initialize the runtime.
+* Ready for inference.
+
+Only report inference readiness after the necessary runtime and model checks have actually succeeded.
+
+A temporary local-model failure must not crash the entire JARVIS runtime.
+
+---
+
+# 16. REGISTRY AND RUNTIME INTEGRATION
+
+Register the provider using the existing provider registry.
+
+Requirements:
+
+* Stable provider ID: `local`.
+* No duplicate registration.
+* No network calls during registration.
+* Graceful handling of missing runtime dependencies.
+* Correct startup and shutdown integration.
+* No import-time model loading.
+* No unnecessary model initialization when the provider is disabled.
+
+The provider must be independently configurable.
+
+The existing NVIDIA NIM and OpenRouter providers must continue to work unchanged unless a specific, verified compatibility issue requires a modification.
+
+Do not implement intelligent model selection or cross-provider fallback in this batch.
+
+---
+
+# 17. TESTING REQUIREMENTS
+
+Create comprehensive automated tests using the existing test framework.
+
+## 17.1 Unit tests
+
+Test:
+
+* Provider initialization.
+* Provider registration.
+* Missing runtime dependency.
+* Disabled provider.
+* Missing model.
+* Model discovery.
+* Model metadata parsing.
+* Model path validation.
+* Model loading.
+* Model unloading.
+* Duplicate concurrent loading.
+* Chat completion normalization.
+* Token usage handling.
+* Streaming behavior.
+* Structured-output validation.
+* Resource-limit enforcement.
+* Timeout handling.
+* Cancellation.
+* Shutdown cleanup.
+* Error normalization.
+
+Use an injected fake runtime for deterministic unit tests.
+
+Clearly label those tests as fake-runtime tests.
+
+## 17.2 Resource tests
+
+Test:
+
+* Model rejected when its estimated resource requirements exceed configured limits.
+* Concurrent requests respect concurrency limits.
+* Model loading respects the memory policy.
+* Model cleanup is called after failures.
+* Memory-monitoring failures are handled safely.
+* Resource exhaustion does not crash unrelated components.
+
+Do not make resource tests depend on unrealistic assumptions about the host computer.
+
+## 17.3 Security tests
+
+Test:
+
+* Invalid model paths are rejected.
+* Path traversal is blocked.
+* Untrusted paths outside the allowed directory are rejected.
+* Sensitive prompts are not logged.
+* No outbound network request occurs during local inference.
+* Local tool-call output is never executed directly.
+* Disabled local providers do not load models.
+* Model initialization failures do not leak sensitive data.
+
+## 17.4 Integration tests
+
+Create opt-in tests that use a real local model and the real inference runtime.
+
+These tests must be skipped when:
+
+* The local runtime is unavailable.
+* No compatible model is configured.
+* The configured model is unreadable.
+* Resource requirements exceed the configured limits.
+
+When the environment permits, test:
+
+1. Actual runtime initialization.
+2. Actual model loading.
+3. A small real inference request.
+4. Real streaming.
+5. Model unloading.
+6. Resource cleanup.
+
+Use an explicitly configured model. Never silently download one.
+
+Do not classify a fake-runtime test as a live integration test.
+
+Record the exact model identifier and runtime version used for a real test, without disclosing sensitive filesystem details.
+
+---
+
+# 18. PERFORMANCE TESTING
+
+Measure:
+
+* Model loading time.
+* First-token latency.
+* Generation throughput.
+* Memory consumption.
+* CPU utilization, where available.
+* Streaming overhead.
+* Model unloading time.
+
+Use real measurements when a compatible local model is available.
+
+Clearly distinguish simulated, mocked and measured results.
+
+Do not claim that the local model provides sub-second responses unless actual tests demonstrate that result under documented conditions.
+
+Avoid running large benchmarks during ordinary CI.
+
+Provide an opt-in benchmark command for the configured local model.
+
+---
+
+# 19. LOGGING AND AUDIT
+
+Use the existing logging and audit infrastructure.
+
+Record relevant lifecycle events:
+
+* Provider initialization.
+* Model discovery.
+* Model loading.
+* Model unloading.
+* Inference start and completion.
+* Inference failures.
+* Resource-limit rejection.
+* Runtime health changes.
+* Shutdown.
+
+Include safe operational metadata where available:
+
+* Provider ID.
+* Model identifier.
+* Runtime version.
+* Execution mode.
+* Duration.
+* Token counts.
+* Resource measurements.
+* Error category.
+
+Never log complete prompts, sensitive responses or unnecessary absolute file paths.
+
+Use the existing daily log format:
+
+```
+YYYYMMDD_log.txt
+```
+
+Do not introduce a second logging system.
+
+---
+
+# 20. DOCUMENTATION
+
+Update the appropriate documentation with:
+
+* Local inference architecture.
+* Runtime dependency.
+* Supported model format.
+* Model directory.
+* Model installation instructions.
+* Configuration.
+* CPU requirements.
+* Optional GPU requirements.
+* Memory limitations.
+* Model lifecycle.
+* Streaming behavior.
+* Privacy behavior.
+* Error handling.
+* Offline unit-test commands.
+* Live integration-test commands.
+* Benchmark instructions.
+* Known limitations.
+
+Do not claim that an arbitrary GGUF model is supported without testing its compatibility.
+
+Do not include copyrighted model weights in the repository.
+
+Do not automatically download large model files.
+
+---
+
+# 21. QUALITY GATES
+
+Run all applicable repository quality gates.
+
+At minimum:
+
+1. Formatter.
+2. Linter.
+3. Type checker.
+4. Unit tests.
+5. Relevant integration tests.
+6. Security checks.
+7. Dependency checks.
+8. Regression tests.
+
+Use the actual commands configured in the repository.
+
+If a quality gate fails, investigate and fix failures introduced by this batch.
+
+Do not weaken quality gates to obtain a passing result.
+
+Do not conceal pre-existing failures.
+
+If the local machine lacks the memory or hardware required for a real-model test, report that limitation instead of fabricating results.
+
+---
+
+# 22. ACCEPTANCE CRITERIA
+
+The implementation can be marked IMPLEMENTED only when:
+
+* The local provider implements the existing LLM contract.
+* A real inference runtime is integrated.
+* Model discovery works.
+* Model loading and unloading are implemented.
+* Chat completion is implemented.
+* Streaming is implemented.
+* Resource controls are implemented.
+* Privacy restrictions are enforced.
+* Errors are normalized.
+* Provider registration works.
+* Automated tests cover the core behavior.
+
+The implementation can be marked VERIFIED only when the relevant tests have actually passed.
+
+A fake runtime passing unit tests does not prove that real inference works.
+
+If the real model cannot be tested, report the result as **IMPLEMENTED, LIVE VERIFICATION PENDING**, provided the code and deterministic tests meet their requirements.
+
+Do not claim production readiness based on import success or mocked tests.
+
+---
+
+# 23. PROHIBITED SHORTCUTS
+
+Do not:
+
+* Create placeholder runtime classes and mark them complete.
+* Return hardcoded model responses.
+* Simulate successful inference in production code.
+* Claim GPU acceleration without evidence.
+* Automatically download models.
+* Ignore memory limits.
+* Load all discovered models into memory.
+* Execute tool calls directly.
+* Send local-only data to external services.
+* Hide errors.
+* Disable tests to obtain a passing result.
+* Modify the existing provider contracts unnecessarily.
+* Implement MCP in this batch.
+* Implement automatic provider fallback in this batch.
+* Automatically proceed to Batch 24.
+
+---
+
+# 24. FINAL EXECUTION REPORT
+
+After completing the implementation, produce a detailed report.
+
+## A. Files changed
+
+List every created, modified and deleted file with its purpose.
+
+## B. Implementation status
+
+Use the following statuses for individual features:
+
+* IMPLEMENTED
+* TESTED
+* VERIFIED
+* PARTIAL
+* STUB
+* MOCK
+* UNIMPLEMENTED
+* BROKEN
+* BLOCKED
+* UNKNOWN
+
+Do not use a single overall status to conceal incomplete work.
+
+## C. Test results
+
+Include:
+
+* Exact commands executed.
+* Tests collected.
+* Tests passed.
+* Tests failed.
+* Tests skipped.
+* Coverage results.
+* Lint results.
+* Type-check results.
+* Security-check results.
+* Live-model integration results.
+
+## D. Real inference evidence
+
+If a real model was available, provide:
+
+* Model identifier.
+* Runtime version.
+* Whether loading succeeded.
+* Whether actual inference succeeded.
+* Whether streaming succeeded.
+* Measured latency.
+* Measured resource consumption, if available.
+
+If no model was available, state that clearly.
+
+## E. Resource report
+
+Provide measured or estimated resource usage and distinguish between the two.
+
+Explain any deviations from the configured memory limits.
+
+## F. Security report
+
+Report the results of path validation, privacy, tool-call isolation and sensitive-data logging tests.
+
+## G. Remaining issues
+
+List all known defects, unsupported features and blockers.
+
+## H. Final batch status
+
+Select exactly one:
+
+* **COMPLETED AND VERIFIED**
+* **IMPLEMENTED, LIVE VERIFICATION PENDING**
+* **PARTIALLY IMPLEMENTED**
+* **BLOCKED**
+* **FAILED**
+
+Justify the status with actual evidence.
+
+Do not invent confidence percentages.
+
+Do not proceed to Batch 24 without explicit instruction.
+
+---
+
+# FINAL INSTRUCTION
+
+Implement Batch 23 against the actual repository.
+
+Inspect first, preserve existing functionality, integrate the real local inference runtime, enforce resource and privacy limits, and execute all feasible tests.
+
+A local provider that only imports successfully is not a completed provider.
+
+A mock inference test is not proof of real inference.
+
+Report limitations honestly and stop if a critical security or architectural requirement cannot be enforced.

@@ -192,6 +192,24 @@ class LLMInternalError(LLMError):
     pass
 
 
+class LLMProviderInitializationError(LLMError, ConfigurationError):
+    """Raised when local/remote LLM provider initialization or model loading fails."""
+
+    pass
+
+
+class LLMInferenceError(LLMError):
+    """Raised when runtime inference execution fails."""
+
+    pass
+
+
+class LLMTimeoutError(ProviderTimeoutError):
+    """Raised when local runtime inference times out."""
+
+    pass
+
+
 class LLMPrivacyViolationError(LLMError, AuthorizationError):
     """Raised when confidential or restricted data is routed to an unauthorized cloud provider."""
 

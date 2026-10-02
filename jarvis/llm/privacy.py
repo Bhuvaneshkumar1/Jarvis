@@ -38,7 +38,10 @@ class LLMPrivacyEnforcer:
                 )
 
         # CONFIDENTIAL or RESTRICTED requests MUST use local processing path
-        if not is_local_provider and classification in (DataClassification.CONFIDENTIAL, DataClassification.RESTRICTED):
+        if not is_local_provider and classification in (
+            DataClassification.CONFIDENTIAL,
+            DataClassification.RESTRICTED,
+        ):
             raise LLMPrivacyViolationError(
                 f"Data classification '{classification.value}' is restricted to local providers and cannot be routed to external cloud provider.",
                 request_id=request.request_id,

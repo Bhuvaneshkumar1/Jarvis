@@ -54,9 +54,11 @@ class LLMProviderFactory:
         # Register standard provider classes
         from jarvis.llm.providers.nvidia import NVIDIAProvider
         from jarvis.llm.providers.openrouter import OpenRouterProvider
+        from jarvis.llm.providers.local import LocalLLMProvider
 
         self.register_provider_class("nvidia", NVIDIAProvider)
         self.register_provider_class("openrouter", OpenRouterProvider)
+        self.register_provider_class("local", LocalLLMProvider)
 
     def register_provider_class(self, provider_id: str, provider_cls: Type[AbstractLLMProvider]) -> None:
         """Registers a provider class for factory instantiation."""
