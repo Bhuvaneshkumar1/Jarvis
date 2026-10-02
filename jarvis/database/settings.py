@@ -31,10 +31,10 @@ class DatabaseSettings(BaseModel):
 def get_database_settings(custom_path: Optional[str] = None) -> DatabaseSettings:
     """Load DatabaseSettings from central settings or environment overrides."""
     base_settings = get_settings()
-    db_path = custom_path or getattr(base_settings, "database_path", None) or os.getenv("JARVIS_DATABASE_PATH", "data/jarvis.db")
-    backup_dir = getattr(base_settings, "database_backup_dir", None) or os.getenv("JARVIS_BACKUP_DIR", "backups")
+    db_path_val = str(custom_path or getattr(base_settings, "database_path", None) or os.getenv("JARVIS_DATABASE_PATH", "data/jarvis.db"))
+    backup_dir_val = str(getattr(base_settings, "database_backup_dir", None) or os.getenv("JARVIS_BACKUP_DIR", "backups"))
 
     return DatabaseSettings(
-        db_path=db_path,
-        backup_dir=backup_dir,
+        db_path=db_path_val,
+        backup_dir=backup_dir_val,
     )

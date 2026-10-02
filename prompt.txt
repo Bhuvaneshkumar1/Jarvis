@@ -13192,3 +13192,7388 @@ END OF BATCH 10
 
 Batch 11 will follow the security foundation and can address the next planned security layer, while keeping MCP deferred to its dedicated phase.
 ```
+# JARVIS — BATCH 11
+
+## Configuration & Security Hardening
+
+You are implementing **Batch 11** of the JARVIS production-grade autonomous AI assistant.
+
+This is a security-hardening and integration-validation batch.
+
+B8 established centralized configuration.
+B9 established environment security and validation.
+B10 established secrets and credential security.
+
+Your objective in this batch is to **harden the complete configuration → environment → secrets → runtime boundary** and prove that unsafe configuration cannot silently enter JARVIS.
+
+This batch must not introduce unrelated functionality.
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Implement and verify:
+
+```text
+Environment
+     ↓
+B9 Environment Validation
+     ↓
+B8 Configuration System
+     ↓
+B10 Secret Manager
+     ↓
+Security Policy
+     ↓
+Runtime Configuration
+     ↓
+JARVIS Components
+```
+
+The final architecture must prevent:
+
+* accidental secret exposure
+* insecure configuration overrides
+* unknown configuration variables
+* unsafe production settings
+* configuration mutation after startup
+* secret/config confusion
+* debug mode leakage
+* unsafe defaults
+* configuration corruption
+* invalid environment combinations
+* unauthorized runtime configuration changes
+
+---
+
+# 2. IMPORTANT BOUNDARY
+
+Do NOT redesign B8, B9, or B10.
+
+Inspect them first.
+
+Reuse existing:
+
+* configuration contracts
+* environment validator
+* secret manager
+* secret providers
+* redaction utility
+* audit mechanism
+* exception hierarchy
+* logging
+* test infrastructure
+
+There must be one authoritative implementation.
+
+If duplicate implementations already exist, consolidate them carefully and preserve behavior.
+
+---
+
+# 3. BASELINE FIRST
+
+Before making changes:
+
+1. Inspect repository.
+2. Inspect B8 implementation.
+3. Inspect B9 implementation.
+4. Inspect B10 implementation.
+5. Inspect all configuration consumers.
+6. Inspect secret-manager consumers.
+7. Run complete existing test suite.
+8. Run configured quality gates.
+9. Record baseline.
+
+Do not modify code before establishing the baseline.
+
+Record:
+
+```text
+Git commit
+Python version
+OS
+test count
+passed
+failed
+errors
+skipped
+lint
+type checking
+security scan
+secret scan
+coverage
+```
+
+---
+
+# 4. CONFIGURATION TRUST BOUNDARY
+
+Establish a clear distinction between:
+
+```text
+UNTRUSTED INPUT
+        ↓
+validation
+        ↓
+normalized configuration
+        ↓
+trusted immutable runtime configuration
+```
+
+Sources may include:
+
+```text
+environment variables
+.env
+configuration files
+CLI arguments
+startup parameters
+future external configuration
+```
+
+No unvalidated value should directly control a security-sensitive component.
+
+---
+
+# 5. CONFIGURATION PRECEDENCE
+
+Verify and document the exact precedence order.
+
+For example, depending on the existing architecture:
+
+```text
+defaults
+    ↓
+configuration file
+    ↓
+.env
+    ↓
+environment
+    ↓
+explicit startup override
+```
+
+Do NOT blindly impose this example if B8 already defines another deliberate precedence.
+
+The actual implementation must have:
+
+* one deterministic precedence rule
+* no ambiguous overrides
+* tests for conflicts
+* documentation
+
+Example:
+
+```text
+same setting supplied from two sources
+        ↓
+deterministic winner
+        ↓
+audit/debug metadata records source
+        ↓
+secret values remain redacted
+```
+
+---
+
+# 6. UNKNOWN CONFIGURATION VARIABLES
+
+Implement strict handling for unknown JARVIS configuration variables.
+
+Example:
+
+```text
+JARVIS_UNKNOWN_SETTING=true
+```
+
+must not silently become a runtime configuration setting.
+
+Classify behavior as one of:
+
+```text
+REJECT
+WARN
+IGNORE
+```
+
+depending on environment.
+
+For production/security-sensitive configuration, prefer strict rejection where appropriate.
+
+Document the exact behavior.
+
+Test:
+
+* unknown variable
+* typo
+* deprecated variable
+* malformed variable
+* valid variable
+
+---
+
+# 7. CONFIGURATION SCHEMA
+
+Ensure every supported configuration value has a schema containing, where appropriate:
+
+```text
+name
+type
+default
+required/optional
+environment variable
+description
+allowed values
+minimum
+maximum
+classification
+security impact
+restart requirement
+```
+
+Do not create a giant untyped dictionary.
+
+Prefer strongly typed configuration models.
+
+---
+
+# 8. TYPE VALIDATION
+
+Test configuration types including:
+
+```text
+string
+integer
+float
+boolean
+enum
+list
+dictionary
+path
+duration
+URL
+secret reference
+```
+
+Reject invalid representations.
+
+Examples:
+
+```text
+JARVIS_PORT=abc
+JARVIS_TIMEOUT=-5
+JARVIS_ENABLED=maybe
+JARVIS_PROVIDER=unknown
+```
+
+must not silently become unsafe runtime values.
+
+---
+
+# 9. BOOLEAN PARSING
+
+Implement one authoritative boolean parser.
+
+Support explicitly documented values such as:
+
+```text
+true
+false
+1
+0
+yes
+no
+on
+off
+```
+
+Case handling must be deterministic.
+
+Reject ambiguous values.
+
+Do not allow:
+
+```text
+maybe
+enabled
+disabled
+random
+```
+
+unless explicitly supported.
+
+---
+
+# 10. PATH VALIDATION
+
+Validate security-sensitive paths.
+
+Examples:
+
+```text
+data directory
+database directory
+log directory
+secret-store directory
+Obsidian directory
+workspace
+temporary directory
+```
+
+Detect:
+
+* missing path
+* inaccessible path
+* wrong type
+* unsafe permissions
+* unexpected relative paths
+* path traversal where relevant
+* path collision
+* file/directory mismatch
+
+Do not automatically create security-sensitive directories without deliberate policy.
+
+---
+
+# 11. DIRECTORY BOUNDARY SECURITY
+
+Implement path-boundary validation where JARVIS components are restricted to specific roots.
+
+For example:
+
+```text
+allowed workspace
+allowed project root
+allowed data root
+allowed logs root
+```
+
+Prevent:
+
+```text
+../../outside-root
+```
+
+style traversal.
+
+Use canonical/normalized paths before authorization decisions.
+
+Important:
+
+Do not compare raw strings for security-sensitive path authorization.
+
+---
+
+# 12. SYMLINK / REPARSE-POINT CONSIDERATIONS
+
+Because the initial deployment is Windows:
+
+Review Windows-specific filesystem behavior.
+
+Consider:
+
+* symbolic links
+* junctions
+* reparse points
+* canonical paths
+* path escaping
+
+Do not claim complete protection unless the implementation actually enforces it.
+
+If complete protection is not implemented:
+
+```text
+STATUS: PARTIAL
+```
+
+and document the limitation.
+
+---
+
+# 13. PRODUCTION ENVIRONMENT HARDENING
+
+Define explicit environments:
+
+```text
+development
+test
+staging
+production
+```
+
+Ensure security-sensitive behavior differs appropriately.
+
+Production must not accidentally run with:
+
+```text
+debug=true
+verbose secrets
+unsafe development defaults
+test credentials
+mock providers
+development authentication bypass
+```
+
+Test invalid environment combinations.
+
+---
+
+# 14. DEBUG MODE SECURITY
+
+Audit every debug/logging option.
+
+A setting such as:
+
+```text
+DEBUG=true
+```
+
+must never cause:
+
+* secret values to appear
+* authorization headers to appear
+* environment dumps
+* master keys to appear
+* database passwords to appear
+* token values to appear
+* raw request credentials to appear
+
+Test this explicitly.
+
+---
+
+# 15. SAFE CONFIGURATION SNAPSHOT
+
+Implement or harden the configuration snapshot mechanism.
+
+A snapshot must be useful for diagnostics while remaining safe.
+
+Example:
+
+```text
+environment: production
+llm_provider: nvidia
+telegram_enabled: true
+secret_provider: encrypted_file
+database_path: [REDACTED/SAFE_PATH]
+api_key: [SECRET]
+```
+
+Never output:
+
+```text
+NVIDIA_API_KEY=actual-value
+```
+
+The snapshot should expose:
+
+```text
+source
+classification
+presence
+validation state
+```
+
+without exposing values.
+
+---
+
+# 16. SECRET REFERENCES
+
+Ensure configuration can reference secrets without embedding them.
+
+Example:
+
+```text
+llm.api_key_ref = NVIDIA_API_KEY
+```
+
+The runtime then resolves:
+
+```text
+api_key_ref
+      ↓
+authorization
+      ↓
+secret manager
+      ↓
+secret
+```
+
+The normal configuration object must not contain the raw API key.
+
+Test that serialization of the configuration object does not expose it.
+
+---
+
+# 17. CONFIGURATION SERIALIZATION
+
+Audit:
+
+```text
+repr()
+str()
+JSON serialization
+dict conversion
+YAML serialization
+debug dumps
+exceptions
+logs
+telemetry
+```
+
+A configuration object must never serialize raw secrets.
+
+Test nested configuration structures.
+
+---
+
+# 18. IMMUTABLE RUNTIME CONFIGURATION
+
+After startup validation:
+
+```text
+validated configuration
+        ↓
+runtime configuration
+        ↓
+immutable
+```
+
+Normal application components must not mutate configuration directly.
+
+Test:
+
+```python
+config.foo = new_value
+```
+
+and equivalent mutation mechanisms.
+
+The system must either:
+
+* reject mutation
+* provide a controlled configuration-update workflow
+
+Do not allow silent mutation.
+
+---
+
+# 19. CONTROLLED RUNTIME CONFIGURATION CHANGES
+
+If runtime configuration updates are supported, they must use:
+
+```text
+request
+→ authenticate
+→ authorize
+→ validate
+→ apply
+→ verify
+→ audit
+```
+
+Sensitive configuration changes may require restart.
+
+Do not allow arbitrary runtime mutation simply because Python permits it.
+
+If runtime updates are not supported yet:
+
+```text
+STATUS: NOT IMPLEMENTED
+```
+
+Do not create a fake API.
+
+---
+
+# 20. RESTART REQUIREMENTS
+
+Every configuration item that requires restart should be explicitly classified.
+
+Examples:
+
+```text
+startup-only
+runtime-safe
+restart-required
+security-critical
+```
+
+Attempting to modify startup-only configuration during runtime must be rejected or handled according to policy.
+
+---
+
+# 21. DEFAULT SECURITY
+
+Audit every default.
+
+For every security-sensitive option ask:
+
+```text
+Is the default secure?
+Could the default expose data?
+Could the default grant permissions?
+Could the default enable external communication?
+Could the default disable authentication?
+Could the default enable debug mode?
+```
+
+Do not use:
+
+```text
+allow_all=True
+verify_ssl=False
+auth_required=False
+debug=True
+```
+
+as convenience defaults.
+
+---
+
+# 22. NETWORK CONFIGURATION
+
+Audit network-related configuration.
+
+Examples:
+
+```text
+host
+port
+proxy
+TLS
+certificate verification
+timeouts
+retry count
+allowed domains
+webhook URLs
+callback URLs
+```
+
+Security-sensitive defaults must be safe.
+
+Do not disable TLS verification as a workaround.
+
+Do not use infinite network timeouts.
+
+---
+
+# 23. TIMEOUT VALIDATION
+
+Validate timeout configuration.
+
+Reject:
+
+```text
+negative
+zero where unsafe
+NaN
+infinite
+unreasonably large
+```
+
+where inappropriate.
+
+Use typed duration configuration.
+
+---
+
+# 24. RETRY CONFIGURATION
+
+Validate:
+
+```text
+retry count
+backoff
+maximum delay
+jitter
+```
+
+Avoid configurations that can create:
+
+```text
+infinite retries
+tight retry loops
+resource exhaustion
+duplicate destructive actions
+```
+
+Do not implement global retries that bypass component-specific policy.
+
+---
+
+# 25. RESOURCE LIMIT CONFIGURATION
+
+Verify configuration for:
+
+```text
+max memory
+max agents
+max concurrent tasks
+max subprocesses
+max task duration
+max tool execution time
+max queue size
+```
+
+must be validated.
+
+The target architecture remains:
+
+```text
+idle RAM: approximately 2–3 GB
+maximum RAM: 8 GB
+```
+
+Do not falsely claim these limits are enforced unless runtime enforcement exists.
+
+---
+
+# 26. CONFIGURATION AUDIT
+
+Every security-sensitive configuration decision should be auditable.
+
+Record:
+
+```text
+configuration key
+source
+classification
+validation result
+effective value metadata
+timestamp
+environment
+correlation ID
+```
+
+Never store secret values.
+
+---
+
+# 27. CONFIGURATION ERROR MESSAGES
+
+Error messages must be useful without leaking secrets.
+
+Bad:
+
+```text
+Invalid NVIDIA_API_KEY:
+nvapi-actual-secret-value
+```
+
+Good:
+
+```text
+Invalid secret referenced by NVIDIA_API_KEY.
+Source: environment.
+Reason: format validation failed.
+```
+
+Do not expose secret contents through exceptions.
+
+---
+
+# 28. STARTUP FAIL-CLOSED BEHAVIOR
+
+Security-critical configuration failures must prevent unsafe startup.
+
+Examples:
+
+```text
+missing master key
+invalid secret configuration
+authentication disabled in production
+TLS verification disabled when prohibited
+invalid security policy
+invalid storage path
+unknown security-critical setting
+```
+
+must result in:
+
+```text
+startup failure
+clear safe error
+audit entry where possible
+no unsafe partial startup
+```
+
+Do not start a supposedly secure system in an insecure degraded state.
+
+---
+
+# 29. SAFE DEGRADED MODE
+
+If degraded mode exists, explicitly classify which capabilities may continue.
+
+Example:
+
+```text
+LLM provider unavailable
+→ core runtime may remain alive
+
+security subsystem unavailable
+→ security-sensitive operations must stop
+```
+
+Do not allow degraded mode to bypass security controls.
+
+---
+
+# 30. CONFIGURATION DEPENDENCY VALIDATION
+
+Implement cross-field validation.
+
+Examples:
+
+```text
+telegram_enabled=true
+```
+
+may require:
+
+```text
+TELEGRAM_BOT_TOKEN
+```
+
+Another example:
+
+```text
+encrypted_secret_store=true
+```
+
+may require:
+
+```text
+master key
+```
+
+Another:
+
+```text
+production=true
+```
+
+may require:
+
+```text
+debug=false
+```
+
+Validate combinations, not just individual values.
+
+---
+
+# 31. CONFIGURATION CONSISTENCY
+
+Detect contradictory configuration.
+
+Examples:
+
+```text
+max_agents=0
+autonomous_execution=true
+```
+
+or:
+
+```text
+telegram_enabled=true
+telegram_token_ref=None
+```
+
+or:
+
+```text
+secret_provider=encrypted_file
+secret_store_path=None
+```
+
+Do not allow contradictory state to reach runtime.
+
+---
+
+# 32. SECURITY POLICY INTEGRATION
+
+B11 must integrate configuration with the security-policy architecture.
+
+Configuration must not bypass:
+
+```text
+authentication
+authorization
+approval
+verification
+audit
+```
+
+For example:
+
+```text
+JARVIS_AUTO_APPROVE=true
+```
+
+must not automatically disable approval controls unless such behavior has been explicitly designed, authorized, and securely constrained.
+
+Security boundaries must not be configurable through casual environment variables.
+
+---
+
+# 33. HIGH-RISK CONFIGURATION
+
+Identify configuration settings that affect:
+
+* authentication
+* authorization
+* secret access
+* file deletion
+* code modification
+* Git commit/push
+* external communications
+* cybersecurity operations
+* autonomous execution
+* financial operations
+* system administration
+
+These require stronger controls than ordinary preferences.
+
+Create a classification mechanism if not already present.
+
+---
+
+# 34. CONFIGURATION CHANGE DETECTION
+
+At startup, calculate a safe configuration fingerprint.
+
+Do NOT hash raw secrets into logs if that creates correlation or disclosure concerns.
+
+The fingerprint should allow detection of configuration changes without exposing sensitive values.
+
+Example:
+
+```text
+configuration fingerprint:
+<safe identifier>
+```
+
+Document exactly what is included/excluded.
+
+---
+
+# 35. SECRET CHANGE DETECTION
+
+Detect when secret metadata changes.
+
+Do not log the secret itself.
+
+Example:
+
+```text
+NVIDIA_API_KEY
+previous state: present
+current state: present
+credential fingerprint changed: yes
+```
+
+Only use fingerprints if implemented safely.
+
+Do not expose reversible identifiers.
+
+---
+
+# 36. ENVIRONMENT DRIFT
+
+Implement or verify detection for:
+
+```text
+missing expected variable
+new unexpected variable
+changed variable
+deprecated variable
+changed configuration source
+changed secret provider
+```
+
+Do not dump complete environment variables.
+
+Report only safe metadata.
+
+---
+
+# 37. TEST ENVIRONMENT ISOLATION
+
+Ensure tests cannot accidentally consume production credentials.
+
+Implement safeguards such as:
+
+```text
+TEST environment
+    ↓
+test credential namespace
+    ↓
+production credential access denied
+```
+
+A test must fail safely if it detects a production credential.
+
+Do not silently proceed.
+
+---
+
+# 38. PRODUCTION CREDENTIAL PROTECTION
+
+Create tests attempting to run the test suite with simulated production credential patterns.
+
+Expected:
+
+```text
+production credential detected
+→ test execution blocked or credential excluded
+```
+
+Do not make assumptions based solely on variable names.
+
+Use the existing B9 classification system.
+
+---
+
+# 39. CONFIGURATION ATTACK TESTS
+
+Create security tests for:
+
+```text
+environment injection
+unknown variables
+malformed variables
+type confusion
+path traversal
+configuration poisoning
+secret reference substitution
+debug leakage
+production/test confusion
+unsafe defaults
+runtime mutation
+serialization leakage
+```
+
+---
+
+# 40. FUZZ / PROPERTY TESTING
+
+Where practical, add property-based or fuzz-style tests for parsers:
+
+* booleans
+* durations
+* integers
+* lists
+* paths
+* URLs
+* configuration names
+
+The goal is to prove malformed input does not cause:
+
+* crashes
+* silent acceptance
+* unsafe defaults
+* secret leakage
+
+Do not introduce a heavy dependency solely for a trivial test if the repository does not need it.
+
+---
+
+# 41. WINDOWS-SPECIFIC VALIDATION
+
+Since the current target is Windows:
+
+Test or inspect:
+
+```text
+Windows path normalization
+environment variable behavior
+file permission handling
+junction/reparse behavior
+startup environment
+PowerShell interaction
+process environment exposure
+```
+
+Do not claim Linux/macOS compatibility unless actually tested.
+
+---
+
+# 42. CONFIGURATION CLI
+
+If the existing project has a CLI, add safe commands where useful:
+
+```text
+jarvis config validate
+jarvis config status
+jarvis config fingerprint
+```
+
+Output must be safe.
+
+Example:
+
+```text
+Environment: production
+Configuration: VALID
+Secrets: VALID
+Security policy: VALID
+Configuration fingerprint: <fingerprint>
+```
+
+Do not expose secret values.
+
+---
+
+# 43. HEALTH CHECK INTEGRATION
+
+Integrate configuration/security validation with health reporting.
+
+Health should distinguish:
+
+```text
+HEALTHY
+DEGRADED
+UNHEALTHY
+CRITICAL
+```
+
+Examples:
+
+```text
+configuration valid
+secret manager available
+security policy available
+```
+
+must be separately observable.
+
+Do not make a single vague:
+
+```text
+status = OK
+```
+
+claim.
+
+---
+
+# 44. NO FALSE HEALTH
+
+A component must not report healthy merely because it imported successfully.
+
+For example:
+
+```text
+SecretManager imported successfully
+```
+
+does NOT mean:
+
+```text
+SecretManager healthy
+```
+
+Health checks must exercise meaningful behavior where safe.
+
+---
+
+# 45. REQUIRED TEST MATRIX
+
+Create a clear test matrix.
+
+### Configuration
+
+* valid config
+* missing config
+* malformed config
+* unknown config
+* conflicting sources
+* invalid types
+* invalid ranges
+* invalid enum
+* invalid path
+* cross-field conflict
+
+### Security
+
+* production debug
+* authentication bypass attempt
+* authorization bypass attempt
+* unsafe default
+* critical-secret configuration
+* secret reference substitution
+* secret serialization
+
+### Secrets
+
+* missing secret
+* invalid secret
+* unavailable provider
+* corrupted store
+* permission denial
+* test/production isolation
+
+### Runtime
+
+* startup failure
+* safe degraded mode
+* restart
+* immutable config
+* health state
+
+---
+
+# 46. REGRESSION TEST
+
+Run:
+
+```text
+B1
+B2
+B3
+B4
+B5
+B6
+B7
+B8
+B9
+B10
+```
+
+tests.
+
+No previous passing test may be removed simply to make Batch 11 pass.
+
+If a test is changed, document the reason.
+
+---
+
+# 47. CODEBASE AUDIT
+
+Search the complete repository for:
+
+```text
+os.getenv(
+os.environ[
+dotenv
+config
+settings
+secret
+api_key
+token
+password
+credential
+DEBUG
+verify_ssl
+allow_all
+auth_required
+```
+
+Classify every occurrence.
+
+The purpose is to discover configuration/secret access that bypasses the authoritative systems.
+
+Any production module directly reading secrets without authorization through the secret manager must be identified.
+
+---
+
+# 48. DUPLICATE CONFIGURATION SYSTEM SEARCH
+
+Search for:
+
+```text
+Config
+Settings
+Configuration
+Env
+Environment
+SecretManager
+CredentialManager
+Policy
+Authorization
+```
+
+Identify duplicate implementations.
+
+There must not be multiple competing configuration systems.
+
+If duplicates exist:
+
+```text
+authoritative
+duplicate
+migration required
+```
+
+must be explicitly documented.
+
+---
+
+# 49. NO ARCHITECTURAL DRIFT
+
+Do NOT introduce:
+
+* a second config framework
+* a second secret manager
+* another database
+* another policy engine
+* another event bus
+* another task manager
+* another logging system
+* another runtime
+* MCP
+
+Keep the architecture aligned with the established design.
+
+---
+
+# 50. REQUIRED QUALITY GATES
+
+Run all applicable existing gates:
+
+```text
+pytest
+lint
+format check
+type check
+security scan
+secret scan
+coverage
+quality gate
+```
+
+Use actual repository commands.
+
+Do not invent commands that do not exist.
+
+If a gate does not exist, report:
+
+```text
+NOT CONFIGURED
+```
+
+Do not claim it passed.
+
+---
+
+# 51. REQUIRED SECURITY REVIEW
+
+Perform a focused manual review of:
+
+```text
+config/
+security/
+database/
+logs/
+scripts/
+main.py
+core/
+```
+
+Look specifically for:
+
+* hardcoded credentials
+* plaintext secret persistence
+* unsafe defaults
+* bypass paths
+* unvalidated environment values
+* configuration mutation
+* path traversal
+* debug leakage
+* authentication bypass
+* authorization bypass
+* insecure fallback
+
+---
+
+# 52. REQUIRED EVIDENCE
+
+Do not say:
+
+```text
+configuration is secure
+```
+
+without evidence.
+
+Instead report:
+
+```text
+CONTROL
+TEST
+RESULT
+EVIDENCE
+LIMITATION
+```
+
+Example:
+
+```text
+Control: Secret serialization protection
+Test: test_config_serialization_does_not_expose_secret
+Result: PASS
+Evidence: serialized output contained secret reference but not secret value
+Limitation: Python process memory cannot guarantee zeroization
+```
+
+---
+
+# 53. FINAL REPORT
+
+Produce exactly this structure:
+
+```text
+==================================================
+JARVIS BATCH 11 FINAL REPORT
+==================================================
+
+1. BASELINE
+- Git commit:
+- Python:
+- OS:
+- Tests before:
+- Quality gates before:
+
+2. IMPLEMENTATION
+- Files changed:
+- Files created:
+- Files removed:
+- Components modified:
+
+3. CONFIGURATION ARCHITECTURE
+- Sources:
+- Precedence:
+- Schema:
+- Validation:
+- Runtime immutability:
+
+4. SECURITY HARDENING
+- Unknown variables:
+- Unsafe defaults:
+- Debug protection:
+- Path security:
+- Production hardening:
+- Cross-field validation:
+
+5. SECRET INTEGRATION
+- Secret references:
+- Raw secret protection:
+- Serialization:
+- Environment isolation:
+- Secret manager integration:
+
+6. RUNTIME SECURITY
+- Startup fail-closed:
+- Degraded mode:
+- Health:
+- Runtime mutation:
+
+7. WINDOWS SECURITY
+- Path handling:
+- File permissions:
+- Environment:
+- Reparse/junction handling:
+
+8. TEST RESULTS
+- Unit:
+- Integration:
+- Security:
+- Negative:
+- Regression:
+- Fuzz/property:
+- Windows-specific:
+- Secret-leak:
+- Quality gates:
+
+9. EXACT COMMANDS EXECUTED
+List commands exactly.
+
+10. ACTUAL RESULTS
+Report actual results only.
+
+11. SECURITY FINDINGS
+- Critical:
+- High:
+- Medium:
+- Low:
+- Informational:
+
+12. STUBS / MOCKS / UNIMPLEMENTED
+List every occurrence.
+
+13. DUPLICATE SYSTEMS
+List any duplicate configuration/security implementations.
+
+14. MCP STATUS
+MCP implementation: NO
+
+15. ARCHITECTURE DEVIATIONS
+List every deviation.
+
+16. UNVERIFIED ITEMS
+List anything that could not be proven.
+
+17. BLOCKERS
+List anything preventing the next phase.
+
+18. FINAL STATUS
+Choose exactly one:
+
+IMPLEMENTED
+TESTED
+VERIFIED
+PARTIAL
+BROKEN
+BLOCKED
+NOT PRODUCTION READY
+```
+
+---
+
+# 54. STATUS INTEGRITY
+
+Do not use:
+
+```text
+95% complete
+98% secure
+almost production ready
+looks correct
+should be safe
+probably works
+```
+
+Do not provide a percentage score.
+
+Use evidence-based status only.
+
+If one critical security boundary remains unverified:
+
+```text
+NOT PRODUCTION READY
+```
+
+is acceptable and preferred over an unsupported positive claim.
+
+---
+
+# 55. STOP CONDITION
+
+After completing Batch 11:
+
+STOP.
+
+Do not implement Batch 12.
+
+Do not implement PIN authentication yet.
+
+Do not implement voice authentication.
+
+Do not implement LLM providers.
+
+Do not implement agents.
+
+Do not implement Telegram.
+
+Do not implement MCP.
+
+Do not implement autonomous execution.
+
+Do not restructure unrelated systems.
+
+Batch 11 has one objective:
+
+**Prove that configuration, environment variables, secrets, security-sensitive settings, and runtime configuration form a controlled and hardened security boundary.**
+
+==================================================
+END OF BATCH 11
+===============
+
+
+# JARVIS — BATCH 12
+
+## PIN-Based Authentication System
+
+**Phase:** Authentication and Access Security
+**Batch:** 12 of 60
+**Target:** Windows 11, Python
+**Implementation:** Production-oriented, security-first
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Implement a complete, functional PIN-based authentication subsystem for JARVIS.
+
+The system must provide:
+
+* PIN enrollment
+* Secure PIN storage
+* PIN verification
+* PIN change
+* PIN reset primitives for future integration
+* Authentication sessions
+* Session expiration
+* Session revocation
+* Authentication event auditing
+* Brute-force protection foundations
+* Integration with the existing runtime and security architecture
+
+The PIN must be the primary user authentication method.
+
+**Voice authentication is explicitly excluded.**
+
+Do not implement the three-attempt lockout or security-question recovery in this batch. Those are separate requirements for Batches 13 and 14.
+
+# 2. MANDATORY INITIAL AUDIT
+
+Before writing code:
+
+1. Inspect the entire repository.
+2. Inspect the authentication and security contracts created in B2.
+3. Inspect the security infrastructure from B10 and B11.
+4. Inspect the runtime and lifecycle from B4 and B7.
+5. Inspect the database and persistence layers from B16 only if they already exist; do not assume future batches have been implemented.
+6. Inspect the existing event bus and audit infrastructure.
+7. Inspect the configuration system.
+8. Run all existing tests.
+9. Record the current Git commit and test baseline.
+
+Identify which required components already exist and which must be implemented.
+
+Do not replace working infrastructure with duplicate implementations.
+
+If a dependency is scheduled for a future batch, create only the minimum compatible interface required by the current architecture. Do not implement the future batch prematurely.
+
+# 3. STRICT SECURITY REQUIREMENTS
+
+The following rules are mandatory.
+
+* Never store the PIN in plaintext.
+* Never hardcode a PIN.
+* Never store the PIN in `.env`.
+* Never print a PIN in logs, terminal output, exceptions, audit events or test reports.
+* Never store the PIN in task records, event history or normal application state.
+* Never transmit the PIN to an LLM provider or external integration.
+* Never allow an unauthenticated user to obtain an authenticated session.
+* Never treat a successful module import as proof of authentication.
+* Never silently bypass authentication when a security component fails.
+
+The authentication subsystem must fail closed whenever it cannot safely verify credentials.
+
+# 4. AUTHENTICATION ARCHITECTURE
+
+Implement the following logical architecture, adapting names to the existing contracts.
+
+```text
+User
+  |
+  v
+Authentication Interface
+  |
+  v
+Authentication Manager
+  |
+  +---- PIN Verifier
+  |
+  +---- PIN Credential Store
+  |
+  +---- Session Manager
+  |
+  +---- Authentication Policy
+  |
+  +---- Audit Integration
+  |
+  +---- Security Event Integration
+```
+
+Use one authoritative authentication manager.
+
+Other application modules must not implement their own independent PIN verification logic.
+
+# 5. PIN POLICY
+
+Implement a configurable PIN policy.
+
+Initial policy:
+
+* Minimum length: 6 digits
+* Maximum length: 12 digits
+* Numeric digits only
+* Leading zeroes must be preserved.
+* Empty PINs must be rejected.
+* PINs containing whitespace must be rejected.
+* PINs containing non-ASCII digits must be rejected unless explicitly supported.
+* PIN confirmation must match during enrollment and PIN changes.
+
+Do not silently truncate, normalize or modify PIN input.
+
+Do not convert the PIN to an integer. Preserve it as a string so leading zeroes remain valid.
+
+The policy must be centrally defined rather than duplicated across modules.
+
+# 6. SECURE PIN ENROLLMENT
+
+Implement a real enrollment workflow.
+
+```text
+No PIN enrolled
+       |
+       v
+Request new PIN
+       |
+       v
+Validate PIN policy
+       |
+       v
+Request confirmation
+       |
+       v
+Compare securely
+       |
+       v
+Generate secure salt
+       |
+       v
+Derive PIN verifier
+       |
+       v
+Persist verifier securely
+       |
+       v
+Verify persisted record
+       |
+       v
+Enrollment successful
+```
+
+Requirements:
+
+1. Enrollment must be an explicit operation.
+2. The system must not silently enroll a default PIN.
+3. Enrollment must reject invalid PINs.
+4. Confirmation must match.
+5. The verifier must be derived using a suitable password-hashing algorithm.
+6. Persisted data must be verified before reporting success.
+7. Re-enrollment must not overwrite an existing credential without an authorized reset procedure.
+8. Every enrollment outcome must be auditable without exposing the PIN.
+
+Use a well-maintained password-hashing implementation, preferably Argon2id where supported. Select and document appropriate parameters based on actual measurements on the target hardware.
+
+Do not invent an encryption or hashing algorithm.
+
+# 7. PIN STORAGE
+
+Create a dedicated credential representation.
+
+Conceptually:
+
+```text
+PinCredential
+    credential_id
+    algorithm
+    salt
+    verifier
+    parameters
+    created_at
+    updated_at
+    credential_version
+    enabled
+```
+
+Adapt this representation to the existing security contracts.
+
+The persisted record must never contain the original PIN.
+
+Use a cryptographically secure random salt.
+
+Store the hashing algorithm and its parameters so that the verifier can be upgraded later.
+
+Do not store the credential in an ordinary configuration file.
+
+Prefer the existing secure database or a dedicated protected credential store, depending on the architecture already implemented.
+
+If the current repository lacks a secure persistence layer, implement the smallest compatible persistence mechanism without prematurely building the entire future database subsystem.
+
+Protect the credential record with appropriate Windows filesystem permissions where applicable.
+
+# 8. PIN VERIFICATION
+
+Implement real PIN verification.
+
+```text
+User submits PIN
+       |
+       v
+Validate input structure
+       |
+       v
+Load stored credential
+       |
+       v
+Derive candidate verifier
+       |
+       v
+Constant-time comparison
+       |
+       v
+Authentication decision
+       |
+       +---- Success
+       |
+       +---- Failure
+```
+
+Requirements:
+
+* Reject malformed input.
+* Reject missing credentials.
+* Reject corrupted credential records.
+* Verify using the stored algorithm and parameters.
+* Use a suitable constant-time comparison function for verifier comparison.
+* Never reveal whether a particular PIN digit or prefix was correct.
+* Return structured authentication results.
+* Record successful and failed authentication attempts.
+
+Do not expose internal verifier values in the authentication response.
+
+# 9. AUTHENTICATION RESULT CONTRACT
+
+Use the existing response contracts where available.
+
+The result should support statuses such as:
+
+```text
+SUCCESS
+INVALID_PIN
+NOT_ENROLLED
+INVALID_INPUT
+CREDENTIAL_CORRUPTED
+AUTHENTICATION_UNAVAILABLE
+RATE_LIMITED
+INTERNAL_ERROR
+```
+
+`RATE_LIMITED` is included as a future-compatible status. The actual three-attempt lockout behavior belongs to Batch 13.
+
+Each result should contain only safe diagnostic metadata, such as:
+
+```text
+status
+authenticated
+session_id
+timestamp
+correlation_id
+safe_error_code
+```
+
+Do not include the submitted PIN, salt, verifier or other credential material.
+
+# 10. AUTHENTICATION SESSIONS
+
+Implement a real session manager.
+
+An authenticated PIN verification must be capable of creating an authenticated session.
+
+Session metadata should include:
+
+```text
+session_id
+created_at
+last_activity_at
+expires_at
+authentication_method
+authentication_state
+revoked_at
+```
+
+Do not include the PIN or PIN verifier in a session.
+
+Session identifiers must be generated using a cryptographically secure random generator.
+
+Session IDs must be unpredictable.
+
+A session must have a configurable expiration policy.
+
+Support:
+
+* session creation
+* session validation
+* session expiration
+* session revocation
+* session invalidation
+* session enumeration through authorized administrative interfaces, if needed
+
+A revoked or expired session must never be accepted as authenticated.
+
+# 11. SESSION LIFETIME
+
+Implement both:
+
+* absolute session expiration
+* inactivity-based session expiration
+
+Define safe defaults in the configuration schema, subject to the existing configuration architecture.
+
+Avoid indefinite authenticated sessions.
+
+Ensure timestamps are timezone-aware and consistently handled.
+
+Use an injectable clock abstraction where appropriate so that expiration tests are deterministic.
+
+Do not use arbitrary sleeps to test session expiration.
+
+# 12. SESSION REVOCATION
+
+Support explicit revocation.
+
+At minimum:
+
+```text
+revoke_session(session_id)
+revoke_all_sessions()
+```
+
+These operations must be authorization-controlled.
+
+Revoked sessions must be rejected immediately by subsequent validation requests.
+
+Ensure revocation is persistent if the chosen session architecture requires persistence across restarts.
+
+Do not claim persistent revocation if sessions exist only in memory.
+
+# 13. SESSION RESTART BEHAVIOR
+
+Define and implement the restart policy.
+
+For the initial security design, prefer invalidating authenticated sessions on application restart unless the existing architecture provides a securely persisted session mechanism.
+
+The application must not accidentally restore stale authenticated sessions.
+
+Test actual restart behavior.
+
+# 14. PIN CHANGE
+
+Implement a secure PIN change workflow.
+
+```text
+Authenticated session
+       |
+       v
+Request current PIN
+       |
+       v
+Verify current PIN
+       |
+       v
+Validate new PIN
+       |
+       v
+Confirm new PIN
+       |
+       v
+Derive new verifier
+       |
+       v
+Atomically update credential
+       |
+       v
+Verify updated credential
+       |
+       v
+Audit successful change
+```
+
+Requirements:
+
+* Require successful verification of the current PIN.
+* Require the new PIN to satisfy policy.
+* Require confirmation.
+* Reject the current PIN as the new PIN if prohibited by the configured policy.
+* Never overwrite the previous valid verifier until the new record has been prepared and validated.
+* Ensure a failed update leaves the previous credential usable.
+* Revoke existing sessions after a successful PIN change unless the security policy explicitly specifies a stronger alternative.
+
+Do not expose the new PIN in exceptions or diagnostic output.
+
+# 15. AUTHENTICATION AND AUTHORIZATION SEPARATION
+
+Authentication establishes identity.
+
+Authorization determines what an authenticated identity may do.
+
+Do not combine them into one unrestricted permission system.
+
+The authentication subsystem must produce a trusted authentication context that can be consumed by the authorization engine.
+
+Conceptually:
+
+```text
+Authentication
+       |
+       v
+Authenticated Principal
+       |
+       v
+Authorization Policy
+       |
+       v
+Allow / Deny / Approval Required
+```
+
+Do not automatically grant unrestricted administrator permissions merely because PIN verification succeeds.
+
+# 16. AUTHENTICATION CONTEXT
+
+Implement an authenticated principal/session context that can be passed to the existing policy engine.
+
+It should identify:
+
+* authenticated principal
+* session identifier
+* authentication method
+* authentication time
+* session expiry
+* authentication assurance level, if supported by the existing contracts
+
+Ensure the context cannot be forged through ordinary application input.
+
+Do not rely on a caller-provided Boolean such as:
+
+```python
+authenticated = True
+```
+
+as proof of authentication.
+
+# 17. AUDIT INTEGRATION
+
+Every significant authentication event must be audited.
+
+At minimum, audit:
+
+```text
+PIN_ENROLLMENT_SUCCESS
+PIN_ENROLLMENT_FAILURE
+AUTHENTICATION_SUCCESS
+AUTHENTICATION_FAILURE
+PIN_CHANGE_SUCCESS
+PIN_CHANGE_FAILURE
+SESSION_CREATED
+SESSION_EXPIRED
+SESSION_REVOKED
+SESSION_VALIDATION_FAILURE
+```
+
+Use the existing audit infrastructure.
+
+Audit events should include:
+
+```text
+event_type
+timestamp
+principal
+session_id
+correlation_id
+result
+safe_reason
+```
+
+Never include:
+
+* submitted PIN
+* confirmation PIN
+* PIN verifier
+* salt
+* session secrets
+* master encryption keys
+
+Ensure audit failures do not accidentally turn an authentication failure into a successful authentication.
+
+Define and document the behavior when the audit subsystem is unavailable. For security-sensitive events, fail closed if the system cannot satisfy its mandatory audit policy.
+
+# 18. EVENT BUS INTEGRATION
+
+Where appropriate, publish typed authentication events through the existing event bus.
+
+Examples:
+
+```text
+AuthenticationSucceeded
+AuthenticationFailed
+SessionCreated
+SessionRevoked
+PinChanged
+```
+
+Do not put raw PIN values or credential records in event payloads.
+
+Events should contain safe metadata only.
+
+Ensure event publication does not bypass audit or authorization requirements.
+
+# 19. RATE-LIMITING FOUNDATION
+
+Prepare the authentication subsystem for Batch 13.
+
+This batch must implement only the foundation needed for rate limiting, such as:
+
+* attempt recording
+* timestamp tracking
+* failure counters
+* account or principal association
+* policy interface
+* injectable clock
+
+Do not implement the final three-attempt lockout or security-question workflow here.
+
+Do not let this foundation accidentally introduce an undocumented lockout policy.
+
+Document which behavior is implemented and which is deferred.
+
+# 20. SECURE INPUT HANDLING
+
+Provide a secure input abstraction for PIN enrollment, verification and change.
+
+If a CLI is implemented:
+
+* disable terminal echo for PIN entry
+* avoid command-line PIN arguments
+* avoid shell history exposure
+* avoid logging input buffers
+* handle interruption safely
+* handle input cancellation
+
+If the current application has no interactive authentication interface, implement the underlying authentication service and a testable input contract rather than inventing a fake GUI.
+
+Do not claim voice authentication.
+
+# 21. CONCURRENCY AND ATOMICITY
+
+Protect concurrent authentication and credential updates.
+
+Test:
+
+* simultaneous verification
+* simultaneous PIN change
+* verification during PIN change
+* duplicate enrollment
+* concurrent session revocation
+* session validation during revocation
+
+Ensure readers do not observe partially written credentials.
+
+Use appropriate locking or transactional persistence based on the existing architecture.
+
+Do not introduce a second database merely to simplify concurrency.
+
+# 22. FAILURE HANDLING
+
+Correctly handle:
+
+```text
+PIN not enrolled
+invalid PIN
+malformed PIN
+corrupted verifier
+unsupported hashing algorithm
+invalid hashing parameters
+database unavailable
+permission denied
+disk full
+atomic write failure
+audit failure
+event bus failure
+session store failure
+concurrent credential update
+unexpected internal exception
+```
+
+Security-sensitive failures must not silently bypass authentication.
+
+For partial credential updates:
+
+```text
+prepare
+  ↓
+validate
+  ↓
+commit
+  ↓
+verify
+```
+
+If any required stage fails, preserve the previous valid credential or stop in a clearly reported unrecoverable state.
+
+# 23. ERROR HANDLING
+
+Use the existing structured exception hierarchy.
+
+Do not return raw cryptographic library exceptions to callers.
+
+Map internal failures to safe error codes.
+
+Example:
+
+```text
+AUTHENTICATION_UNAVAILABLE
+CREDENTIAL_CORRUPTED
+CREDENTIAL_UPDATE_FAILED
+SESSION_EXPIRED
+SESSION_REVOKED
+```
+
+Detailed diagnostics may be recorded securely, but never include credential values.
+
+# 24. WINDOWS SECURITY
+
+The deployment target is Windows 11.
+
+Inspect and validate:
+
+* credential file permissions
+* process environment exposure
+* temporary-file handling
+* atomic file replacement
+* Windows path handling
+* process termination during credential updates
+
+Use native Windows security capabilities where justified.
+
+Do not claim Windows ACL enforcement unless the implementation actually applies and verifies the relevant permissions.
+
+Do not claim compatibility with Linux or macOS unless tested.
+
+# 25. TESTING REQUIREMENTS
+
+Create comprehensive deterministic tests.
+
+## Enrollment tests
+
+* valid PIN
+* minimum length
+* maximum length
+* too-short PIN
+* too-long PIN
+* alphabetic characters
+* whitespace
+* Unicode digits
+* mismatched confirmation
+* duplicate enrollment
+* interrupted enrollment
+* persistence failure
+
+## Verification tests
+
+* correct PIN
+* incorrect PIN
+* empty PIN
+* malformed PIN
+* missing credential
+* corrupted credential
+* unsupported algorithm
+* tampered record
+* unavailable storage
+
+## PIN change tests
+
+* valid change
+* incorrect current PIN
+* invalid new PIN
+* mismatched confirmation
+* persistence failure
+* concurrent change
+* successful change revokes sessions
+
+## Session tests
+
+* session creation
+* session validation
+* session expiration
+* inactivity expiration
+* absolute expiration
+* revocation
+* revoke all
+* invalid session identifier
+* application restart
+* concurrent validation and revocation
+
+## Security tests
+
+* plaintext PIN absent from storage
+* PIN absent from logs
+* PIN absent from audit records
+* PIN absent from event payloads
+* PIN absent from exceptions
+* unauthenticated session creation rejected
+* forged authentication context rejected
+* unauthorized revocation rejected
+
+## Regression tests
+
+Run the full existing test suite and preserve all previously passing tests.
+
+# 26. SECURITY LEAK TEST
+
+Use unique, clearly identified test-only PINs.
+
+After executing enrollment, verification, change and failure scenarios, scan:
+
+```text
+logs/
+audit records
+event history
+test reports
+temporary files
+database records
+CLI output
+exception output
+```
+
+for the test PINs.
+
+The test must fail if any PIN appears outside the intended transient input and test fixture.
+
+Do not print test PINs in the failure report.
+
+# 27. CRYPTOGRAPHIC TESTS
+
+Verify the actual hashing implementation.
+
+Test:
+
+* salt randomness
+* distinct salts for equivalent PINs
+* successful verification
+* failed verification
+* stored parameter handling
+* malformed verifier rejection
+* algorithm/version migration compatibility
+
+Do not test security by asserting only that a hash is different from plaintext.
+
+Verify that the selected password-hashing library is genuinely used.
+
+Measure hashing performance on the actual environment.
+
+Do not weaken hashing parameters merely to make tests run faster in production.
+
+Test suites may use controlled test parameters if the production and test configurations are explicitly separated.
+
+# 28. PERFORMANCE
+
+Measure:
+
+* PIN verification latency
+* PIN enrollment latency
+* PIN change latency
+* session validation latency
+* concurrent verification behavior
+
+Use actual measurements.
+
+Do not sacrifice password-hashing security merely to optimize response time.
+
+Report hardware and test conditions.
+
+# 29. RESOURCE LIMITS
+
+Respect the existing resource design:
+
+```text
+Idle RAM target: 2–3 GB
+Maximum RAM: 8 GB
+```
+
+Do not allocate large buffers unnecessarily.
+
+Avoid unbounded session storage or attempt history.
+
+Ensure session and attempt records have a documented cleanup policy.
+
+Do not claim that the overall memory target has been achieved without measuring the running application.
+
+# 30. REQUIRED DOCUMENTATION
+
+Create or update:
+
+```text
+docs/security/authentication.md
+```
+
+Document:
+
+1. Authentication architecture
+2. PIN policy
+3. Enrollment procedure
+4. PIN hashing algorithm and parameters
+5. Credential storage
+6. PIN verification
+7. PIN change
+8. Session lifecycle
+9. Session expiration
+10. Session revocation
+11. Audit integration
+12. Rate-limiting foundation
+13. Failure behavior
+14. Windows security considerations
+15. Known limitations
+16. Recovery considerations
+17. Deferred features
+
+Never put a real PIN or credential in documentation.
+
+# 31. ARCHITECTURAL RESTRICTIONS
+
+Do not implement:
+
+* voice authentication
+* biometric authentication
+* facial authentication
+* Batch 13's three-attempt lockout
+* Batch 14's security-question recovery
+* LLM providers
+* autonomous agents
+* Telegram integration
+* MCP clients or servers
+* unrestricted administrator access
+* unrelated UI features
+
+Do not introduce another authentication framework without a documented technical necessity.
+
+Keep authentication independent of LLM providers and external integrations.
+
+# 32. REQUIRED COMMANDS
+
+Discover the actual commands configured in the repository.
+
+Run applicable commands for:
+
+```text
+pytest
+lint
+format validation
+type checking
+security scanning
+secret scanning
+coverage
+quality gate
+```
+
+Do not invent successful results.
+
+If a command does not exist, report `NOT CONFIGURED`.
+
+Run tests against the real implementation. Do not replace the real password-hashing implementation with a mock in integration or security tests.
+
+Mocks may be used for isolated unit tests where appropriate, but must be clearly identified.
+
+# 33. CODEBASE AUDIT
+
+Before completion, search for:
+
+```text
+PIN
+password
+authenticate
+authentication
+session
+credential
+secret
+hash
+verify
+login
+auth_required
+```
+
+Check for:
+
+* duplicate authentication logic
+* plaintext credential storage
+* hardcoded PINs
+* weak hashing
+* authentication bypass
+* session forgery
+* unsafe error messages
+* unrestricted session revocation
+* unbounded session storage
+* missing audit events
+
+Classify relevant findings as:
+
+```text
+IMPLEMENTED
+TESTED
+VERIFIED
+PARTIAL
+STUB
+MOCK
+UNIMPLEMENTED
+BROKEN
+BLOCKED
+UNKNOWN
+```
+
+# 34. ACCEPTANCE CRITERIA
+
+Batch 12 can be considered implemented only if:
+
+1. PIN enrollment works with real secure hashing.
+2. PIN verification works against persisted credentials.
+3. PINs are not stored in plaintext.
+4. PIN change is transactional or safely recoverable.
+5. Sessions are created only after successful authentication.
+6. Expired and revoked sessions are rejected.
+7. Authentication events are audited without exposing credentials.
+8. Existing authorization boundaries remain intact.
+9. The complete applicable test suite has been executed.
+10. All critical security failures are reported accurately.
+
+A passing test suite alone does not establish production readiness.
+
+# 35. REQUIRED FINAL REPORT
+
+Produce exactly this structure:
+
+```text
+==================================================
+JARVIS BATCH 12 FINAL REPORT
+==================================================
+
+1. BASELINE
+- Git commit:
+- Python version:
+- OS:
+- Existing tests:
+- Quality gate results:
+
+2. FILES CHANGED
+- Created:
+- Modified:
+- Deleted:
+
+3. AUTHENTICATION ARCHITECTURE
+- Authentication manager:
+- PIN verifier:
+- Credential storage:
+- Session manager:
+- Policy integration:
+- Audit integration:
+
+4. PIN POLICY
+- Minimum length:
+- Maximum length:
+- Input restrictions:
+- Confirmation:
+- Configuration source:
+
+5. CRYPTOGRAPHY
+- Hashing algorithm:
+- Library:
+- Parameters:
+- Salt generation:
+- Verification:
+- Performance measurements:
+
+6. CREDENTIAL STORAGE
+- Storage mechanism:
+- Plaintext protection:
+- Atomicity:
+- Windows permissions:
+- Corruption handling:
+
+7. SESSION MANAGEMENT
+- Creation:
+- Validation:
+- Expiration:
+- Revocation:
+- Restart behavior:
+
+8. SECURITY
+- Authentication bypass tests:
+- Session forgery tests:
+- Credential leakage tests:
+- Authorization tests:
+- Audit tests:
+
+9. RATE-LIMITING FOUNDATION
+- Attempt tracking:
+- Policy interface:
+- Batch 13 integration readiness:
+
+10. TEST RESULTS
+- Unit:
+- Integration:
+- Security:
+- Negative:
+- Concurrency:
+- Persistence:
+- Regression:
+- Performance:
+- Quality gates:
+
+11. EXACT COMMANDS EXECUTED
+List exact commands and actual results.
+
+12. STUBS / MOCKS / UNIMPLEMENTED
+List all relevant occurrences.
+
+13. SECURITY FINDINGS
+- Critical:
+- High:
+- Medium:
+- Low:
+- Informational:
+
+14. ARCHITECTURE DEVIATIONS
+List every deviation.
+
+15. MCP STATUS
+MCP implementation: NO
+
+16. UNVERIFIED ITEMS
+List anything that could not be proven.
+
+17. BLOCKERS
+List unresolved blockers.
+
+18. FINAL STATUS
+Choose exactly one:
+
+IMPLEMENTED
+TESTED
+VERIFIED
+PARTIAL
+BROKEN
+BLOCKED
+NOT PRODUCTION READY
+```
+
+# 36. STATUS INTEGRITY
+
+Do not claim:
+
+* production-ready
+* fully secure
+* completely verified
+* zero vulnerabilities
+
+without sufficient evidence.
+
+Do not use arbitrary completion percentages.
+
+If a critical security property remains unverified, report `NOT PRODUCTION READY`.
+
+Distinguish clearly between code written, tests passed and security properties independently verified.
+
+# 37. STOP CONDITION
+
+After Batch 12 is complete, stop.
+
+Do not begin Batch 13 automatically.
+
+Do not implement the three-attempt lockout or security-question recovery in this batch.
+
+Do not implement MCP.
+
+Do not implement unrelated features.
+
+The only objective is:
+
+**A real, secure, testable PIN authentication subsystem with controlled sessions and verifiable security boundaries, integrated into the existing JARVIS architecture.**
+
+==================================================
+END OF BATCH 12
+===============
+
+
+# JARVIS — BATCH 13
+
+## PIN Attempt Tracking, Brute-Force Protection & Three-Attempt Lockout
+
+**Phase:** Authentication and Access Security
+**Batch:** 13 of 60
+**Target:** Windows 11, Python
+**Implementation:** Production-oriented, security-first
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Implement a real, persistent, tamper-resistant PIN attempt tracking and lockout subsystem for JARVIS.
+
+The primary requirement is:
+
+**After three consecutive failed PIN authentication attempts, JARVIS must lock PIN authentication and prevent further attempts until the configured recovery process is completed.**
+
+The recovery process involving a security question and a one-hour lock is reserved for Batch 14.
+
+This batch must implement:
+
+* Persistent failed-attempt tracking
+* Three-attempt lockout
+* Consecutive failure detection
+* Successful authentication counter reset
+* Lockout state persistence
+* Lockout enforcement
+* Authentication throttling
+* Atomic state updates
+* Restart-safe lockout
+* Audit integration
+* Security-event integration
+* Concurrent-attempt protection
+* Recovery workflow integration points
+* Comprehensive negative-path testing
+
+Do not implement the security-question workflow in this batch.
+
+# 2. EXISTING ARCHITECTURE
+
+Reuse the existing systems from previous batches:
+
+* B4: Runtime lifecycle
+* B5: Event bus
+* B6: Task manager
+* B7: Core orchestrator
+* B8: Configuration
+* B9: Environment security
+* B10: Secret management
+* B11: Configuration and security hardening
+* B12: PIN authentication and session management
+
+Before modifying code, inspect which of these components actually exist.
+
+Do not assume that a batch was successfully implemented merely because its prompt was previously provided.
+
+If B12 is incomplete, report the dependency and implement only what can be safely integrated without duplicating its authentication system.
+
+# 3. BASELINE AND INITIAL AUDIT
+
+Before implementation:
+
+1. Inspect the repository.
+2. Inspect the PIN authentication manager.
+3. Inspect the credential storage mechanism.
+4. Inspect the authentication result contracts.
+5. Inspect the session manager.
+6. Inspect the event bus.
+7. Inspect the audit system.
+8. Inspect the configuration and security policy.
+9. Inspect the existing authentication tests.
+10. Run the existing test suite.
+
+Record:
+
+```text
+Git commit
+Python version
+Operating system
+Existing test count
+Passed tests
+Failed tests
+Skipped tests
+Lint status
+Type-check status
+Security scan status
+Coverage
+```
+
+Identify the authoritative authentication and lockout-related interfaces.
+
+Do not create a second authentication manager or an independent authentication database.
+
+# 4. LOCKOUT POLICY
+
+Implement the following initial policy:
+
+| Setting                                 |            Required value |
+| --------------------------------------- | ------------------------: |
+| Maximum consecutive failed PIN attempts |                         3 |
+| Attempts before lockout                 |                         3 |
+| Lockout trigger                         | Third consecutive failure |
+| Successful authentication               |     Reset failure counter |
+| Application restart                     |          Preserve lockout |
+| Authentication during lockout           |                    Denied |
+| Lockout bypass                          |                Prohibited |
+| Security-question recovery              |                  Batch 14 |
+
+The attempt threshold must be centrally configured.
+
+For the initial production policy, three attempts must be enforced. Do not allow an ordinary environment variable or application component to silently raise the limit or disable lockout.
+
+Any future policy change must go through the authorized security configuration mechanism.
+
+# 5. LOCKOUT STATE MODEL
+
+Create a strongly typed lockout state.
+
+Conceptually:
+
+```text
+LockoutState
+    principal_id
+    consecutive_failures
+    maximum_attempts
+    locked
+    locked_at
+    last_failure_at
+    last_success_at
+    lockout_reason
+    state_version
+    updated_at
+```
+
+Use the existing identity and authentication contracts where possible.
+
+The lockout state must be persisted.
+
+Do not store submitted PINs, credential verifiers or other secret material in the lockout record.
+
+The state must be sufficiently explicit to distinguish:
+
+```text
+UNLOCKED
+ATTEMPT_TRACKING
+LOCKED
+RECOVERY_PENDING
+```
+
+`RECOVERY_PENDING` is a future-compatible state. Do not invent a completed recovery workflow in this batch.
+
+# 6. AUTHENTICATION FLOW INTEGRATION
+
+Integrate lockout enforcement directly into the authoritative PIN authentication flow.
+
+Required flow:
+
+```text
+User submits PIN
+       |
+       v
+Authentication request
+       |
+       v
+Check lockout state
+       |
+       +---- LOCKED
+       |       |
+       |       v
+       |    Deny request
+       |
+       +---- UNLOCKED
+               |
+               v
+       Verify submitted PIN
+               |
+       +-------+-------+
+       |               |
+    SUCCESS          FAILURE
+       |               |
+       v               v
+ Reset counter     Increment counter
+       |               |
+       v               v
+ Create session    Check threshold
+                       |
+                 +-----+-----+
+                 |           |
+             Below 3       Reaches 3
+                 |           |
+                 v           v
+              Reject       Lock account
+                          |
+                          v
+                     Deny further
+                     PIN attempts
+```
+
+There must be no alternative authentication route that bypasses the lockout check.
+
+# 7. THREE-ATTEMPT ENFORCEMENT
+
+Implement actual three-attempt enforcement.
+
+Expected behavior:
+
+| Attempt                  | Result                          | Counter | State    |
+| ------------------------ | ------------------------------- | ------: | -------- |
+| First incorrect PIN      | Denied                          |       1 | Tracking |
+| Second incorrect PIN     | Denied                          |       2 | Tracking |
+| Third incorrect PIN      | Denied                          |       3 | Locked   |
+| Fourth incorrect PIN     | Denied without PIN verification |       3 | Locked   |
+| Correct PIN while locked | Denied without PIN verification |       3 | Locked   |
+
+A correct PIN must not bypass an active lockout.
+
+Do not create an authenticated session after a failed attempt or during lockout.
+
+Ensure the third failed attempt and lockout transition are part of one atomic state transition.
+
+# 8. CONSECUTIVE FAILURE LOGIC
+
+Implement precise counter semantics.
+
+A consecutive failure means a PIN authentication failure since the last successful PIN authentication or authorized recovery reset.
+
+Examples:
+
+```text
+Failure
+Failure
+Success
+Failure
+Failure
+```
+
+The final state must have two consecutive failures, not four.
+
+Another example:
+
+```text
+Failure
+Failure
+Failure
+```
+
+The final state must be locked.
+
+A failed request that does not reach PIN verification, such as malformed transport input, must be classified according to the authentication policy. It must not accidentally reset the counter.
+
+Document which failures count toward the threshold.
+
+Do not let callers decide arbitrarily whether a failure increments the counter.
+
+# 9. SUCCESSFUL AUTHENTICATION
+
+A successful PIN verification must reset the consecutive failure counter only when authentication is permitted.
+
+Requirements:
+
+* Confirm that the account is not locked.
+* Verify the PIN through the authoritative B12 verifier.
+* Atomically reset the consecutive failure count.
+* Record the successful authentication timestamp.
+* Create the session only after the required state transition succeeds.
+* Publish the appropriate authentication event.
+* Write the appropriate audit record.
+
+A successful PIN verification during an active lockout must not reset the counter.
+
+# 10. PERSISTENCE
+
+Lockout state must survive:
+
+* normal shutdown
+* unexpected process termination
+* application restart
+* machine restart
+* authentication subsystem recreation
+
+Use the existing persistence architecture where available.
+
+Do not introduce a separate database solely for lockout state.
+
+Persist at least:
+
+```text
+principal_id
+consecutive_failures
+locked
+locked_at
+state_version
+updated_at
+```
+
+The storage design must support transactional updates.
+
+If the existing database layer is not yet available, implement the smallest secure persistence mechanism consistent with the current architecture and document the limitation.
+
+# 11. ATOMIC LOCKOUT TRANSITIONS
+
+The third failure must not result in a race condition.
+
+For example, two concurrent authentication requests must not both observe an attempt count of two and independently proceed as though the account were unlocked.
+
+Use transactional updates, suitable locking or compare-and-swap versioning.
+
+The transition:
+
+```text
+2 failures
+    ↓
+third failure
+    ↓
+locked
+```
+
+must be atomic.
+
+Readers must never observe an inconsistent state such as:
+
+```text
+locked = true
+consecutive_failures = 1
+```
+
+unless a separately documented recovery transition explicitly permits it.
+
+# 12. CONCURRENT AUTHENTICATION
+
+Implement concurrency-safe authentication.
+
+Test:
+
+* two incorrect PIN requests at the same time
+* three incorrect PIN requests at the same time
+* correct and incorrect PIN requests concurrently
+* authentication during lockout transition
+* simultaneous authentication and state reload
+* duplicate request identifiers
+* authentication during a storage update
+
+The system must never allow concurrent requests to bypass the three-attempt limit.
+
+Define deterministic behavior for requests that overlap the third failure.
+
+Do not rely solely on an in-process Python lock if multiple processes can access the same persistent credential state.
+
+# 13. LOCKOUT ENFORCEMENT
+
+Once locked:
+
+* reject every new PIN authentication request
+* do not invoke the PIN verifier unnecessarily
+* do not create new sessions
+* do not refresh existing sessions
+* do not silently clear the lockout after a restart
+* do not automatically unlock merely because time has passed
+
+The rejection response must be generic enough to avoid disclosing unnecessary authentication information.
+
+It may report a safe status such as:
+
+```text
+ACCOUNT_LOCKED
+```
+
+Do not expose sensitive internal state to an unauthenticated caller.
+
+# 14. EXISTING SESSION POLICY
+
+Define how an active lockout affects existing authenticated sessions.
+
+For this initial security design:
+
+**A third consecutive PIN failure must revoke all sessions associated with the locked principal.**
+
+Implement this through the existing session manager.
+
+Session revocation and lockout persistence must be coordinated safely.
+
+If session revocation fails, do not report the lockout transition as fully verified.
+
+The application must fail closed for subsequent privileged operations while the session state is uncertain.
+
+Test:
+
+* one active session
+* multiple active sessions
+* lockout during an active session
+* failed session revocation
+* restart after lockout
+
+# 15. LOCKOUT REASON
+
+Use structured lockout reasons.
+
+At minimum:
+
+```text
+MAXIMUM_FAILED_ATTEMPTS
+ADMINISTRATIVE_LOCK
+SECURITY_RECOVERY_PENDING
+```
+
+Only `MAXIMUM_FAILED_ATTEMPTS` is implemented in this batch.
+
+Other reasons may be included as future-compatible enum values, but do not implement unsupported administrative or recovery operations.
+
+# 16. AUTHENTICATION THROTTLING
+
+Add a lightweight authentication throttling foundation to reduce repeated expensive verification requests.
+
+Requirements:
+
+* bound the rate of repeated verification attempts
+* avoid unbounded queues
+* avoid excessive CPU consumption
+* avoid sleeping inside critical database transactions
+* keep the three-attempt lockout authoritative
+* ensure throttling cannot grant authentication
+* make throttling behavior deterministic in tests
+
+Use monotonic time for in-process rate calculations and an appropriate persisted time representation for lockout state.
+
+If an independent time-based cooldown is implemented, document it separately from the three-attempt lockout and ensure it cannot weaken the primary policy.
+
+Do not implement a CAPTCHA or external verification service.
+
+# 17. CLOCK AND TIME HANDLING
+
+Use an injectable clock abstraction.
+
+Use timezone-aware UTC timestamps for persisted audit and lockout records.
+
+Use monotonic time for short-lived in-process intervals.
+
+Handle:
+
+* system clock moving backward
+* system clock moving forward
+* missing timestamps
+* malformed timestamps
+* timestamps with incorrect timezone information
+
+A clock anomaly must never silently clear an active lockout.
+
+Do not use arbitrary `sleep()` calls in unit tests.
+
+# 18. LOCKOUT RECOVERY INTERFACE
+
+Prepare a safe integration point for Batch 14.
+
+Conceptually:
+
+```text
+LockoutRecoveryService
+    request_recovery()
+    validate_recovery_context()
+    complete_recovery()
+```
+
+These operations must not falsely report successful recovery in this batch.
+
+Implement only the minimum interface needed for integration.
+
+If a method is not implemented, return a clearly defined unsupported result or raise the appropriate structured exception.
+
+Do not expose a public method that clears lockout state without authorization.
+
+Do not add a hidden reset endpoint.
+
+# 19. AUTHORIZATION BOUNDARY
+
+Lockout state is security-sensitive.
+
+Only authorized internal security components may:
+
+* inspect detailed lockout metadata
+* reset the failure counter
+* change lockout policy
+* perform recovery transitions
+* administer authentication state
+
+Ordinary application modules must not be able to call an unrestricted method such as:
+
+```python
+unlock_everything()
+```
+
+An authenticated session alone must not automatically authorize lockout recovery.
+
+# 20. AUDIT INTEGRATION
+
+Record all significant lockout events through the existing audit system.
+
+Required event types:
+
+```text
+PIN_ATTEMPT_FAILED
+PIN_ATTEMPT_SUCCEEDED
+PIN_LOCKOUT_TRIGGERED
+PIN_AUTHENTICATION_BLOCKED
+PIN_FAILURE_COUNTER_RESET
+SESSION_REVOKED_DUE_TO_LOCKOUT
+LOCKOUT_RECOVERY_REQUESTED
+```
+
+The recovery event is for future integration. Do not report a successful recovery operation that has not been implemented.
+
+Each audit event should include safe metadata:
+
+```text
+timestamp
+principal_id
+event_type
+attempt_count
+lockout_state
+correlation_id
+result
+safe_reason
+```
+
+Never include:
+
+* submitted PIN
+* PIN verifier
+* salt
+* authentication secrets
+* raw request payloads containing credentials
+
+Ensure repeated denied requests cannot create unbounded audit records or exhaust storage.
+
+If audit storage is unavailable, enforce the existing mandatory audit policy. Do not silently bypass it.
+
+# 21. EVENT BUS INTEGRATION
+
+Use the existing typed event bus.
+
+Publish events such as:
+
+```text
+PinAttemptFailed
+PinAttemptSucceeded
+PinLockoutTriggered
+PinAuthenticationBlocked
+SessionRevokedDueToLockout
+```
+
+Event payloads must contain only safe metadata.
+
+Use correlation IDs to link authentication attempts and lockout transitions.
+
+Do not publish events containing PINs or verifier data.
+
+Ensure an event-delivery failure does not reverse a committed lockout or accidentally authorize a request.
+
+Document which event failures are retryable and which require the operation to be marked partially failed.
+
+# 22. ERROR HANDLING
+
+Handle the following cases explicitly:
+
+```text
+credential not enrolled
+incorrect PIN
+malformed PIN
+third consecutive failure
+locked account
+corrupted lockout state
+database unavailable
+transaction failure
+session manager unavailable
+session revocation failure
+audit failure
+event bus failure
+clock anomaly
+concurrent update
+process interruption
+```
+
+Do not convert infrastructure failures into incorrect-PIN results without preserving their internal classification.
+
+Do not expose detailed security errors to unauthenticated users.
+
+Use structured errors and safe public responses.
+
+# 23. CRASH CONSISTENCY
+
+Test interruptions during:
+
+```text
+failure counter update
+third-attempt transition
+session revocation
+audit persistence
+event publication
+```
+
+A process crash must not silently restore an unlocked state after the third failure has been committed.
+
+Define the consistency boundary between lockout persistence, session revocation and audit records.
+
+Where full cross-component atomicity is impossible, use a durable state machine or recovery procedure.
+
+On startup, inspect incomplete lockout transitions and resume or fail closed.
+
+Do not claim distributed transaction guarantees when using independent persistence systems.
+
+# 24. STARTUP RECOVERY
+
+Integrate with the existing runtime startup sequence.
+
+On startup:
+
+1. Load the persisted lockout state.
+2. Validate its schema and version.
+3. Detect corrupted or inconsistent state.
+4. Restore valid locked states.
+5. Fail closed if security-critical state cannot be trusted.
+6. Prevent privileged operations until authentication security is initialized.
+
+Do not initialize a missing state record as unlocked if that could hide an incomplete or corrupted lockout transition.
+
+Distinguish a legitimate first-time enrollment from an unexpected missing record.
+
+# 25. CONFIGURATION
+
+Integrate with the existing B8/B11 configuration system.
+
+The initial policy must enforce three failed attempts.
+
+Expose only safe, approved settings, such as:
+
+```text
+authentication.enabled
+authentication.max_failed_attempts
+authentication.attempt_throttle
+authentication.session_revocation_on_lockout
+```
+
+The maximum attempt policy must not be casually overridden in production.
+
+If a setting is security-critical, classify it accordingly and validate it during startup.
+
+Do not place credentials or PIN values in configuration.
+
+Do not create a second configuration system.
+
+# 26. HEALTH MONITORING
+
+Integrate with the existing health infrastructure if present.
+
+Expose distinct health states for:
+
+```text
+lockout storage
+authentication manager
+session manager
+audit dependency
+recovery integration
+```
+
+Possible health results:
+
+```text
+HEALTHY
+DEGRADED
+UNHEALTHY
+CRITICAL
+```
+
+A successful import does not establish healthy status.
+
+A corrupted lockout store must not report healthy.
+
+An unavailable security-critical persistence dependency must prevent unsafe authentication.
+
+# 27. SECURITY TEST MATRIX
+
+Implement the following test groups.
+
+## A. Attempt counting
+
+* first failed PIN
+* second failed PIN
+* third failed PIN
+* failure counter increments correctly
+* successful PIN resets counter
+* success after two failures
+* new failures after successful authentication
+* duplicate request handling
+
+## B. Lockout
+
+* lockout occurs exactly at the threshold
+* fourth attempt is rejected
+* correct PIN during lockout is rejected
+* lockout persists after restart
+* lockout cannot be cleared by elapsed time
+* invalid lockout state fails closed
+
+## C. Session security
+
+* active sessions are revoked on lockout
+* revoked sessions cannot be reused
+* session refresh is rejected during lockout
+* multiple sessions are handled
+* failed revocation prevents privileged access
+
+## D. Concurrency
+
+* simultaneous failures
+* simultaneous third attempts
+* success and failure racing
+* lockout transition racing with session validation
+* concurrent state reload
+* multiple processes, if supported
+
+## E. Persistence
+
+* successful state write
+* failed state write
+* partial transaction
+* crash during transition
+* corrupted record
+* incompatible schema version
+* restart recovery
+
+## F. Audit and events
+
+* failure audit
+* success audit
+* lockout audit
+* blocked-request audit
+* safe event payloads
+* event publication failure
+* audit storage failure
+
+## G. Input validation
+
+* empty PIN
+* oversized PIN
+* alphabetic input
+* whitespace
+* Unicode digits
+* malformed request
+* missing principal
+* invalid correlation ID
+
+# 28. SECRET-LEAK TESTING
+
+Use unique test-only PIN values.
+
+Scan the generated:
+
+```text
+logs/
+audit records
+event history
+database
+test reports
+temporary files
+CLI output
+exception output
+```
+
+The tests must fail if a raw test PIN is found in an unauthorized location.
+
+Do not include the PIN in test failure messages.
+
+Also verify that the lockout counter and state do not contain credential verifiers.
+
+# 29. PERFORMANCE AND RESOURCE TESTING
+
+Measure:
+
+* failed authentication latency
+* successful authentication latency
+* lockout transition latency
+* session revocation latency
+* concurrent attempt throughput
+* lockout state read/write latency
+
+Respect the established resource limits:
+
+```text
+Idle RAM target: 2–3 GB
+Maximum RAM: 8 GB
+```
+
+Avoid unbounded in-memory attempt queues and audit buffers.
+
+Do not weaken PIN hashing to improve throughput.
+
+Report the actual test hardware and measurement method.
+
+# 30. WINDOWS-SPECIFIC VALIDATION
+
+The primary deployment target is Windows 11.
+
+Inspect and test:
+
+* persistent lockout file/database permissions
+* process termination during a lockout transition
+* atomic persistence behavior
+* startup recovery
+* concurrent processes
+* timezone handling
+* Windows path handling
+
+Do not claim cross-platform support without testing.
+
+# 31. DOCUMENTATION
+
+Create or update:
+
+`docs/security/lockout.md`
+
+Include:
+
+1. Lockout architecture
+2. Three-attempt policy
+3. Consecutive failure semantics
+4. Successful authentication reset behavior
+5. Lockout persistence
+6. Session revocation
+7. Authentication throttling
+8. Audit events
+9. Startup recovery
+10. Concurrency strategy
+11. Failure handling
+12. Recovery interface
+13. Batch 14 integration requirements
+14. Known limitations
+
+Do not include real credentials or PINs.
+
+# 32. CODE QUALITY
+
+All new code must follow existing repository standards.
+
+Required:
+
+* type hints
+* structured exceptions
+* deterministic tests
+* clear interfaces
+* documented security-sensitive operations
+* no duplicated authentication logic
+* no circular imports
+* no import-time side effects
+* no unexplained magic values
+* no dead code
+* no production placeholders
+
+Keep the implementation modular without creating unnecessary abstractions.
+
+# 33. REQUIRED REGRESSION TESTING
+
+Run the full applicable test suite from previous batches.
+
+At minimum, preserve tests for:
+
+```text
+runtime
+event bus
+task manager
+configuration
+environment validation
+secret management
+authentication
+session management
+authorization
+audit
+```
+
+Do not delete or weaken tests to make the new batch pass.
+
+If an existing test is genuinely obsolete, document the reason and replace it with an equivalent or stronger test.
+
+# 34. REPOSITORY AUDIT
+
+Search the repository for:
+
+```text
+failed_attempt
+attempt_count
+lockout
+unlock
+reset_attempt
+authenticate
+verify_pin
+session
+PIN
+bypass
+force_unlock
+```
+
+Identify:
+
+* duplicate lockout logic
+* authentication bypasses
+* unauthorized counter resets
+* unrestricted unlock methods
+* missing audit calls
+* unsafe session reuse
+* non-atomic state updates
+* inconsistent attempt counting
+
+Classify every relevant finding.
+
+Do not blindly modify unrelated occurrences.
+
+# 35. MCP RESTRICTION
+
+This batch must contain:
+
+```text
+MCP implementation: NO
+```
+
+Do not add MCP clients, servers, credentials, discovery, transports or adapters.
+
+MCP remains deferred to its dedicated phase.
+
+# 36. REQUIRED QUALITY GATES
+
+Discover and execute the repository's actual commands for:
+
+```text
+pytest
+lint
+format check
+type check
+security scan
+secret scan
+coverage
+quality gate
+```
+
+Do not invent successful outputs.
+
+Record every command and its actual result.
+
+If a gate is unavailable, report `NOT CONFIGURED`.
+
+# 37. ACCEPTANCE CRITERIA
+
+Batch 13 is implemented only when:
+
+1. Failed PIN attempts are counted correctly.
+2. The third consecutive failure atomically triggers lockout.
+3. All further PIN attempts are denied during lockout.
+4. A correct PIN cannot bypass an active lockout.
+5. Successful authentication resets the counter only when permitted.
+6. Lockout survives application restart.
+7. Existing sessions are revoked when lockout occurs.
+8. Concurrency cannot bypass the threshold.
+9. Authentication failures and lockout transitions are audited safely.
+10. The implementation passes the applicable security and regression tests.
+
+Passing unit tests alone is insufficient to claim verified security.
+
+# 38. REQUIRED FINAL REPORT
+
+Produce exactly this structure:
+
+```text
+==================================================
+JARVIS BATCH 13 FINAL REPORT
+==================================================
+
+1. BASELINE
+- Git commit:
+- Python version:
+- OS:
+- Existing tests:
+- Quality gate results:
+
+2. IMPLEMENTED FILES
+- Created:
+- Modified:
+- Deleted:
+
+3. LOCKOUT ARCHITECTURE
+- Attempt tracker:
+- Lockout manager:
+- Persistence:
+- Authentication integration:
+- Session integration:
+
+4. LOCKOUT POLICY
+- Maximum failed attempts:
+- Consecutive failure semantics:
+- Success reset behavior:
+- Locked-state behavior:
+- Restart behavior:
+
+5. CONCURRENCY
+- Transaction strategy:
+- Locking:
+- Duplicate requests:
+- Multiple processes:
+- Race-condition tests:
+
+6. SESSION SECURITY
+- Revocation on lockout:
+- Session validation:
+- Failure handling:
+
+7. AUDIT AND EVENTS
+- Audit events:
+- Event types:
+- Secret redaction:
+- Failure behavior:
+
+8. RECOVERY INTEGRATION
+- Recovery interface:
+- Implemented behavior:
+- Deferred Batch 14 behavior:
+
+9. TEST RESULTS
+- Unit:
+- Integration:
+- Security:
+- Negative:
+- Concurrency:
+- Persistence:
+- Crash recovery:
+- Regression:
+- Performance:
+- Secret-leak:
+- Quality gates:
+
+10. EXACT COMMANDS EXECUTED
+List the actual commands and results.
+
+11. SECURITY FINDINGS
+- Critical:
+- High:
+- Medium:
+- Low:
+- Informational:
+
+12. STUBS / MOCKS / UNIMPLEMENTED
+List all relevant occurrences.
+
+13. ARCHITECTURE DEVIATIONS
+List every deviation.
+
+14. MCP STATUS
+MCP implementation: NO
+
+15. UNVERIFIED ITEMS
+List everything that could not be proven.
+
+16. BLOCKERS
+List unresolved blockers.
+
+17. FINAL STATUS
+Choose exactly one:
+
+IMPLEMENTED
+TESTED
+VERIFIED
+PARTIAL
+BROKEN
+BLOCKED
+NOT PRODUCTION READY
+```
+
+# 39. STATUS INTEGRITY
+
+Never claim:
+
+* zero vulnerabilities
+* fully secure
+* production ready
+* completely verified
+
+without sufficient evidence.
+
+Do not use arbitrary completion percentages.
+
+Distinguish between implementation, testing and verification.
+
+If a critical lockout bypass or persistence failure remains unresolved, report `NOT PRODUCTION READY`.
+
+# 40. STOP CONDITION
+
+After completing Batch 13, stop.
+
+Do not start Batch 14 automatically.
+
+Do not implement security-question recovery yet.
+
+Do not add voice authentication, LLM providers, agents, Telegram or MCP.
+
+Do not restructure unrelated modules.
+
+**The sole objective of Batch 13 is to deliver a persistent, concurrency-safe three-attempt PIN lockout system that cannot be bypassed through ordinary authentication paths.**
+
+==================================================
+END OF BATCH 13
+===============
+
+# ANTIGRAVITY IMPLEMENTATION PROMPT
+
+## BATCH 14: SECURITY QUESTION RECOVERY & ONE-HOUR LOCKOUT
+
+### PROJECT CONTEXT
+
+You are developing JARVIS, a production-oriented autonomous AI assistant from scratch.
+
+This is Batch 14 of a 60-batch implementation plan. Batches 1–13 have already established the repository foundation, architectural contracts, runtime, event bus, task manager, orchestration, configuration, secrets management, security hardening, PIN authentication, and three-attempt PIN lockout.
+
+Your task is to implement **security question recovery and a persistent one-hour lockout after an incorrect recovery answer**.
+
+Do not rebuild the existing authentication system. Inspect the existing implementation and integrate with its actual interfaces.
+
+### 1. MANDATORY PRE-IMPLEMENTATION AUDIT
+
+Before writing code:
+
+1. Inspect the entire existing security and authentication implementation.
+2. Review:
+
+   * PIN authentication and enrollment.
+   * PIN attempt tracking.
+   * Three-consecutive-failure lockout.
+   * Session management and revocation.
+   * Security events and audit logging.
+   * Database schema and migrations.
+   * Secrets manager and encryption facilities.
+   * Configuration and runtime lifecycle.
+3. Run the existing relevant tests and record their actual results.
+4. Identify the exact integration points for recovery.
+5. Record any existing defects before making changes.
+
+Do not replace working components simply because a different design is easier to implement.
+
+If the existing implementation contradicts this batch's requirements, identify the conflict before proceeding.
+
+### 2. SECURITY QUESTION ENROLLMENT
+
+Implement a persistent security question enrollment system.
+
+Requirements:
+
+* Allow the authenticated owner to enroll a security question and answer.
+* Require successful PIN authentication before initial enrollment.
+* Allow the owner to change the question and answer after reauthentication.
+* Store the question and its associated metadata securely.
+* Never store the recovery answer in plaintext.
+* Normalize answers consistently before hashing.
+* Use a secure password-hashing algorithm such as Argon2id, with appropriate parameters and a unique salt.
+* Compare verification results safely.
+* Do not log or expose the recovery answer through exceptions, debugging, events, API responses or audit records.
+* Prevent unauthorized users from enrolling, changing or deleting recovery credentials.
+
+Normalization must be deterministic. Document how case, leading and trailing whitespace, Unicode and internal whitespace are handled. Do not apply aggressive transformations that could create unexpected answer collisions.
+
+If a user has not enrolled a security question, recovery must fail closed. Do not create a default question or answer.
+
+### 3. SECURITY QUESTION RECOVERY FLOW
+
+Implement the following authentication state machine.
+
+**Normal state**
+
+* The user can authenticate using the existing PIN mechanism.
+* Failed PIN attempts must continue to use Batch 13's existing tracking mechanism.
+
+**After three consecutive incorrect PIN attempts**
+
+* Enter the existing PIN lockout state.
+* Revoke active sessions as specified by Batch 13.
+* Allow the recovery flow only if the existing policy permits it.
+* Do not silently bypass an active security restriction.
+
+**Recovery challenge**
+
+* Present the enrolled security question.
+* Do not reveal the expected answer or any information that would help guess it.
+* Ensure the challenge is associated with the correct user and authentication state.
+* Give each challenge a unique identifier.
+* Apply challenge expiration and single-use semantics.
+* Prevent replay of previously submitted answers.
+* Prevent concurrent requests from successfully reusing the same challenge.
+
+**Correct recovery answer**
+
+When the answer is correct:
+
+1. Verify the challenge's validity.
+2. Verify the recovery answer.
+3. Consume the challenge atomically.
+4. Record a successful recovery event.
+5. Permit the user to enter a controlled PIN recovery flow.
+6. Require the user to set a new PIN before restoring normal authenticated access.
+7. Revoke any stale authentication sessions.
+8. Record the resulting authentication state.
+
+A correct recovery answer must not directly create an unrestricted authenticated session or silently disable security controls.
+
+The user must complete PIN replacement before normal authentication resumes.
+
+**Incorrect recovery answer**
+
+When the recovery answer is incorrect:
+
+1. Record the failed recovery attempt.
+2. Immediately enter a persistent one-hour security lockout.
+3. Revoke all active authentication sessions.
+4. Invalidate outstanding recovery challenges.
+5. Reject PIN authentication and recovery attempts during the lockout.
+6. Persist the lockout across process restarts.
+7. Record the failure in the audit log.
+8. Return a generic failure response without revealing whether the answer was close or correct.
+
+The lockout must last for 60 minutes, measured using UTC timestamps.
+
+### 4. ONE-HOUR LOCKOUT ENGINE
+
+Implement a dedicated recovery lockout mechanism that integrates with the existing authentication lockout.
+
+Requirements:
+
+* Lockout duration: exactly 60 minutes.
+* Use UTC timestamps for persisted lockout start and expiry.
+* Persist the lockout state in the existing database architecture.
+* Survive application crashes, forced termination and system restarts.
+* Prevent bypass by restarting JARVIS or creating a new session.
+* Prevent resetting the lockout by modifying ordinary authentication state.
+* Ensure PIN authentication remains unavailable until the lockout expires.
+* Ensure recovery challenges cannot bypass the lockout.
+* Ensure expired lockouts are handled consistently after restart.
+
+Do not rely exclusively on in-memory timers or sleep operations.
+
+The system must calculate whether a lockout is active using its persisted expiry timestamp.
+
+Use a single authoritative lockout state. Avoid implementing competing lockout timers in the PIN, recovery and session modules.
+
+### 5. LOCKOUT STATE MACHINE
+
+Implement and document the following states:
+
+* `NORMAL`
+* `PIN_LOCKED`
+* `RECOVERY_PENDING`
+* `RECOVERY_VERIFIED`
+* `RECOVERY_LOCKED`
+* `PIN_RESET_REQUIRED`
+
+Define explicit, validated transitions between states.
+
+Required behavior:
+
+| Current state      | Event                                | Expected result                                |
+| ------------------ | ------------------------------------ | ---------------------------------------------- |
+| NORMAL             | Incorrect PIN, fewer than 3 attempts | NORMAL                                         |
+| NORMAL             | Third consecutive incorrect PIN      | PIN_LOCKED                                     |
+| PIN_LOCKED         | Valid recovery challenge             | RECOVERY_PENDING                               |
+| RECOVERY_PENDING   | Correct answer                       | PIN_RESET_REQUIRED                             |
+| RECOVERY_PENDING   | Incorrect answer                     | RECOVERY_LOCKED                                |
+| RECOVERY_LOCKED    | Restart JARVIS                       | RECOVERY_LOCKED                                |
+| RECOVERY_LOCKED    | 60 minutes elapsed                   | Normal recovery eligibility, subject to policy |
+| PIN_RESET_REQUIRED | Valid new PIN                        | NORMAL                                         |
+| Any locked state   | PIN authentication attempt           | DENIED                                         |
+
+The state machine must reject invalid or out-of-order transitions.
+
+Do not treat a recovery challenge as proof of authentication until the answer has been successfully verified.
+
+### 6. DATABASE AND PERSISTENCE
+
+Extend the existing database without replacing its established schema.
+
+Implement appropriate persistent records for:
+
+* Security question enrollment metadata.
+* Hashed recovery answer.
+* Recovery challenge identifiers and expiration.
+* Recovery attempt history.
+* Recovery lockout start and expiry.
+* Recovery state and version.
+* Relevant audit correlation identifiers.
+
+Requirements:
+
+* Use database transactions for state transitions.
+* Enforce atomicity for concurrent authentication and recovery requests.
+* Prevent duplicate recovery challenge consumption.
+* Prevent stale updates from overwriting newer security states.
+* Add versioning or equivalent concurrency controls where appropriate.
+* Create a proper migration compatible with existing databases.
+* Never delete existing PIN records or authentication history during migration.
+
+All security-critical transitions must be atomic. If persistence fails, fail closed.
+
+### 7. SECURITY AND ABUSE PROTECTION
+
+Implement the following protections:
+
+**Recovery answer protection**
+
+* Use a password-hashing algorithm appropriate for low-entropy human answers.
+* Never use plain SHA-256 or MD5 for recovery answers.
+* Never expose hashes through normal API responses.
+* Never place answers or hashes in application logs.
+
+**Challenge protection**
+
+* Use cryptographically secure random challenge identifiers.
+* Apply an explicit challenge expiration.
+* Enforce single-use challenge consumption.
+* Reject expired, unknown, reused and malformed challenges.
+* Prevent challenge fixation and replay.
+
+**Brute-force protection**
+
+* Apply rate limiting to recovery attempts.
+* Ensure the incorrect answer causes the required one-hour lockout.
+* Prevent concurrent requests from bypassing the attempt limit.
+* Do not expose different responses that reveal answer correctness before the verification decision.
+
+**Session protection**
+
+* Revoke active sessions when entering a recovery lockout.
+* Do not restore old sessions after recovery.
+* Require fresh authentication after successful PIN replacement.
+
+**Fail-closed behavior**
+
+* If the database is unavailable, deny authentication and recovery.
+* If recovery state cannot be verified, deny the operation.
+* If timestamps are malformed or inconsistent, do not assume the lockout has expired.
+* Do not provide an insecure fallback when encryption or hashing fails.
+
+### 8. SECURITY EVENTS AND AUDIT LOGGING
+
+Integrate with the existing audit system.
+
+Record at least these events:
+
+* `SECURITY_QUESTION_ENROLLED`
+* `SECURITY_QUESTION_UPDATED`
+* `SECURITY_RECOVERY_STARTED`
+* `SECURITY_RECOVERY_ANSWER_FAILED`
+* `SECURITY_RECOVERY_ANSWER_VERIFIED`
+* `SECURITY_RECOVERY_LOCKOUT_STARTED`
+* `SECURITY_RECOVERY_LOCKOUT_EXPIRED`
+* `SECURITY_RECOVERY_CHALLENGE_EXPIRED`
+* `SECURITY_RECOVERY_CHALLENGE_REJECTED`
+* `SECURITY_PIN_RESET_REQUIRED`
+* `SECURITY_PIN_RESET_COMPLETED`
+* `SECURITY_RECOVERY_DENIED`
+
+Each event should include, where applicable:
+
+* UTC timestamp.
+* Event identifier.
+* User or principal identifier.
+* Correlation identifier.
+* Previous and resulting security states.
+* Reason code.
+* Lockout expiry timestamp, if applicable.
+
+Never include PINs, recovery answers, answer hashes, master keys or access tokens.
+
+Ensure logging failures do not result in a security operation being reported as successful when its required audit record was not committed.
+
+Use the existing daily log naming convention: `YYYYMMDD_log.txt`.
+
+### 9. API AND INTERNAL INTERFACES
+
+Integrate with the established authentication contracts.
+
+Provide appropriately typed interfaces for:
+
+* Enrolling a security question.
+* Updating the enrolled question.
+* Initiating recovery.
+* Retrieving the active recovery challenge.
+* Submitting a recovery answer.
+* Checking lockout status.
+* Completing PIN replacement.
+* Invalidating outstanding recovery challenges.
+
+Use the project's existing request and response contracts wherever possible.
+
+Do not create duplicate authentication managers or a second independent security policy engine.
+
+All responses must be structured and must not expose sensitive internal implementation details.
+
+### 10. TESTING REQUIREMENTS
+
+Write and execute actual tests. Do not merely generate test files.
+
+**A. Unit tests**
+
+Test:
+
+1. Security question enrollment.
+2. Successful enrollment after PIN reauthentication.
+3. Rejection of enrollment without authentication.
+4. Recovery answer hashing.
+5. Recovery answer normalization.
+6. Correct recovery answer.
+7. Incorrect recovery answer.
+8. Challenge expiration.
+9. Challenge single-use enforcement.
+10. Invalid challenge rejection.
+11. One-hour lockout calculation.
+12. Lockout expiration.
+13. Invalid state transitions.
+14. PIN replacement requirements.
+15. Session revocation.
+16. Audit event generation.
+
+**B. Integration tests**
+
+Test:
+
+1. Batch 13 PIN lockout followed by recovery.
+2. Correct recovery answer followed by mandatory PIN replacement.
+3. Incorrect recovery answer followed by a one-hour lockout.
+4. Lockout persistence after restarting the application.
+5. Database migration against a realistic existing database.
+6. Authentication behavior during recovery lockout.
+7. Recovery with the existing secrets and audit infrastructure.
+
+**C. Negative security tests**
+
+Test:
+
+* Missing security question.
+* Empty recovery answer.
+* Malformed challenge identifier.
+* Expired challenge.
+* Replayed challenge.
+* Concurrent answer submissions.
+* Concurrent PIN attempts.
+* Database unavailable during recovery.
+* Database write failure during lockout creation.
+* Audit persistence failure.
+* Invalid persisted timestamps.
+* Attempted session reuse.
+* Attempted lockout bypass through application restart.
+* PIN replacement without a valid recovery state.
+* Attempts to update recovery credentials without reauthentication.
+
+**D. Time-related tests**
+
+Use an injectable clock or deterministic time provider.
+
+Verify:
+
+* Lockout remains active at 59 minutes and 59 seconds.
+* Lockout expires at the 60-minute boundary.
+* Lockout expiry survives application restart.
+* Clock changes do not accidentally shorten the persisted lockout.
+* UTC timestamps are handled consistently.
+
+Do not use arbitrary sleeps in unit tests.
+
+**E. Regression tests**
+
+Run the relevant tests from Batches 1–13, particularly:
+
+* PIN authentication.
+* Three-attempt lockout.
+* Session expiration and revocation.
+* Authorization.
+* Audit logging.
+* Database migrations.
+* Runtime lifecycle.
+
+Fix regressions introduced by this batch. Do not conceal or skip existing failures.
+
+### 11. PERFORMANCE AND RESOURCE REQUIREMENTS
+
+JARVIS runs on a Windows PC with 16 GB RAM.
+
+Observe these limits:
+
+* Idle memory target: 2–3 GB for the complete application.
+* Absolute application memory ceiling: 8 GB.
+* No busy-waiting lockout timers.
+* No unnecessary background threads.
+* No unbounded recovery challenge or attempt-history growth.
+* Use appropriate database indexes.
+* Apply reasonable request timeouts.
+
+Measure recovery and authentication overhead where practical. Do not claim performance compliance without measurements.
+
+### 12. DOCUMENTATION
+
+Update the relevant security documentation.
+
+Document:
+
+* Security question enrollment.
+* Recovery lifecycle.
+* State transition diagram.
+* One-hour lockout semantics.
+* Recovery answer normalization.
+* Challenge expiration and replay prevention.
+* PIN replacement process.
+* Database migration.
+* Security event definitions.
+* Known limitations and unresolved risks.
+
+Provide concrete commands for running migrations and the relevant tests.
+
+Do not document features that are not implemented.
+
+### 13. STRICT SCOPE BOUNDARIES
+
+This batch implements only:
+
+* Security question enrollment and update.
+* Recovery challenge lifecycle.
+* Recovery answer verification.
+* Recovery-triggered one-hour lockout.
+* Controlled PIN replacement.
+* Required persistence, audit and tests.
+
+Do not implement:
+
+* Voice authentication.
+* Biometric authentication.
+* Email or SMS recovery.
+* Telegram recovery workflows.
+* External identity providers.
+* New LLM providers.
+* Autonomous agents.
+* MCP servers or MCP credentials.
+* Additional authentication bypass mechanisms.
+
+MCP remains deferred to its designated future phase. Do not add MCP dependencies or placeholders in this batch.
+
+### 14. ANTI-FALSE-COMPLETION REQUIREMENTS
+
+You must distinguish the following statuses accurately:
+
+* `IMPLEMENTED`
+* `TESTED`
+* `VERIFIED`
+* `PARTIAL`
+* `STUB`
+* `MOCK`
+* `UNIMPLEMENTED`
+* `BROKEN`
+* `BLOCKED`
+* `UNKNOWN`
+
+A passing unit test alone does not prove production readiness.
+
+Do not:
+
+* Create empty files and report the feature as implemented.
+* Add placeholder methods that return success.
+* Mock the recovery database in every integration test.
+* Simulate lockout expiry without testing the actual state transition.
+* Claim restart recovery without a real persistence test.
+* Claim concurrency safety without concurrent execution tests.
+* Suppress, skip or manipulate failing tests.
+* Report a feature as verified when its critical path was not executed.
+
+Use real implementations and execute real tests wherever the environment permits.
+
+If an external dependency or environment limitation prevents verification, mark the affected requirement `BLOCKED` or `UNKNOWN` and provide evidence.
+
+### 15. REQUIRED FINAL REPORT
+
+At the end, produce a detailed implementation report containing:
+
+1. **Baseline**
+
+   * Existing test results before implementation.
+   * Existing defects discovered.
+
+2. **Implementation**
+
+   * Exact files created or modified.
+   * Purpose of each significant file.
+   * Actual features implemented.
+
+3. **Authentication flow**
+
+   * Actual state transitions.
+   * Correct recovery behavior.
+   * Incorrect recovery behavior.
+   * PIN replacement behavior.
+
+4. **Persistence**
+
+   * Database migration details.
+   * Recovery state persistence.
+   * Restart recovery test results.
+
+5. **Security**
+
+   * Hashing algorithm and parameters.
+   * Challenge security.
+   * Rate limiting.
+   * Session revocation.
+   * Fail-closed behavior.
+   * Remaining vulnerabilities or limitations.
+
+6. **Testing evidence**
+
+   * Exact commands executed.
+   * Total tests collected.
+   * Tests passed.
+   * Tests failed.
+   * Tests skipped.
+   * Tests not executed and why.
+   * Actual integration, concurrency and restart test results.
+
+7. **Performance**
+
+   * Measured resource usage where available.
+   * Any resource or latency violations.
+
+8. **Outstanding issues**
+
+   * Every known defect.
+   * Incomplete implementation.
+   * Unverified requirements.
+   * Required remediation.
+
+9. **Final status**
+
+   * `IMPLEMENTED`, `PARTIAL`, `BLOCKED` or `BROKEN`, as supported by evidence.
+   * State explicitly whether this batch is verified.
+   * Do not declare JARVIS production-ready.
+
+### FINAL EXECUTION RULE
+
+Implement Batch 14 only.
+
+Do not start Batch 15 automatically.
+
+Preserve all working functionality from Batches 1–13. If any critical security requirement cannot be met safely, stop that part of the implementation, explain the blocker and report the exact evidence.
+
+**The objective is a real, persistent and testable security recovery system, not a demonstration.**
+
+# ANTIGRAVITY IMPLEMENTATION PROMPT
+
+# BATCH 15: CENTRALIZED AUTHORIZATION, POLICY & APPROVAL ENGINE
+
+## PROJECT CONTEXT
+
+You are developing JARVIS, a production-oriented autonomous AI assistant from scratch.
+
+This is Batch 15 of the 60-batch implementation plan.
+
+Batches 1–14 have established the foundational architecture, runtime, event bus, task manager, orchestration, configuration, secrets management, PIN authentication, lockout and recovery mechanisms.
+
+Your responsibility in this batch is to implement a **centralized authorization, policy and approval engine** that will eventually govern all JARVIS operations, including tools, agents, autonomous workflows, file operations, computer control, cybersecurity operations and external integrations.
+
+This is a security-critical component. Do not implement a simplified demonstration or create a second, competing authorization system.
+
+The policy engine must be independent of individual tools and agents. All future execution components must be able to use the same authoritative policy decision interface.
+
+---
+
+# 1. MANDATORY PRE-IMPLEMENTATION AUDIT
+
+Before writing any code, inspect the actual repository.
+
+Review the existing implementations of:
+
+* Core contracts and interfaces.
+* Application runtime and orchestrator.
+* Authentication and PIN verification.
+* Security question recovery.
+* Session management and revocation.
+* Database and migrations.
+* Secrets manager.
+* Event bus.
+* Task manager.
+* Audit logging.
+* Configuration management.
+* Existing authorization-related code.
+
+Run the relevant existing tests and record the baseline.
+
+Identify:
+
+1. Existing permission-related contracts.
+2. Existing authentication context and session representation.
+3. Existing approval-related contracts.
+4. Existing security event definitions.
+5. Existing database persistence patterns.
+6. Any duplicate or conflicting authorization logic.
+
+Reuse established contracts whenever appropriate. Extend them through backward-compatible changes wherever possible.
+
+Do not assume Batch 14 is correctly implemented merely because its prompt requested it. Inspect the actual code and tests.
+
+If a previous batch is incomplete, record the defect and avoid building insecure assumptions on top of it.
+
+---
+
+# 2. CENTRALIZED POLICY ENGINE
+
+Create a single authoritative policy engine.
+
+Suggested location:
+
+`security/policy/`
+
+Suggested modules:
+
+* `engine.py`
+* `models.py`
+* `rules.py`
+* `permissions.py`
+* `risk.py`
+* `approval.py`
+* `scope.py`
+* `evaluator.py`
+* `exceptions.py`
+* `repository.py`
+* `__init__.py`
+
+Adapt these names to the existing architecture if necessary.
+
+The policy engine must be the single source of truth for authorization decisions.
+
+It must support:
+
+* User authorization.
+* Agent authorization.
+* Tool authorization.
+* Task authorization.
+* Resource-level authorization.
+* Scope restrictions.
+* Risk classification.
+* Approval requirements.
+* Session validity checks.
+* Explicit denial.
+* Audit integration.
+
+Do not allow individual tools or agents to invent their own authorization decisions.
+
+Every protected operation must receive a policy decision before execution.
+
+---
+
+# 3. IDENTITY AND PRINCIPAL MODEL
+
+Implement a typed principal model.
+
+Supported principal types should include:
+
+* `USER`
+* `AGENT`
+* `SYSTEM`
+* `SCHEDULED_TASK`
+* `INTEGRATION`
+
+Each principal must have a unique identifier.
+
+An authorization request must identify:
+
+* Principal ID.
+* Principal type.
+* Action.
+* Resource.
+* Requested scope.
+* Associated task ID, if applicable.
+* Session ID, if applicable.
+* Correlation ID.
+* Requested risk level, where relevant.
+
+Do not trust a principal's claimed identity merely because it appears in a request.
+
+For user operations, verify the associated authenticated session through the existing authentication subsystem.
+
+For agents, validate the agent's registered identity and delegated permissions.
+
+For scheduled tasks, validate the original authorization context and the task's permitted execution scope.
+
+For system operations, require an explicitly registered system principal and narrowly scoped permissions.
+
+Never let an ordinary user request arbitrarily designate itself as a trusted system principal.
+
+---
+
+# 4. PERMISSION MODEL
+
+Implement a typed, extensible permission system.
+
+Support permission categories such as:
+
+### A. Filesystem permissions
+
+* `filesystem.read`
+* `filesystem.create`
+* `filesystem.modify`
+* `filesystem.delete`
+* `filesystem.rename`
+* `filesystem.move`
+* `filesystem.execute`
+
+### B. Computer-control permissions
+
+* `system.app.launch`
+* `system.app.close`
+* `system.process.inspect`
+* `system.process.terminate`
+* `system.settings.read`
+* `system.settings.modify`
+* `system.shutdown`
+* `system.restart`
+
+### C. Development permissions
+
+* `code.read`
+* `code.create`
+* `code.modify`
+* `code.delete`
+* `code.test`
+* `code.build`
+* `git.status`
+* `git.commit`
+* `git.push`
+
+### D. Agent permissions
+
+* `agent.create`
+* `agent.spawn`
+* `agent.delegate`
+* `agent.terminate`
+* `agent.inspect`
+
+### E. Integration permissions
+
+* `integration.read`
+* `integration.write`
+* `integration.send`
+* `integration.delete`
+
+### F. Cybersecurity permissions
+
+* `security.recon`
+* `security.scan`
+* `security.analyze`
+* `security.exploit`
+* `security.credential_test`
+* `security.modify_target`
+
+These permission names are a vocabulary, not an authorization grant. Every permission must still be checked against the applicable policy and scope.
+
+Support permission assignment to:
+
+* Authenticated users.
+* Individual agents.
+* Agent roles or templates.
+* Specific tasks.
+* Explicitly registered system services.
+
+Implement permission inheritance only if it can be enforced without privilege escalation. If inheritance is supported, document the exact precedence and denial behavior.
+
+Use explicit permission grants and denials. Avoid implicit grants based solely on a principal's type.
+
+---
+
+# 5. DEFAULT SECURITY POLICIES
+
+Implement the following baseline policies.
+
+### Policy A: File reading
+
+* Reading files is permitted by default for authorized local JARVIS operations.
+* Existing path and security restrictions still apply.
+* Secrets, credentials and protected files must obey their dedicated access policies.
+* Reading a file must not imply permission to modify or execute it.
+
+### Policy B: File creation
+
+* File creation is allowed when it falls within the authorized task scope.
+* Prevent writes outside the authorized directories.
+* Apply appropriate restrictions to sensitive locations.
+* Do not interpret unrestricted file reading as unrestricted file creation.
+
+### Policy C: Existing file modification
+
+* Modifying existing files requires explicit approval by default.
+* An existing scoped approval may authorize modifications within its defined boundaries.
+* A scoped approval must specify the relevant resources and permitted actions.
+* Do not treat an approval for one file as authorization to modify an entire directory.
+
+### Policy D: File deletion
+
+* Deleting existing files requires explicit approval.
+* A broad task approval must not automatically authorize destructive deletion.
+* Require the approval to identify the affected resource or a sufficiently constrained set of resources.
+* Reject ambiguous deletion targets.
+
+### Policy E: Git
+
+* Reading Git status and repository information can be permitted within authorized paths.
+* File modifications follow the normal modification policy.
+* Git commit requires explicit approval.
+* Git push requires explicit approval.
+* Do not treat commit approval as push approval.
+* Do not silently stage unrelated files.
+
+### Policy F: High-risk operations
+
+Require explicit approval for high-risk actions, including:
+
+* Destructive filesystem operations.
+* Security-sensitive system changes.
+* Credential changes.
+* Git commit and push.
+* External messages or irreversible submissions.
+* High-impact autonomous workflows.
+* Financial actions if introduced by future integrations.
+
+An agent's approval must not substitute for the required user approval.
+
+### Policy G: Cybersecurity operations
+
+* Require an explicitly defined target scope.
+* Require the appropriate authorization context.
+* Deny operations against unknown or unauthorized targets.
+* Separate passive analysis from active testing.
+* Apply operation-specific restrictions.
+* Never interpret a general cybersecurity permission as authorization to attack arbitrary systems.
+
+Do not implement offensive execution functionality in this batch.
+
+---
+
+# 6. RISK CLASSIFICATION ENGINE
+
+Implement a centralized risk classification system.
+
+Use these levels:
+
+* `LOW`
+* `MEDIUM`
+* `HIGH`
+* `CRITICAL`
+
+Define documented classification criteria.
+
+Examples:
+
+| Operation                                  | Initial risk classification |
+| ------------------------------------------ | --------------------------- |
+| Read an ordinary local text file           | LOW                         |
+| Create a file in an authorized workspace   | LOW                         |
+| Modify an existing source file             | MEDIUM                      |
+| Terminate an ordinary application          | MEDIUM                      |
+| Delete an existing file                    | HIGH                        |
+| Commit changes to Git                      | HIGH                        |
+| Push code to a remote repository           | HIGH                        |
+| Modify security-sensitive Windows settings | HIGH                        |
+| Delete large numbers of files              | CRITICAL                    |
+| Perform a destructive security operation   | CRITICAL                    |
+
+These are initial classifications. The final risk must consider the target, scope, potential impact and reversibility.
+
+Implement risk escalation when an operation affects:
+
+* Multiple resources.
+* Sensitive directories.
+* Production systems.
+* External services.
+* Security controls.
+* Irreversible state.
+* Broad agent permissions.
+
+Agents and tools must not be able to downgrade the risk classification to avoid approval.
+
+The policy engine must determine the effective risk level using trusted operation metadata and policy rules.
+
+---
+
+# 7. POLICY DECISION ENGINE
+
+Implement a deterministic policy evaluation process.
+
+Every decision must return a structured result with:
+
+* Decision ID.
+* Principal.
+* Action.
+* Resource.
+* Requested scope.
+* Effective risk.
+* Decision.
+* Reason code.
+* Applicable policy identifiers.
+* Required approval, if any.
+* Correlation ID.
+* Evaluation timestamp.
+
+Supported decisions:
+
+* `ALLOW`
+* `DENY`
+* `REQUIRE_APPROVAL`
+* `REQUIRE_REAUTHENTICATION`
+* `REQUIRE_ADDITIONAL_AUTHORIZATION`
+
+The decision engine must evaluate, in a documented order:
+
+1. Principal identity validity.
+2. Authentication and session validity.
+3. Principal status.
+4. Permission grants and explicit denials.
+5. Resource and path restrictions.
+6. Requested scope.
+7. Risk classification.
+8. Approval requirements.
+9. Additional security restrictions.
+10. Final decision.
+
+Use fail-closed behavior.
+
+If a required security check fails, return `DENY`.
+
+If the engine cannot establish whether an action is permitted, it must not allow the action.
+
+A decision of `REQUIRE_APPROVAL` is not permission to execute. The operation must remain blocked until an appropriate approval is obtained and validated.
+
+Do not rely on natural-language interpretation as the final authorization mechanism.
+
+---
+
+# 8. APPROVAL ENGINE
+
+Implement a persistent approval workflow integrated with the existing approval contracts and database.
+
+Each approval request must include:
+
+* Unique approval ID.
+* Requesting principal.
+* Requested action.
+* Target resource.
+* Exact scope.
+* Risk classification.
+* Reason for approval.
+* Associated task ID.
+* Correlation ID.
+* Creation timestamp.
+* Expiration timestamp.
+* Approval status.
+* Approver identity.
+* Decision timestamp.
+
+Approval statuses:
+
+* `PENDING`
+* `APPROVED`
+* `REJECTED`
+* `EXPIRED`
+* `CANCELLED`
+* `CONSUMED`
+
+Implement the following operations:
+
+* Create approval request.
+* Retrieve pending approvals.
+* Approve a request.
+* Reject a request.
+* Cancel a request.
+* Expire an approval.
+* Consume an approval for an authorized operation.
+* Inspect approval history.
+
+### Approval requirements
+
+1. Approvals must be persisted.
+2. Approval decisions must be atomic.
+3. Approvals must expire.
+4. Expired approvals must never authorize execution.
+5. Rejected approvals must never authorize execution.
+6. Cancelled approvals must never authorize execution.
+7. An approval must be bound to its intended action and resource.
+8. An approval must not be reused for a different operation.
+9. A consumed approval must not be reused.
+10. An approval must be associated with the correct principal and task.
+11. Approval decisions must be auditable.
+12. Approval persistence failures must fail closed.
+
+Use an appropriate default expiration duration, configurable through the existing configuration system. Enforce a safe upper bound so approvals cannot be made effectively permanent.
+
+### Approval identity
+
+Only a properly authenticated and authorized user may approve a user-level approval request.
+
+An agent must not approve its own high-risk operation.
+
+An agent must not approve another agent's high-risk operation unless a narrowly defined, independently authorized policy explicitly permits that behavior.
+
+Approval requests must not be approved merely because an agent claims that the user approved them.
+
+Do not implement an insecure shortcut such as an unauthenticated HTTP endpoint or a hardcoded approval token.
+
+---
+
+# 9. SCOPED APPROVALS
+
+Implement scoped approvals for normal, bounded work.
+
+A scoped approval should be capable of specifying:
+
+* Approved principal or permitted principal class.
+* Task or project identifier.
+* Allowed actions.
+* Allowed resources or directories.
+* Maximum risk level.
+* Expiration.
+* Whether delegation is permitted.
+* Maximum number of uses, if applicable.
+
+Example:
+
+A user authorizes a coding task to modify files under:
+
+`D:\Projects\ExampleApp`
+
+The approval can permit modifications to files within that project for the specified task.
+
+It must not permit:
+
+* Deleting unrelated files.
+* Modifying files outside the project.
+* Committing changes without separate approval.
+* Pushing changes to a remote repository.
+* Changing security policies.
+* Delegating the approval to arbitrary agents.
+
+Resolve filesystem paths safely and prevent traversal attacks.
+
+On Windows, account for:
+
+* Case-insensitive path comparisons.
+* Path normalization.
+* Junctions and symbolic links.
+* Alternate path representations.
+* Network paths.
+* Reparse points.
+* Directory traversal.
+* Paths that change between authorization and execution.
+
+Where resource identity can change between authorization and execution, revalidate the target immediately before execution.
+
+Do not use naive string-prefix matching to authorize filesystem paths.
+
+---
+
+# 10. APPROVAL CONSUMPTION AND TIME-OF-CHECK PROTECTION
+
+An approval must authorize only the operation that was actually approved.
+
+Implement approval binding to:
+
+* Action.
+* Resource.
+* Scope.
+* Principal.
+* Task.
+* Expiration.
+* Relevant operation parameters.
+
+Where appropriate, include a stable operation fingerprint.
+
+Before executing an approved action:
+
+1. Retrieve the persisted approval.
+2. Confirm its status is `APPROVED`.
+3. Confirm it has not expired.
+4. Validate its principal and task binding.
+5. Validate the action and resource.
+6. Reevaluate the current policy.
+7. Confirm that the approval is still sufficient.
+8. Atomically consume the approval when the operation is committed for execution.
+
+Do not allow approval reuse after consumption.
+
+Avoid a time-of-check/time-of-use vulnerability. Revalidate security-sensitive resources immediately before the actual operation.
+
+If the policy changes after approval but before execution, reevaluate against the current policy. A previous approval must not override a newly introduced security restriction.
+
+---
+
+# 11. AGENT AUTHORIZATION FOUNDATION
+
+Implement authorization support for future specialized agents.
+
+The engine must support:
+
+* Agent-specific permission sets.
+* Agent-specific resource scopes.
+* Per-task authorization.
+* Delegated authorization.
+* Permission expiration.
+* Revocation.
+* Maximum delegated risk.
+* Maximum delegation depth.
+
+An agent must never possess more authority than its delegating principal.
+
+A child agent must receive only the permissions explicitly delegated to it.
+
+Delegation must not transfer:
+
+* User authentication credentials.
+* PINs.
+* Recovery answers.
+* Master keys.
+* Unrestricted filesystem access.
+* Unrestricted tool access.
+* Approval authority for high-risk user operations.
+
+Do not implement the full agent manager or spawning system in this batch. Implement only the authorization contracts and enforcement foundations needed by future agent batches.
+
+---
+
+# 12. CYBERSECURITY AUTHORIZATION FOUNDATION
+
+Implement a security-specific policy adapter that uses the central policy engine.
+
+Support authorization context fields such as:
+
+* Target identifier.
+* Target type.
+* Authorization owner.
+* Allowed operations.
+* Permitted network or asset scope.
+* Scope expiration.
+* Authorization evidence reference.
+* Requested security activity.
+
+Define scope categories such as:
+
+* `LOCAL_LAB`
+* `PERSONAL_INFRASTRUCTURE`
+* `AUTHORIZED_CLIENT`
+* `UNKNOWN_TARGET`
+
+Unknown or unverified targets must be denied for active security operations.
+
+An authorization context must not be accepted solely because an agent or user supplied a target URL.
+
+Require explicit scope validation for active security operations.
+
+Do not implement scanning, exploitation, credential testing or other active security execution in this batch. Those capabilities belong to future tool implementations and must use this authorization foundation.
+
+---
+
+# 13. AUDIT AND EVENT INTEGRATION
+
+Integrate the policy engine with the existing event bus and audit system.
+
+Emit structured events for:
+
+* `POLICY_EVALUATION_STARTED`
+* `POLICY_DECISION_ALLOWED`
+* `POLICY_DECISION_DENIED`
+* `POLICY_APPROVAL_REQUIRED`
+* `POLICY_APPROVAL_CREATED`
+* `POLICY_APPROVAL_APPROVED`
+* `POLICY_APPROVAL_REJECTED`
+* `POLICY_APPROVAL_EXPIRED`
+* `POLICY_APPROVAL_CONSUMED`
+* `POLICY_SCOPE_VIOLATION`
+* `POLICY_DELEGATION_DENIED`
+* `POLICY_CONFIGURATION_CHANGED`
+
+Each relevant event should include:
+
+* UTC timestamp.
+* Event ID.
+* Principal ID.
+* Action.
+* Resource reference.
+* Decision ID.
+* Policy ID.
+* Task ID, if applicable.
+* Correlation ID.
+* Reason code.
+
+Do not include credentials, authentication tokens or sensitive file contents.
+
+Maintain the existing daily log convention:
+
+`YYYYMMDD_log.txt`
+
+Security audit records must be durable and protected against ordinary application-level modification.
+
+If an audit record is required for a security-critical transition and cannot be persisted, do not report the transition as successful.
+
+Avoid circular dependencies between the policy engine, event bus and audit system.
+
+---
+
+# 14. CONFIGURATION
+
+Integrate policy configuration with the existing central configuration system.
+
+Support configuration for:
+
+* Default permission behavior.
+* Approval expiration.
+* Maximum scoped approval lifetime.
+* Risk thresholds.
+* Agent delegation limits.
+* Policy enforcement mode.
+* Protected filesystem locations.
+* Security-sensitive operations.
+
+Requirements:
+
+* Use typed configuration.
+* Validate configuration at startup.
+* Reject unsafe configurations.
+* Do not silently replace invalid production settings with permissive defaults.
+* Keep secrets out of policy configuration.
+* Do not allow untrusted agents to modify authorization policies.
+* Record policy configuration changes in the audit system.
+
+Do not add API keys or external provider credentials in this batch.
+
+Do not introduce another `.env` parser or configuration manager.
+
+---
+
+# 15. DATABASE AND PERSISTENCE
+
+Extend the existing database architecture.
+
+Implement appropriate persistence for:
+
+* Policy definitions or policy versions.
+* Permission assignments.
+* Scoped grants.
+* Approval requests.
+* Approval decisions.
+* Approval consumption.
+* Delegation records.
+* Policy evaluation audit references.
+
+Requirements:
+
+* Provide versioned migrations.
+* Preserve existing authentication and recovery records.
+* Use transactions for approval state transitions.
+* Prevent concurrent approval consumption.
+* Enforce appropriate uniqueness and foreign-key constraints.
+* Index common authorization lookups.
+* Support restart recovery.
+* Define retention and cleanup behavior for expired approvals.
+* Never silently delete security audit history.
+
+Use the existing database abstraction. Do not introduce a second database engine for authorization.
+
+---
+
+# 16. TESTING REQUIREMENTS
+
+Write and execute actual tests.
+
+## A. Unit tests
+
+Test:
+
+1. Principal validation.
+2. Permission grant evaluation.
+3. Explicit permission denial.
+4. Risk classification.
+5. Policy precedence.
+6. Scope validation.
+7. Resource restrictions.
+8. Session validity checks.
+9. Approval request creation.
+10. Approval expiration.
+11. Approval rejection.
+12. Approval cancellation.
+13. Approval consumption.
+14. Scoped approval evaluation.
+15. Delegation restrictions.
+16. Unknown target denial.
+17. Policy versioning.
+18. Fail-closed behavior.
+
+## B. Integration tests
+
+Test:
+
+1. Authenticated user authorization.
+2. Invalid or revoked session denial.
+3. File modification requiring approval.
+4. Scoped approval permitting only its authorized modifications.
+5. File deletion requiring explicit approval.
+6. Git commit approval enforcement.
+7. Git push approval enforcement.
+8. Approval persistence across restart.
+9. Approval expiration across restart.
+10. Policy engine integration with the existing task manager.
+11. Policy engine integration with the event bus.
+12. Policy engine integration with audit persistence.
+
+## C. Security tests
+
+Test:
+
+* Privilege escalation attempts.
+* Agent self-approval.
+* Unauthorized approval.
+* Approval replay.
+* Approval reuse.
+* Expired approval reuse.
+* Cross-task approval reuse.
+* Cross-resource approval reuse.
+* Scope traversal attacks.
+* Windows path case variations.
+* Symbolic-link or junction escape attempts.
+* Unauthorized policy modification.
+* Invalid principal impersonation.
+* Concurrent approval consumption.
+* Revoked permission reuse.
+* Permission changes after approval.
+* Database failure during approval consumption.
+* Audit failure during authorization.
+* Unknown cybersecurity target authorization.
+* Attempts to downgrade risk classifications.
+
+## D. Negative-path tests
+
+Test:
+
+* Malformed authorization requests.
+* Missing principal identity.
+* Missing resource.
+* Unknown permission.
+* Invalid task ID.
+* Missing approval.
+* Invalid approval state.
+* Inconsistent persisted data.
+* Database unavailable.
+* Policy configuration invalid.
+* Event publication failure.
+* Policy evaluator timeout, if applicable.
+
+All critical failures must result in denial or a safely blocked operation.
+
+## E. Regression tests
+
+Run relevant tests from Batches 1–14.
+
+At minimum, test:
+
+* Runtime startup and shutdown.
+* Authentication.
+* Three-attempt PIN lockout.
+* Security question recovery.
+* One-hour lockout.
+* Session revocation.
+* Configuration validation.
+* Secrets handling.
+* Database migrations.
+* Event bus.
+* Task manager.
+* Orchestrator.
+
+Do not modify existing tests merely to make them pass. Fix actual regressions.
+
+---
+
+# 17. PERFORMANCE AND RESOURCE REQUIREMENTS
+
+The current deployment target is Windows with 16 GB RAM.
+
+Maintain the existing resource constraints:
+
+* Idle memory target: 2–3 GB for the complete application.
+* Absolute application ceiling: 8 GB.
+
+The policy engine should be lightweight.
+
+Requirements:
+
+* Avoid unbounded policy caches.
+* Avoid unnecessary background threads.
+* Avoid blocking the event loop with expensive operations.
+* Use bounded caches only if correctness is preserved.
+* Invalidate cached decisions when permissions, sessions or policies change.
+* Never reuse an authorization decision beyond its valid context.
+* Measure authorization latency where practical.
+
+Do not claim compliance with performance requirements without actual measurements.
+
+---
+
+# 18. ARCHITECTURAL CONSTRAINTS
+
+Maintain the established architecture.
+
+* One authoritative policy engine.
+* One authoritative approval workflow.
+* One authentication subsystem.
+* One central configuration system.
+* One database architecture.
+* One audit system.
+* One internal event bus.
+
+Do not introduce:
+
+* A second policy engine.
+* A duplicate approval manager.
+* A separate authentication service without architectural justification.
+* A new workflow engine.
+* A new task orchestrator.
+* An independent agent permission framework that bypasses central policy.
+
+Do not add MCP in this batch. MCP implementation remains deferred to its designated future phase.
+
+Do not add empty integration modules or placeholder MCP files.
+
+---
+
+# 19. DOCUMENTATION
+
+Update the security documentation with:
+
+* Policy engine architecture.
+* Principal model.
+* Permission taxonomy.
+* Risk classification rules.
+* Policy evaluation order.
+* Default permission policies.
+* Approval lifecycle.
+* Scoped approval behavior.
+* Agent delegation boundaries.
+* Cybersecurity authorization boundaries.
+* Database schema and migrations.
+* Failure handling.
+* Security limitations.
+
+Include an authorization decision flow diagram and examples of valid and invalid approval scenarios.
+
+Document the exact commands to run the relevant tests and validation scripts.
+
+Do not claim that future agent or tool implementations already enforce the policy engine unless the actual integration exists.
+
+---
+
+# 20. ANTI-FALSE-COMPLETION REQUIREMENTS
+
+Use these implementation statuses accurately:
+
+* `IMPLEMENTED`
+* `TESTED`
+* `VERIFIED`
+* `PARTIAL`
+* `STUB`
+* `MOCK`
+* `UNIMPLEMENTED`
+* `BROKEN`
+* `BLOCKED`
+* `UNKNOWN`
+
+Do not:
+
+* Treat a policy model as a functioning authorization engine.
+* Treat a successful import as functional verification.
+* Treat mocked approvals as database integration.
+* Claim scope security without testing path-boundary cases.
+* Claim concurrency safety without concurrent tests.
+* Claim restart persistence without restarting the application.
+* Ignore failing security tests.
+* Suppress test output.
+* Mark untested features as verified.
+* Claim production readiness based on this batch alone.
+
+Run real commands and capture their output.
+
+If a requirement cannot be verified in the current environment, report it as `BLOCKED` or `UNKNOWN` and explain why.
+
+---
+
+# 21. REQUIRED FINAL IMPLEMENTATION REPORT
+
+After implementation, provide a detailed report containing:
+
+### A. Baseline
+
+* Existing test results.
+* Existing defects.
+* Relevant architecture discovered.
+
+### B. Implementation
+
+* Files created.
+* Files modified.
+* Core interfaces introduced or extended.
+* Features actually implemented.
+
+### C. Authorization
+
+* Principal model.
+* Permission model.
+* Policy evaluation order.
+* Default policies.
+* Risk classification behavior.
+* Scope enforcement.
+
+### D. Approval
+
+* Approval lifecycle.
+* Persistence behavior.
+* Expiration behavior.
+* Scoped approval enforcement.
+* Approval consumption and replay protection.
+
+### E. Agent and cybersecurity foundations
+
+* Implemented authorization contracts.
+* Delegation limits.
+* Cybersecurity scope enforcement.
+* Capabilities explicitly deferred.
+
+### F. Test evidence
+
+* Exact commands executed.
+* Total tests collected.
+* Passed tests.
+* Failed tests.
+* Skipped tests.
+* Tests not executed.
+* Actual security test results.
+* Actual regression results.
+
+### G. Performance
+
+* Measured authorization latency.
+* Memory usage where available.
+* Any performance violations.
+
+### H. Defects and limitations
+
+* Every known defect.
+* Unverified requirement.
+* Incomplete integration.
+* Security risk.
+* Required follow-up.
+
+### I. Final status
+
+Select the status supported by the actual evidence:
+
+* `IMPLEMENTED`
+* `PARTIAL`
+* `BLOCKED`
+* `BROKEN`
+
+Explicitly state whether the policy engine is tested and verified.
+
+Do not declare the complete JARVIS system production-ready.
+
+---
+
+# FINAL EXECUTION INSTRUCTIONS
+
+Implement Batch 15 only.
+
+Preserve all working functionality from Batches 1–14.
+
+Do not proceed to Batch 16 automatically.
+
+If any authorization boundary cannot be enforced reliably, fail closed, report the blocker and do not replace it with a permissive workaround.
+
+**Success means a real, centralized, persistent and testable authorization engine that future JARVIS components can enforce—not a collection of permission classes that are never called.**
+
+
+# ANTIGRAVITY IMPLEMENTATION PROMPT
+
+# BATCH 16: DATABASE SCHEMA & PERSISTENCE FOUNDATION
+
+## PROJECT CONTEXT
+
+You are developing JARVIS, a production-oriented autonomous AI assistant from scratch.
+
+This is Batch 16 of the 60-batch implementation plan.
+
+Batches 1–15 established the repository foundation, architectural contracts, runtime, event bus, task manager, orchestration, configuration, secrets management, authentication, recovery and centralized authorization.
+
+Your task is to implement the foundational database layer that all persistent JARVIS subsystems will use.
+
+The database must be reliable, transaction-safe, restart-safe and suitable for long-running Windows operation.
+
+**Use SQLite as the primary local database for V1.** Do not introduce PostgreSQL, MongoDB or another database server.
+
+This batch establishes the database schema and persistence infrastructure. Persistent task, approval and memory repositories will be implemented and extended in their respective batches.
+
+---
+
+# 1. MANDATORY PRE-IMPLEMENTATION AUDIT
+
+Before making any changes, inspect the actual repository.
+
+Examine:
+
+* Existing database modules.
+* Database initialization.
+* Database connections.
+* Existing schemas and migrations.
+* Task persistence from Batch 6.
+* Approval persistence from Batch 15.
+* Authentication and recovery persistence.
+* Policy persistence.
+* Secrets manager storage.
+* Configuration handling.
+* Audit logging.
+* Runtime lifecycle.
+* Existing database tests.
+
+Run the existing relevant tests and record the baseline.
+
+Determine:
+
+1. Whether SQLite is already used.
+2. Which database tables already exist.
+3. Whether schema migrations are already implemented.
+4. Whether multiple modules create their own database connections.
+5. Whether transactions are handled consistently.
+6. Whether database initialization has import-time side effects.
+7. Whether existing persistent data could be damaged by schema changes.
+
+Do not blindly replace the existing database implementation.
+
+Preserve existing data and working repositories. If a previous batch created an incompatible or unsafe schema, document the issue and create a safe migration strategy.
+
+---
+
+# 2. DATABASE ARCHITECTURE
+
+Establish one authoritative database subsystem.
+
+Suggested directory:
+
+`database/`
+
+Suggested structure:
+
+```text
+database/
+    __init__.py
+    manager.py
+    connection.py
+    settings.py
+    exceptions.py
+    health.py
+    transactions.py
+    schema.py
+    migrations/
+        __init__.py
+        runner.py
+        versions/
+    repositories/
+        __init__.py
+    models/
+        __init__.py
+    scripts/
+        init_db.py
+        migrate.py
+        check_db.py
+        backup_db.py
+    tests/
+```
+
+Adapt this structure to the existing repository where appropriate.
+
+Requirements:
+
+* One authoritative database manager.
+* Centralized connection configuration.
+* A single documented database location.
+* Explicit initialization.
+* Versioned migrations.
+* Transaction management.
+* Connection lifecycle management.
+* Health checks.
+* Database integrity validation.
+* Backup and restore foundations.
+* Structured exceptions.
+* Testable database interfaces.
+
+Avoid creating a separate connection manager inside every subsystem.
+
+Repositories must obtain database access through the established database infrastructure.
+
+Do not create database connections at module import time.
+
+---
+
+# 3. SQLITE DATABASE CONFIGURATION
+
+Configure SQLite for reliable local application use.
+
+Implement and document:
+
+* Database file location.
+* Connection timeout.
+* Foreign-key enforcement.
+* Journal mode.
+* Synchronous durability settings.
+* Busy timeout.
+* Transaction behavior.
+* Connection lifecycle.
+* Threading constraints.
+
+Use WAL mode when supported and appropriate for the deployment environment.
+
+Enable foreign-key enforcement on every applicable connection.
+
+Use an appropriate synchronous setting for the required durability level. Do not weaken durability silently for performance.
+
+Do not share an unsafe SQLite connection across arbitrary threads or asynchronous tasks.
+
+If the existing application uses asyncio, ensure database operations do not block the event loop. Use a suitable bounded execution strategy or an established asynchronous database adapter, without introducing unnecessary complexity.
+
+Define and enforce the database access model.
+
+Database configuration must be validated during startup. Invalid configuration must fail clearly rather than silently falling back to an unsafe mode.
+
+---
+
+# 4. DATABASE LOCATION AND FILE SECURITY
+
+Use a predictable application data directory for the SQLite database.
+
+Requirements:
+
+* Keep runtime database files outside the source-code directory where practical.
+* Do not store the database in a temporary directory.
+* Do not place the database in a publicly accessible directory.
+* Use restrictive Windows filesystem permissions where supported.
+* Prevent accidental creation of duplicate databases at different paths.
+* Resolve paths safely.
+* Validate that the configured database location is usable.
+* Detect unexpected database files when practical.
+
+Do not hardcode a user-specific absolute path.
+
+Use the existing configuration system and platform-aware path handling.
+
+The database must not be committed to Git.
+
+Add appropriate database file patterns to `.gitignore`, including SQLite WAL and shared-memory files.
+
+Do not delete an existing database automatically during initialization.
+
+---
+
+# 5. CENTRAL DATABASE MANAGER
+
+Implement a real database manager with a defined lifecycle.
+
+Required capabilities:
+
+* Initialize database.
+* Open and manage connections.
+* Validate database availability.
+* Run migrations.
+* Begin transactions.
+* Commit transactions.
+* Roll back transactions.
+* Close resources.
+* Check database integrity.
+* Report database health.
+* Handle shutdown gracefully.
+
+Define explicit lifecycle states, for example:
+
+* `UNINITIALIZED`
+* `INITIALIZING`
+* `READY`
+* `DEGRADED`
+* `CLOSING`
+* `CLOSED`
+* `FAILED`
+
+Use typed exceptions for:
+
+* Connection failures.
+* Initialization failures.
+* Migration failures.
+* Transaction failures.
+* Integrity failures.
+* Constraint violations.
+* Database unavailable.
+* Backup failures.
+* Restore failures.
+
+Do not silently convert database errors into empty results or success responses.
+
+Ensure the database manager integrates with the existing runtime lifecycle.
+
+Startup must fail safely if the database is required but cannot be initialized or validated.
+
+Shutdown must release connections and resources within a defined timeout.
+
+---
+
+# 6. VERSIONED MIGRATION ENGINE
+
+Implement a proper migration system.
+
+Requirements:
+
+* Every migration has a unique, ordered version.
+* Every migration has a stable identifier.
+* Applied migrations are recorded in the database.
+* Migration execution is transactional wherever SQLite permits.
+* Failed migrations must not be marked as successful.
+* Reapplying an already completed migration must not corrupt the database.
+* Migration order must be deterministic.
+* Detect duplicate migration versions.
+* Detect unexpected migration history.
+* Reject unsupported future schema versions.
+* Record migration timestamps.
+* Record migration outcomes.
+* Provide a migration status command.
+
+Create an authoritative migration history table.
+
+Suggested fields:
+
+* `version`
+* `migration_id`
+* `checksum`
+* `applied_at`
+* `execution_status`
+
+Use checksums to detect unexpected modification of already-applied migration files.
+
+Do not rewrite an applied migration to change its behavior. Create a new migration instead.
+
+If a migration partially fails, roll it back where possible. If a safe rollback cannot be guaranteed, mark the database as requiring recovery and prevent normal startup.
+
+Implement the following commands using the project's actual command conventions:
+
+```bash
+python -m database.scripts.init_db
+python -m database.scripts.migrate
+python -m database.scripts.check_db
+```
+
+The commands must perform real operations and return appropriate nonzero exit codes when they fail.
+
+---
+
+# 7. AUTHORITATIVE CORE SCHEMA
+
+Create a versioned foundational schema.
+
+Before adding tables, inspect existing tables and avoid duplicates. Extend compatible tables rather than creating competing versions.
+
+Implement the following foundational entities where they do not already exist.
+
+## A. Schema migration history
+
+Store:
+
+* Migration version.
+* Migration identifier.
+* Migration checksum.
+* Applied timestamp.
+* Migration status.
+
+## B. Application metadata
+
+Store:
+
+* Metadata key.
+* Metadata value.
+* Creation timestamp.
+* Update timestamp.
+
+Use this table only for small, non-secret application metadata.
+
+Do not use it as a replacement for typed subsystem tables.
+
+## C. Principals
+
+Provide a durable identity reference for supported principal types:
+
+* USER
+* AGENT
+* SYSTEM
+* SCHEDULED_TASK
+* INTEGRATION
+
+Store only the information needed for identity and status.
+
+Do not store PINs, recovery answers, API keys or passwords in the principal table.
+
+## D. Security sessions
+
+Provide a schema compatible with the existing authentication system.
+
+Support:
+
+* Session ID.
+* Principal ID.
+* Creation timestamp.
+* Expiration timestamp.
+* Revocation timestamp.
+* Session status.
+* Version or concurrency token.
+
+Preserve the existing session implementation if it already provides these guarantees.
+
+## E. Policy references
+
+Provide appropriate persistence for policy versions and identifiers if not already implemented in Batch 15.
+
+Do not duplicate policy definitions that already have an authoritative repository.
+
+## F. Approval references
+
+Preserve the approval schema from Batch 15.
+
+Verify that its primary keys, foreign keys, timestamps, status transitions and indexes are compatible with the new database foundation.
+
+Do not silently drop existing approval records.
+
+## G. Task references
+
+Preserve the task schema from Batch 6.
+
+Ensure that the existing task records remain valid and accessible.
+
+Do not implement the full task persistence redesign in this batch.
+
+## H. Audit references
+
+Preserve existing audit records and their relationships.
+
+Do not weaken existing audit immutability or retention guarantees.
+
+Do not use a general-purpose metadata table to store security-critical audit events.
+
+---
+
+# 8. SCHEMA DESIGN RULES
+
+Apply consistent database design.
+
+Requirements:
+
+* Use explicit primary keys.
+* Use appropriate foreign keys.
+* Use uniqueness constraints.
+* Use `NOT NULL` for mandatory values.
+* Add indexes for frequent lookups.
+* Use consistent UTC timestamps.
+* Define explicit status constraints where appropriate.
+* Use appropriate data types and validation.
+* Avoid unnecessary duplication.
+* Avoid ambiguous nullable fields.
+* Avoid storing complex serialized objects where relational fields are more appropriate.
+
+Use parameterized SQL exclusively for variable values.
+
+Never construct SQL by interpolating untrusted input.
+
+For dynamic table or column identifiers, use a strict internal allowlist rather than accepting arbitrary user-supplied identifiers.
+
+Avoid excessive indexing. Every index must serve a documented query or integrity requirement.
+
+Do not introduce a generic key-value database abstraction for all subsystems.
+
+---
+
+# 9. TRANSACTION MANAGEMENT
+
+Implement a reusable transaction management layer.
+
+Support:
+
+* Atomic transactions.
+* Explicit commit.
+* Explicit rollback.
+* Nested transaction handling through safe savepoints, if required.
+* Consistent exception propagation.
+* Transaction timeouts or bounded waits.
+* Correct cleanup after exceptions.
+
+Ensure transactions cannot accidentally remain open after an exception.
+
+Document transaction ownership and boundaries.
+
+Avoid committing each statement independently when multiple statements form one security-critical operation.
+
+Security-critical changes such as approval consumption, authentication-state updates and policy changes must be atomic within their respective repository operations.
+
+Do not allow a failed transaction to be reported as successful.
+
+---
+
+# 10. CONCURRENCY AND LOCKING
+
+Design for concurrent access from:
+
+* Runtime components.
+* Background tasks.
+* Scheduled jobs.
+* Multiple agents.
+* Event handlers.
+* Telegram-triggered operations in future batches.
+
+Requirements:
+
+* Avoid unsafe cross-thread connection sharing.
+* Use appropriate SQLite locking behavior.
+* Configure busy timeouts.
+* Use transactions for state transitions.
+* Prevent lost updates where versioning is needed.
+* Handle `SQLITE_BUSY` and `SQLITE_LOCKED` safely.
+* Implement bounded retry with backoff only for operations that are safe to retry.
+* Do not blindly retry non-idempotent transactions.
+* Ensure cancellation does not leave partial database state.
+
+Document the supported concurrency model and its limitations.
+
+Do not claim unlimited concurrent write support. SQLite has a single-writer constraint that must be respected.
+
+---
+
+# 11. DATA INTEGRITY AND VALIDATION
+
+Implement database health and integrity validation.
+
+Provide checks for:
+
+* Database accessibility.
+* Schema version.
+* Migration history consistency.
+* Foreign-key violations.
+* SQLite integrity.
+* Required tables and indexes.
+* Unexpected schema drift.
+* Invalid critical records, where appropriate.
+
+Implement a real integrity check using SQLite's supported integrity-check facilities.
+
+Implement foreign-key validation.
+
+Distinguish between:
+
+* Healthy.
+* Degraded.
+* Corrupted.
+* Unsupported schema.
+* Unavailable.
+
+Do not automatically delete, truncate or recreate a corrupted database.
+
+If corruption is detected, stop unsafe writes and report the problem with actionable recovery information.
+
+Never report an integrity check as successful if it was skipped or only mocked.
+
+---
+
+# 12. BACKUP AND RESTORE FOUNDATION
+
+Implement a safe SQLite backup mechanism.
+
+Use SQLite's supported backup API or another method that is safe for the configured journal mode.
+
+Requirements:
+
+* Create consistent backups while the application is running.
+* Validate the backup after creation.
+* Preserve the source database.
+* Avoid copying an inconsistent database and WAL state.
+* Use atomic publication of completed backup files.
+* Use deterministic, date-based filenames.
+* Avoid overwriting a valid backup silently.
+* Handle disk-full and permission errors.
+* Record backup results in the application log.
+
+Use a naming convention such as:
+
+`YYYYMMDD_HHMMSS_jarvis_backup.db`
+
+Implement a restore validation operation that checks a candidate backup before it can replace the active database.
+
+For the initial implementation, do not automatically restore over a live production database.
+
+Require the application to enter a safe maintenance state before any active database replacement.
+
+Do not introduce an automatic destructive recovery mechanism.
+
+Document backup retention and restoration limitations.
+
+---
+
+# 13. SECRETS AND SENSITIVE DATA
+
+Maintain strict separation between the database and the secrets manager.
+
+Requirements:
+
+* Do not store plaintext API keys in ordinary tables.
+* Do not expose secret values in diagnostic output.
+* Do not copy credentials into metadata.
+* Do not log SQL parameters containing secrets.
+* Do not expose sensitive database rows through health endpoints.
+* Apply the existing encryption and secret-reference design where encrypted persistence is required.
+
+If the existing secrets manager uses SQLite, integrate with the established implementation without creating a second independent secret store.
+
+Database backups may contain sensitive application data. Protect their directory and access permissions accordingly.
+
+Document that encryption at rest is distinct from SQLite transaction integrity. Do not claim the entire database is encrypted unless actual database encryption is implemented and verified.
+
+---
+
+# 14. RUNTIME AND HEALTH INTEGRATION
+
+Integrate the database manager with the existing runtime.
+
+During startup:
+
+1. Resolve the database configuration.
+2. Validate the database path.
+3. Initialize the connection infrastructure.
+4. Verify database accessibility.
+5. Validate the existing schema.
+6. Apply only permitted pending migrations.
+7. Run required integrity checks.
+8. Mark the database ready.
+9. Allow dependent runtime components to initialize.
+
+During shutdown:
+
+1. Stop accepting new database operations.
+2. Allow permitted in-flight transactions to finish.
+3. Roll back abandoned transactions.
+4. Close connections.
+5. Report shutdown errors.
+
+Add database health information to the existing health system.
+
+Health information should include:
+
+* Availability.
+* Lifecycle state.
+* Schema version.
+* Pending migrations.
+* Last successful integrity check.
+* Last backup result, if available.
+* Recent database failures.
+
+Do not expose sensitive database paths or SQL details through ordinary external responses.
+
+---
+
+# 15. DATABASE MAINTENANCE COMMANDS
+
+Implement functional maintenance commands.
+
+Required commands:
+
+**Initialization**
+
+```bash
+python -m database.scripts.init_db
+```
+
+Creates or initializes the database safely. It must not erase existing data.
+
+**Migration**
+
+```bash
+python -m database.scripts.migrate
+```
+
+Applies pending migrations and reports the actual result.
+
+**Integrity check**
+
+```bash
+python -m database.scripts.check_db
+```
+
+Checks schema and database integrity.
+
+**Backup**
+
+```bash
+python -m database.scripts.backup_db
+```
+
+Creates and validates a consistent backup.
+
+All commands must:
+
+* Use the central database manager.
+* Return appropriate exit codes.
+* Produce useful, sanitized output.
+* Handle errors explicitly.
+* Avoid printing secrets.
+* Be documented and tested.
+
+Do not create command files that simply print success.
+
+---
+
+# 16. TESTING REQUIREMENTS
+
+Write and execute real tests.
+
+## A. Unit tests
+
+Test:
+
+1. Database configuration validation.
+2. Connection lifecycle.
+3. Transaction commit.
+4. Transaction rollback.
+5. Nested transaction behavior, if implemented.
+6. Exception mapping.
+7. Schema version handling.
+8. Migration ordering.
+9. Migration checksum validation.
+10. Database health reporting.
+11. Path validation.
+12. Backup validation.
+
+## B. Integration tests
+
+Test:
+
+1. Fresh database initialization.
+2. Initialization of an existing database.
+3. Applying all pending migrations.
+4. Restarting against an existing database.
+5. Preserving existing task records.
+6. Preserving existing approval records.
+7. Preserving authentication and recovery records.
+8. Transaction rollback after a real database error.
+9. Foreign-key enforcement.
+10. Backup creation during database activity.
+11. Backup integrity validation.
+12. Runtime startup with the database.
+13. Runtime shutdown with active connections.
+
+Use a real temporary SQLite database for integration tests. Do not replace every database operation with a mock.
+
+## C. Migration tests
+
+Test:
+
+* Fresh migration.
+* Repeated migration execution.
+* Migration failure.
+* Invalid migration checksum.
+* Duplicate migration versions.
+* Unsupported future schema version.
+* Existing database migration.
+* Interrupted migration recovery.
+* Migration history consistency.
+
+Verify that failed migrations are not marked as applied.
+
+## D. Concurrency tests
+
+Test:
+
+* Multiple concurrent readers.
+* Multiple competing writers.
+* Lock contention.
+* Busy timeout behavior.
+* Concurrent transactions.
+* Transaction cancellation.
+* Concurrent initialization attempts.
+* Safe retry behavior.
+
+Do not claim concurrency correctness based solely on sequential tests.
+
+## E. Failure and recovery tests
+
+Test:
+
+* Database file missing.
+* Database file inaccessible.
+* Invalid database file.
+* Corrupted database.
+* Disk-write failure, where reproducible.
+* Migration failure.
+* Interrupted transaction.
+* Unexpected shutdown.
+* WAL recovery after restart.
+* Backup failure.
+* Restore validation failure.
+
+## F. Regression tests
+
+Run relevant tests from Batches 1–15, including:
+
+* Runtime lifecycle.
+* Configuration.
+* Secrets.
+* Authentication.
+* PIN lockout.
+* Security question recovery.
+* Authorization.
+* Approval persistence.
+* Task persistence.
+* Audit logging.
+* Event bus.
+
+Do not modify or skip failing tests merely to achieve a passing report.
+
+---
+
+# 17. PERFORMANCE AND RESOURCE LIMITS
+
+JARVIS currently targets a Windows PC with 16 GB RAM.
+
+Maintain the established constraints:
+
+* Idle application memory target: 2–3 GB.
+* Absolute application memory ceiling: 8 GB.
+
+Requirements:
+
+* Avoid unnecessary database connections.
+* Avoid unbounded connection or transaction queues.
+* Avoid long-running write transactions.
+* Use appropriate indexes.
+* Avoid loading the entire database into memory.
+* Use bounded result retrieval for large tables.
+* Avoid blocking the event loop.
+* Measure initialization and migration time where practical.
+* Measure representative database read and write latency.
+
+Do not sacrifice durability or correctness merely to improve benchmark results.
+
+Report actual measurements where available.
+
+---
+
+# 18. DOCUMENTATION
+
+Update the database documentation.
+
+Include:
+
+* Database architecture.
+* Directory structure.
+* Database location.
+* Connection and concurrency model.
+* Schema overview.
+* Migration strategy.
+* Transaction semantics.
+* Health checks.
+* Backup procedure.
+* Restore validation.
+* Data security limitations.
+* Failure and recovery procedures.
+* Maintenance commands.
+* Test commands.
+
+Provide a schema overview diagram or equivalent structured documentation.
+
+Document which existing subsystems use the database and which repositories will be added in later batches.
+
+Do not claim that future repositories already exist.
+
+---
+
+# 19. STRICT SCOPE BOUNDARIES
+
+This batch is limited to:
+
+* SQLite infrastructure.
+* Central database manager.
+* Schema and migrations.
+* Transaction infrastructure.
+* Connection lifecycle.
+* Integrity checking.
+* Backup and restore validation.
+* Runtime and health integration.
+* Relevant tests and documentation.
+
+Do not implement:
+
+* A new task manager.
+* A new approval manager.
+* A new authentication system.
+* A new memory engine.
+* An agent manager.
+* An LLM provider.
+* MCP servers or MCP credentials.
+* A second database engine.
+* Cloud database deployment.
+
+Preserve existing subsystem repositories and extend them only where required for compatibility.
+
+MCP remains deferred to its dedicated future phase.
+
+---
+
+# 20. ANTI-FALSE-COMPLETION REQUIREMENTS
+
+Use the following statuses accurately:
+
+* `IMPLEMENTED`
+* `TESTED`
+* `VERIFIED`
+* `PARTIAL`
+* `STUB`
+* `MOCK`
+* `UNIMPLEMENTED`
+* `BROKEN`
+* `BLOCKED`
+* `UNKNOWN`
+
+Do not:
+
+* Claim database reliability based only on successful initialization.
+* Treat schema creation as a completed migration engine.
+* Claim transaction safety without rollback tests.
+* Claim restart recovery without a real restart test.
+* Claim backup reliability without validating an actual backup.
+* Treat an in-memory database as proof of file-backed persistence.
+* Replace a failed migration with a successful empty database.
+* Suppress SQLite exceptions without reporting them.
+* Mark mocked tests as real integration tests.
+* Report unexecuted tests as passed.
+* Declare production readiness based on this batch alone.
+
+Execute the real commands and retain their outputs.
+
+If a test cannot be run, state exactly why.
+
+If a database limitation cannot be addressed safely in this batch, document it and mark the relevant requirement accordingly.
+
+---
+
+# 21. REQUIRED FINAL IMPLEMENTATION REPORT
+
+After implementation, produce a detailed report with the following sections.
+
+### A. Baseline
+
+* Existing database architecture.
+* Existing schema version.
+* Existing test results.
+* Defects found before changes.
+
+### B. Implementation
+
+* Files created.
+* Files modified.
+* Database manager implementation.
+* Migration implementation.
+* Transaction implementation.
+* Runtime integration.
+
+### C. Schema
+
+* Tables added or changed.
+* Indexes and constraints.
+* Migration versions.
+* Backward-compatibility details.
+
+### D. Integrity and reliability
+
+* Transaction results.
+* Concurrency results.
+* Integrity-check results.
+* Backup and restore-validation results.
+* Restart and recovery results.
+
+### E. Security
+
+* Database file protection.
+* Secret separation.
+* Sensitive-data handling.
+* Failure and corruption behavior.
+
+### F. Testing evidence
+
+* Exact commands executed.
+* Total tests collected.
+* Tests passed.
+* Tests failed.
+* Tests skipped.
+* Tests not executed.
+* Relevant regression results.
+* Actual integration and failure test results.
+
+### G. Performance
+
+* Initialization time.
+* Representative read/write latency.
+* Memory measurements where available.
+* Resource violations.
+
+### H. Outstanding issues
+
+* Every known defect.
+* Incomplete implementation.
+* Unverified requirement.
+* Data migration risk.
+* Required follow-up.
+
+### I. Final status
+
+Select the status justified by actual evidence:
+
+* `IMPLEMENTED`
+* `PARTIAL`
+* `BLOCKED`
+* `BROKEN`
+
+State separately whether the database layer was tested and verified.
+
+Do not declare JARVIS production-ready.
+
+---
+
+# FINAL EXECUTION RULE
+
+Implement Batch 16 only.
+
+Preserve all working functionality from Batches 1–15.
+
+Do not proceed to Batch 17 automatically.
+
+Do not erase or replace existing databases to make tests pass.
+
+If migration, integrity or persistence safety cannot be established, stop the affected operation and report the exact blocker.
+
+**Success means a real, centralized, versioned and recoverable database foundation with verified persistence—not merely a SQLite connection and a collection of empty tables.**
+
+
+# ANTIGRAVITY IMPLEMENTATION PROMPT
+
+# BATCH 17: PERSISTENT TASK REPOSITORY & STATE MANAGEMENT
+
+## PROJECT CONTEXT
+
+You are developing JARVIS, a production-oriented autonomous AI assistant from scratch.
+
+This is Batch 17 of the 60-batch implementation plan.
+
+Previously completed batches established:
+
+* Repository and engineering foundation.
+* Architectural contracts.
+* CI and quality gates.
+* Runtime lifecycle.
+* Internal event bus.
+* Task manager.
+* Core orchestrator.
+* Configuration and secrets management.
+* Authentication and authorization.
+* SQLite database infrastructure and migrations.
+
+Your task is to implement the persistent task repository and reliable task state management using the existing task manager and centralized database.
+
+JARVIS must retain its tasks across application restarts, recover interrupted tasks safely, maintain task history and prevent duplicate or inconsistent execution state.
+
+**This batch is about persistence and state management, not autonomous task execution.** Do not implement the planner, agent delegation or execution engine here.
+
+---
+
+# 1. MANDATORY PRE-IMPLEMENTATION AUDIT
+
+Before writing any code, inspect the actual repository.
+
+Examine:
+
+* Existing task contracts.
+* Task manager from Batch 6.
+* Orchestrator from Batch 7.
+* Event bus from Batch 5.
+* Database manager from Batch 16.
+* Existing database migrations.
+* Task-related tests.
+* Audit logging.
+* Authorization and approval interfaces.
+* Runtime lifecycle.
+
+Run all relevant existing tests and record the baseline.
+
+Determine:
+
+1. Whether task persistence already exists.
+2. Whether the existing task manager has an authoritative state machine.
+3. Whether task IDs are stable across restarts.
+4. Whether task dependencies are already represented.
+5. Whether task updates are transactional.
+6. Whether task events are published before or after database commits.
+7. Whether interrupted tasks are currently recoverable.
+8. Whether multiple components can update the same task concurrently.
+
+Preserve working functionality. Do not replace the task manager simply to simplify repository integration.
+
+If Batch 16 is incomplete, identify the database limitations and do not implement unsafe persistence workarounds.
+
+---
+
+# 2. PERSISTENT TASK ARCHITECTURE
+
+Integrate the persistent task repository with the existing task manager.
+
+Suggested directory:
+
+```text
+core/
+    tasks/
+        __init__.py
+        manager.py
+        repository.py
+        models.py
+        state_machine.py
+        transitions.py
+        recovery.py
+        queries.py
+        exceptions.py
+        events.py
+```
+
+Adapt the structure to the existing project.
+
+Establish the following separation:
+
+* **Task Manager:** authoritative task lifecycle operations.
+* **Task Repository:** persistent storage and retrieval.
+* **Task State Machine:** validates permitted transitions.
+* **Task Recovery:** identifies and recovers interrupted tasks.
+* **Task Events:** communicates committed task-state changes.
+
+There must be only one authoritative task manager and one authoritative task state machine.
+
+The repository must not independently invent a second set of task lifecycle rules.
+
+Use the existing database manager and migration system from Batch 16. Do not introduce another database connection manager.
+
+---
+
+# 3. TASK DATA MODEL
+
+Inspect and preserve the existing task contracts. Extend them where necessary.
+
+A persistent task should support the following fields where applicable:
+
+| Field                    | Purpose                              |
+| ------------------------ | ------------------------------------ |
+| `task_id`                | Stable unique task identifier        |
+| `parent_task_id`         | Parent task reference, if applicable |
+| `task_type`              | Category of task                     |
+| `title`                  | Human-readable task title            |
+| `description`            | Task objective                       |
+| `status`                 | Current lifecycle status             |
+| `priority`               | Scheduling priority                  |
+| `created_at`             | Creation time in UTC                 |
+| `updated_at`             | Last update time in UTC              |
+| `started_at`             | Actual start time                    |
+| `completed_at`           | Completion time                      |
+| `deadline_at`            | Optional deadline                    |
+| `due_at`                 | Optional scheduled execution time    |
+| `owner_id`               | Owning principal                     |
+| `assigned_agent_id`      | Assigned agent, if any               |
+| `correlation_id`         | Related operation identifier         |
+| `idempotency_key`        | Duplicate-submission protection      |
+| `version`                | Optimistic concurrency version       |
+| `attempt_count`          | Number of execution attempts         |
+| `max_attempts`           | Configured attempt limit             |
+| `cancellation_requested` | Cancellation request state           |
+| `error_code`             | Sanitized failure category           |
+| `error_summary`          | Safe error summary                   |
+| `metadata`               | Validated non-secret task metadata   |
+
+Use the project's existing naming and typing conventions where they are already established.
+
+Requirements:
+
+* Stable IDs must survive restarts.
+* All timestamps must be UTC.
+* Use explicit nullability.
+* Validate task types and statuses.
+* Validate priority values.
+* Prevent malformed task records from entering the database.
+* Never persist authentication tokens, PINs, recovery answers or plaintext secrets in task metadata.
+* Avoid storing large binary artifacts directly in task rows.
+
+Use JSON only for appropriately validated, bounded metadata. Do not use a serialized object as a substitute for structured lifecycle fields.
+
+---
+
+# 4. TASK STATE MACHINE
+
+Implement a centralized, explicit task state machine.
+
+Support the existing lifecycle states and extend them only when necessary.
+
+The state model should cover:
+
+* `CREATED`
+* `QUEUED`
+* `READY`
+* `RUNNING`
+* `PAUSED`
+* `WAITING_APPROVAL`
+* `WAITING_DEPENDENCY`
+* `RETRY_PENDING`
+* `CANCELLING`
+* `CANCELLED`
+* `COMPLETED`
+* `FAILED`
+* `BLOCKED`
+
+Reconcile these names with the existing contracts rather than creating incompatible duplicate statuses.
+
+Define all permitted state transitions explicitly.
+
+Examples:
+
+| Current state      | Event                  | Permitted next state |
+| ------------------ | ---------------------- | -------------------- |
+| CREATED            | Submit                 | QUEUED               |
+| QUEUED             | Dependencies satisfied | READY                |
+| READY              | Start                  | RUNNING              |
+| RUNNING            | Pause                  | PAUSED               |
+| RUNNING            | Approval required      | WAITING_APPROVAL     |
+| RUNNING            | Dependency unavailable | WAITING_DEPENDENCY   |
+| RUNNING            | Retryable failure      | RETRY_PENDING        |
+| RETRY_PENDING      | Retry scheduled        | READY                |
+| RUNNING            | Successful completion  | COMPLETED            |
+| RUNNING            | Terminal failure       | FAILED               |
+| RUNNING            | Cancellation request   | CANCELLING           |
+| CANCELLING         | Cancellation confirmed | CANCELLED            |
+| WAITING_APPROVAL   | Approval granted       | READY                |
+| WAITING_APPROVAL   | Approval rejected      | BLOCKED              |
+| WAITING_DEPENDENCY | Dependencies satisfied | READY                |
+
+This table is illustrative. The final state machine must account for all actual states and existing contracts.
+
+Requirements:
+
+* Reject invalid transitions.
+* Prevent terminal tasks from being restarted without an explicit, supported retry or new-task operation.
+* Do not silently convert `FAILED` into `COMPLETED`.
+* Distinguish cancellation requests from confirmed cancellation.
+* Do not mark a running task as cancelled while its underlying operation may still be executing.
+* Preserve state-transition history.
+* Record the reason for every important transition.
+* Ensure transitions are atomic.
+
+Do not allow arbitrary callers to update task status by directly modifying database fields.
+
+All state changes must pass through the authoritative task manager.
+
+---
+
+# 5. PERSISTENT TASK REPOSITORY
+
+Implement a real SQLite-backed task repository.
+
+Required operations:
+
+* `create_task`
+* `get_task`
+* `get_task_by_idempotency_key`
+* `update_task`
+* `transition_task`
+* `list_tasks`
+* `list_tasks_by_status`
+* `list_tasks_by_owner`
+* `list_tasks_by_parent`
+* `list_ready_tasks`
+* `get_task_history`
+* `delete_task_if_permitted`
+* `count_tasks`
+
+Use the project's existing interfaces and naming conventions where appropriate.
+
+Requirements:
+
+* Use parameterized SQL.
+* Validate all input data.
+* Return typed task objects.
+* Handle missing tasks explicitly.
+* Distinguish not-found errors from database errors.
+* Support bounded pagination.
+* Use deterministic ordering.
+* Prevent unbounded result retrieval.
+* Avoid N+1 query patterns where practical.
+* Use transactions for multi-record changes.
+
+Do not return fake tasks when the database is unavailable.
+
+Do not return empty results when a database failure occurs.
+
+---
+
+# 6. TASK CREATION AND IDEMPOTENCY
+
+Implement safe, persistent task creation.
+
+Requirements:
+
+1. Generate unique task identifiers.
+2. Validate task payloads.
+3. Validate owner and parent references.
+4. Persist task creation atomically.
+5. Support idempotency keys.
+6. Reject conflicting duplicate submissions.
+7. Return the original task for an identical idempotent submission.
+8. Reject reuse of the same idempotency key with materially different task data.
+9. Record task creation history.
+10. Publish task creation events only after the transaction commits.
+
+Idempotency keys must be scoped appropriately to the submitting principal or another explicit security boundary.
+
+Do not rely on an in-memory dictionary for idempotency.
+
+Enforce idempotency at the database level using appropriate uniqueness constraints.
+
+Test duplicate requests submitted concurrently.
+
+---
+
+# 7. TASK DEPENDENCIES
+
+Implement persistent task dependency relationships.
+
+A task may depend on one or more other tasks.
+
+Support:
+
+* Creating dependencies.
+* Retrieving dependencies.
+* Retrieving dependent tasks.
+* Checking dependency completion.
+* Identifying blocked tasks.
+* Updating dependency state when a prerequisite changes.
+
+Requirements:
+
+* Prevent self-dependencies.
+* Detect dependency cycles.
+* Prevent duplicate dependency relationships.
+* Enforce referential integrity.
+* Ensure dependency updates are transactional.
+* Preserve dependency relationships across restarts.
+* Support multiple prerequisites for one task.
+
+A dependent task must not be marked `READY` while a required dependency remains incomplete.
+
+Define how failed, cancelled and blocked dependencies affect dependent tasks.
+
+Do not silently treat a failed prerequisite as successful.
+
+Implement cycle detection using the actual persisted dependency graph. Do not assume dependencies form a tree.
+
+Do not implement automatic execution of ready tasks in this batch.
+
+---
+
+# 8. TASK HISTORY AND STATE TRANSITIONS
+
+Implement a persistent task history table.
+
+Each history record should include:
+
+* History ID.
+* Task ID.
+* Previous status.
+* New status.
+* Transition reason.
+* Actor or principal ID.
+* Timestamp.
+* Correlation ID.
+* Task version.
+* Sanitized metadata.
+
+Requirements:
+
+* Record task creation.
+* Record significant state changes.
+* Record assignment changes.
+* Record cancellation requests.
+* Record retry scheduling.
+* Record recovery actions.
+* Record completion and failure.
+* Prevent history from becoming inconsistent with task state.
+
+A task state update and its corresponding history record must be committed in the same transaction.
+
+History records must not be silently overwritten when a task changes state.
+
+Do not include secrets or sensitive task payloads in the history.
+
+If a history record is required but cannot be persisted, roll back the associated state transition.
+
+---
+
+# 9. OPTIMISTIC CONCURRENCY CONTROL
+
+Implement optimistic concurrency using the task version field or an equivalent mechanism.
+
+Requirements:
+
+* Every successful state mutation increments the version.
+* Updates must verify the expected version.
+* Concurrent stale updates must be rejected.
+* A rejected stale update must not overwrite newer state.
+* State transition validation and version verification must occur atomically.
+* Conflict errors must be explicit and typed.
+
+For example:
+
+If two components read task version 4 and both attempt to update it, only the first valid transaction should commit. The second must receive a concurrency conflict.
+
+Do not automatically retry stale updates with potentially outdated data.
+
+Test real concurrent database operations.
+
+---
+
+# 10. TASK CANCELLATION, PAUSE AND RESUME PERSISTENCE
+
+Persist cancellation, pause and resume requests.
+
+Cancellation requirements:
+
+* A cancellation request must be persisted.
+* Record the requesting principal.
+* Record the request timestamp.
+* Validate authorization through the existing policy engine.
+* Distinguish cancellation requested from cancellation confirmed.
+* Ensure repeated cancellation requests are idempotent where appropriate.
+
+Pause requirements:
+
+* Persist pause requests.
+* Reject pausing terminal tasks.
+* Record the reason for pausing.
+* Preserve the previous execution context where applicable without storing secrets.
+
+Resume requirements:
+
+* Validate the current task state.
+* Check dependencies.
+* Check applicable approval status.
+* Reevaluate authorization where necessary.
+* Persist the transition atomically.
+
+Do not claim that a task has actually stopped merely because its cancellation flag has been set.
+
+Actual interruption of running operations belongs to the future execution engine.
+
+---
+
+# 11. RESTART RECOVERY
+
+Implement persistent task recovery integrated with the runtime lifecycle.
+
+On startup, inspect tasks left in nonterminal states.
+
+Identify at least:
+
+* Tasks that were queued.
+* Tasks that were ready.
+* Tasks that were running when JARVIS stopped.
+* Tasks waiting for approval.
+* Tasks waiting for dependencies.
+* Tasks with pending cancellation.
+* Tasks with scheduled retries.
+
+Define a documented recovery policy.
+
+Required behavior:
+
+**Queued and ready tasks**
+
+* Preserve their identity and state.
+* Revalidate their dependencies.
+* Revalidate their authorization context where applicable.
+* Make eligible tasks available for future execution.
+
+**Running tasks**
+
+* Do not assume that they completed.
+* Mark interrupted execution as requiring recovery.
+* Use an explicit recovery transition supported by the state machine.
+* Preserve execution-attempt history.
+* Do not blindly execute a non-idempotent task again.
+
+**Waiting for approval**
+
+* Preserve the approval relationship.
+* Revalidate the approval when execution is eventually requested.
+* Do not automatically approve tasks.
+
+**Waiting for dependencies**
+
+* Reevaluate dependencies.
+* Update readiness only through the state machine.
+
+**Cancellation requested**
+
+* Preserve the cancellation request.
+* Do not report successful cancellation unless confirmed.
+
+**Scheduled retries**
+
+* Preserve retry state and scheduled time.
+* Do not create duplicate retry records after restart.
+
+Recovery must be idempotent. Running recovery repeatedly must not duplicate tasks, attempts or history records.
+
+Do not automatically execute recovered tasks in this batch.
+
+---
+
+# 12. TASK RETRY PERSISTENCE
+
+Implement retry-state persistence without creating an execution engine.
+
+Support:
+
+* Attempt count.
+* Maximum attempts.
+* Retry eligibility.
+* Retry timestamp.
+* Retry reason.
+* Previous attempt reference.
+* Sanitized failure information.
+
+Requirements:
+
+* Retry count must persist across restarts.
+* Prevent retries after the configured maximum.
+* Distinguish retryable failures from terminal failures.
+* Require explicit retry eligibility.
+* Preserve a history of previous attempts.
+* Use UTC timestamps.
+* Ensure retry scheduling is idempotent.
+
+Implement bounded exponential backoff only if compatible with the existing task contracts. Otherwise, preserve retry scheduling data for the future execution engine.
+
+Do not automatically run retries in this batch.
+
+---
+
+# 13. AUTHORIZATION AND APPROVAL INTEGRATION
+
+Integrate task mutations with Batch 15's centralized policy engine.
+
+Apply authorization to:
+
+* Task creation.
+* Task retrieval where access is restricted.
+* Task updates.
+* Task cancellation.
+* Task pause and resume.
+* Task reassignment.
+* Task deletion.
+* Task retry requests.
+
+Requirements:
+
+* Validate principal identity.
+* Check the authenticated session when applicable.
+* Enforce task ownership and permitted sharing.
+* Enforce agent-specific permissions.
+* Prevent unauthorized access to another principal's task.
+* Require approval for destructive task operations where policy dictates.
+* Prevent agents from modifying tasks outside their assigned scope.
+
+Task persistence must not bypass authorization simply because the caller has direct access to the repository.
+
+Use the established service and repository boundaries to ensure policy evaluation occurs before protected mutations.
+
+---
+
+# 14. EVENT BUS INTEGRATION
+
+Integrate persistent task changes with the existing internal event bus.
+
+Support events such as:
+
+* `TASK_CREATED`
+* `TASK_UPDATED`
+* `TASK_STATUS_CHANGED`
+* `TASK_READY`
+* `TASK_BLOCKED`
+* `TASK_PAUSED`
+* `TASK_RESUMED`
+* `TASK_CANCELLATION_REQUESTED`
+* `TASK_CANCELLED`
+* `TASK_RETRY_SCHEDULED`
+* `TASK_RECOVERY_REQUIRED`
+* `TASK_RECOVERED`
+* `TASK_COMPLETED`
+* `TASK_FAILED`
+
+Requirements:
+
+* Publish events only after successful database commits.
+* Include task ID and correlation ID.
+* Include the committed task version.
+* Include the relevant state transition.
+* Avoid publishing duplicate events for an identical idempotent request.
+* Do not allow event publication failure to reverse an already committed database transaction without a defined compensation mechanism.
+
+Where reliable event delivery is required, implement a transactional outbox using the existing database and event contracts.
+
+If the outbox is implemented:
+
+* Persist the event in the same transaction as the task mutation.
+* Track publication status.
+* Retry pending delivery safely.
+* Prevent accidental duplicate effects through stable event identifiers.
+* Do not claim exactly-once delivery unless it is actually guaranteed.
+
+If the existing event bus already has a compatible durable delivery mechanism, reuse it instead of creating a duplicate.
+
+---
+
+# 15. DATABASE SCHEMA AND MIGRATIONS
+
+Use the Batch 16 migration engine.
+
+Add or extend the schema for:
+
+* Tasks.
+* Task dependencies.
+* Task state history.
+* Task execution attempts.
+* Task idempotency.
+* Task retry scheduling.
+* Transactional outbox, if needed.
+
+Before creating tables, inspect the existing schema and reuse compatible tables.
+
+Requirements:
+
+* Versioned migrations.
+* Foreign-key enforcement.
+* Appropriate unique constraints.
+* Appropriate indexes.
+* UTC timestamps.
+* Status validation.
+* Atomic migration behavior.
+* Preservation of existing records.
+* Safe rollback behavior where supported.
+
+Add indexes for frequent queries, such as:
+
+* Task ID.
+* Owner and creation time.
+* Status and update time.
+* Parent task.
+* Dependency relationships.
+* Scheduled retry time.
+* Idempotency key.
+
+Avoid redundant indexes.
+
+Do not drop or recreate task tables to simplify migration.
+
+---
+
+# 16. QUERY AND RETENTION MANAGEMENT
+
+Implement bounded, predictable task queries.
+
+Support filtering by:
+
+* Status.
+* Owner.
+* Task type.
+* Parent task.
+* Creation time.
+* Update time.
+* Deadline.
+* Priority.
+
+Requirements:
+
+* Use pagination.
+* Enforce a maximum page size.
+* Use deterministic sorting.
+* Avoid loading the full task history unnecessarily.
+* Support efficient retrieval of task history.
+* Use indexes appropriate to actual queries.
+
+Define a retention policy for temporary task metadata and execution artifacts, but do not automatically delete task or security history in this batch.
+
+Any eventual task deletion must obey the central authorization policy.
+
+Do not implement unbounded automatic database cleanup.
+
+---
+
+# 17. TESTING REQUIREMENTS
+
+Write and execute actual tests. Do not merely create test files.
+
+## A. Unit tests
+
+Test:
+
+1. Task serialization and deserialization.
+2. Task creation validation.
+3. State transition validation.
+4. Invalid transition rejection.
+5. Task version increments.
+6. Idempotency-key validation.
+7. Dependency validation.
+8. Cycle detection.
+9. Retry eligibility.
+10. Cancellation request behavior.
+11. Pause and resume validation.
+12. Recovery policy.
+13. Task-history generation.
+14. Authorization integration contracts.
+
+## B. Database integration tests
+
+Use a real temporary SQLite database.
+
+Test:
+
+1. Creating and retrieving tasks.
+2. Updating tasks.
+3. State transitions.
+4. Task history persistence.
+5. Dependency persistence.
+6. Retry persistence.
+7. Idempotent task creation.
+8. Optimistic concurrency conflicts.
+9. Transaction rollback.
+10. Foreign-key enforcement.
+11. Bounded pagination.
+12. Query filtering.
+13. Existing database migration.
+
+## C. Restart and recovery tests
+
+Use a real file-backed database.
+
+Test:
+
+1. Creating a task and restarting JARVIS.
+2. Recovering queued tasks.
+3. Recovering ready tasks.
+4. Identifying interrupted running tasks.
+5. Preserving approval-waiting tasks.
+6. Recovering dependency-waiting tasks.
+7. Preserving cancellation requests.
+8. Preserving retry schedules.
+9. Running recovery repeatedly without duplication.
+10. Verifying task-history continuity after restart.
+
+Do not simulate restart recovery using only an in-memory repository.
+
+## D. Concurrency tests
+
+Test:
+
+* Concurrent task creation.
+* Duplicate idempotent submissions.
+* Concurrent status transitions.
+* Stale task updates.
+* Concurrent cancellation requests.
+* Concurrent dependency changes.
+* Concurrent recovery.
+* Database lock contention.
+
+Use actual concurrent operations and verify the persisted final state.
+
+## E. Security tests
+
+Test:
+
+* Unauthorized task retrieval.
+* Unauthorized task modification.
+* Unauthorized cancellation.
+* Unauthorized reassignment.
+* Agent access outside assigned scope.
+* Cross-owner task access.
+* Attempted deletion without approval.
+* Attempts to modify terminal tasks.
+* Attempts to bypass state transitions.
+* Attempts to replay stale versions.
+* Attempts to reuse idempotency keys with different payloads.
+
+## F. Failure tests
+
+Test:
+
+* Database unavailable.
+* Database write failure.
+* Interrupted transactions.
+* Event bus unavailable.
+* Outbox delivery failure, if implemented.
+* Corrupted task metadata.
+* Invalid persisted timestamps.
+* Invalid dependency records.
+* Restart during an unfinished transaction.
+* Cancellation during a database operation.
+
+## G. Regression tests
+
+Run relevant tests from Batches 1–16, particularly:
+
+* Database initialization.
+* Migrations.
+* Runtime lifecycle.
+* Event bus.
+* Task manager.
+* Orchestrator.
+* Authentication.
+* Authorization.
+* Approval persistence.
+* Audit logging.
+
+Record pre-existing failures separately from regressions introduced by this batch.
+
+Do not suppress, skip or rewrite tests merely to obtain a passing result.
+
+---
+
+# 18. PERFORMANCE AND RESOURCE LIMITS
+
+The deployment target is a Windows PC with 16 GB RAM.
+
+Maintain the established constraints:
+
+* Idle memory target: 2–3 GB for the complete application.
+* Absolute application memory ceiling: 8 GB.
+
+Requirements:
+
+* Bounded database query results.
+* Bounded background queues.
+* No unbounded in-memory task history.
+* No unnecessary polling loops.
+* No unnecessary database connections.
+* Avoid blocking the asynchronous runtime.
+* Keep transactions short.
+* Avoid repeated full-table scans.
+* Measure task creation and retrieval latency where practical.
+* Measure recovery performance using a representative task count.
+
+Do not sacrifice data consistency to improve performance.
+
+Report actual measurements and test conditions.
+
+---
+
+# 19. DOCUMENTATION
+
+Update the task and database documentation.
+
+Document:
+
+* Persistent task architecture.
+* Task state machine.
+* Task repository interface.
+* Database schema.
+* Dependency model.
+* Idempotency behavior.
+* Optimistic concurrency.
+* Retry persistence.
+* Restart recovery.
+* Authorization integration.
+* Event delivery.
+* Retention limitations.
+* Known failure scenarios.
+
+Include a task lifecycle diagram and recovery flow diagram.
+
+Provide exact commands for:
+
+* Database migration.
+* Task repository tests.
+* Task recovery tests.
+* Relevant regression tests.
+
+Document which features are intentionally deferred to later batches.
+
+Do not claim that autonomous execution is implemented.
+
+---
+
+# 20. STRICT SCOPE BOUNDARIES
+
+Implement only:
+
+* Persistent task repository.
+* Task state management.
+* Task dependency persistence.
+* Task history.
+* Idempotency.
+* Optimistic concurrency.
+* Cancellation, pause and resume persistence.
+* Restart recovery.
+* Retry-state persistence.
+* Database and event bus integration.
+* Authorization enforcement at task service boundaries.
+* Tests and documentation.
+
+Do not implement:
+
+* Autonomous planner.
+* Task execution engine.
+* Agent spawning.
+* Agent delegation execution.
+* LLM-based task decomposition.
+* Voice interaction.
+* Telegram integration.
+* MCP servers or MCP credentials.
+* A second task manager.
+* A second database manager.
+
+The full autonomous execution system belongs to later batches.
+
+MCP remains deferred to its designated future phase.
+
+---
+
+# 21. ANTI-FALSE-COMPLETION REQUIREMENTS
+
+Use these statuses accurately:
+
+* `IMPLEMENTED`
+* `TESTED`
+* `VERIFIED`
+* `PARTIAL`
+* `STUB`
+* `MOCK`
+* `UNIMPLEMENTED`
+* `BROKEN`
+* `BLOCKED`
+* `UNKNOWN`
+
+Do not:
+
+* Claim persistence when only in-memory state exists.
+* Claim recovery without an actual restart test.
+* Claim idempotency without testing duplicate submissions.
+* Claim concurrency safety without concurrent database tests.
+* Treat a task model as a functioning repository.
+* Treat a passing import as proof of integration.
+* Mark mocked persistence tests as real integration tests.
+* Report unexecuted tests as passed.
+* Hide failed migrations.
+* Delete existing tasks to make tests pass.
+* Claim that task execution is complete.
+
+Every critical claim must be supported by actual implementation and test evidence.
+
+If the environment prevents a test from running, mark it `BLOCKED` or `UNKNOWN` and explain why.
+
+---
+
+# 22. REQUIRED FINAL IMPLEMENTATION REPORT
+
+Produce a detailed report with these sections.
+
+### A. Baseline
+
+* Existing task architecture.
+* Existing database schema.
+* Existing test results.
+* Pre-existing defects.
+
+### B. Implementation
+
+* Files created.
+* Files modified.
+* Repository functionality.
+* State machine changes.
+* Database changes.
+* Runtime integration.
+
+### C. Persistence
+
+* Task creation and retrieval.
+* State transition atomicity.
+* History persistence.
+* Dependency persistence.
+* Retry persistence.
+* Idempotency behavior.
+
+### D. Recovery
+
+* Interrupted task detection.
+* Recovery state transitions.
+* Restart test results.
+* Recovery idempotency.
+* Remaining limitations.
+
+### E. Security
+
+* Authorization enforcement.
+* Ownership validation.
+* Scope restrictions.
+* Concurrency protection.
+* Sensitive data handling.
+
+### F. Testing evidence
+
+* Exact commands executed.
+* Total tests collected.
+* Passed tests.
+* Failed tests.
+* Skipped tests.
+* Tests not executed.
+* Integration test results.
+* Concurrency test results.
+* Regression results.
+
+### G. Performance
+
+* Task creation and retrieval latency.
+* Recovery performance.
+* Memory usage where measured.
+* Resource violations.
+
+### H. Outstanding issues
+
+* Every known defect.
+* Incomplete functionality.
+* Unverified requirements.
+* Migration risks.
+* Required follow-up.
+
+### I. Final status
+
+Choose the status supported by the actual evidence:
+
+* `IMPLEMENTED`
+* `PARTIAL`
+* `BLOCKED`
+* `BROKEN`
+
+Explicitly state whether persistence and recovery were tested and verified.
+
+Do not declare JARVIS production-ready.
+
+---
+
+# FINAL EXECUTION RULE
+
+Implement Batch 17 only.
+
+Preserve all working functionality from Batches 1–16.
+
+Do not proceed to Batch 18 automatically.
+
+Never erase existing task records to simplify implementation or testing.
+
+If the repository, database or state machine cannot safely support a required operation, report the blocker and do not introduce a permissive workaround.
+
+**Success means persistent, transaction-safe, restart-recoverable task state integrated with the existing JARVIS architecture—not merely CRUD methods that work in a single process.**
+

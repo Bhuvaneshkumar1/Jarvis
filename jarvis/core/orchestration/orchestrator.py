@@ -254,6 +254,7 @@ class Orchestrator(LifecycleComponent):
 
         if ctype == "CreateTask":
             title = command.payload.get("title") or getattr(command, "title", None)
+            title_str: str = str(title) if title else "Untitled Task"
             description = command.payload.get("description") or getattr(command, "description", None)
             raw_priority = command.payload.get("priority") or getattr(command, "priority", TaskPriority.MEDIUM)
             priority: TaskPriority = raw_priority if isinstance(raw_priority, TaskPriority) else TaskPriority.MEDIUM
@@ -263,7 +264,7 @@ class Orchestrator(LifecycleComponent):
             metadata = command.payload.get("metadata") or getattr(command, "metadata", {})
 
             task = self.task_manager.create_task(
-                title=title,
+                title=title_str,
                 description=description,
                 priority=priority,
                 owner=owner,
@@ -349,15 +350,18 @@ class Orchestrator(LifecycleComponent):
             task_id = command.payload.get("task_id") or getattr(command, "task_id", None)
             if not task_id:
                 raise InvalidCommandError("GetTaskCommand requires a valid 'task_id'.")
-            task = self.task_manager.get_task(task_id)
+            fetched_task = self.task_manager.get_task(task_id)
+            if not fetched_task:
+                raise TaskNotFoundError(f"Task ID '{task_id}' not found.")
+            target_task = fetched_task
             return CommandResult(
                 success=True,
                 command_id=command.command_id,
                 correlation_id=command.correlation_id,
-                task_id=task.task_id,
-                status=task.status.value,
-                message=f"Retrieved task '{task.task_id}'.",
-                data=task.model_dump(),
+                task_id=target_task.task_id,
+                status=target_task.status.value,
+                message=f"Retrieved task '{target_task.task_id}'.",
+                data=target_task.model_dump(),
             )
 
         elif ctype == "ListTasks":
@@ -396,11 +400,18 @@ class Orchestrator(LifecycleComponent):
             )
 
         elif ctype == "GetRuntimeStatus":
+            orch_st = self._state.value if hasattr(self._state, "value") else str(self._state)
+            tm_st = "UNKNOWN"
+            if self.task_manager:
+                tm_st = self.task_manager.state.value if hasattr(self.task_manager.state, "value") else str(self.task_manager.state)
+            eb_st = "UNKNOWN"
+            if self.event_bus:
+                eb_st = self.event_bus.state.value if hasattr(self.event_bus.state, "value") else str(self.event_bus.state)
             status_data = {
-                "orchestrator_state": self._state.value,
+                "orchestrator_state": orch_st,
                 "active_operations_count": len(self._active_operations),
-                "task_manager_state": self.task_manager.state.value if self.task_manager else "UNKNOWN",
-                "event_bus_state": self.event_bus.state.value if self.event_bus else "UNKNOWN",
+                "task_manager_state": tm_st,
+                "event_bus_state": eb_st,
             }
             return CommandResult(
                 success=True,

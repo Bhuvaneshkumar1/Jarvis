@@ -141,6 +141,21 @@ class TaskValidationError(TaskError, ValueError):
     pass
 
 
+TaskInvalidStateTransitionError = InvalidTaskTransitionError
+
+
+class TaskDuplicateIdempotencyError(TaskError):
+    """Raised when duplicate idempotency key is submitted with conflicting payload."""
+
+    pass
+
+
+class TaskAuthorizationError(TaskError):
+    """Raised when task access/mutation is unauthorized by policy engine."""
+
+    pass
+
+
 class OrchestrationError(JarvisError):
     """Base exception class for all orchestration layer failures."""
 

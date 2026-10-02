@@ -1,15 +1,26 @@
 """
-Task Data Contracts, Models, and Events for JARVIS Core (Batch 6).
+Task Data Contracts, Models, and Events for JARVIS Core (Batch 6 & Batch 17).
 """
 
 import json
 import time
 import uuid
-from typing import Dict, Any, Optional
+from enum import Enum
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from jarvis.core.enums import TaskStatus, TaskPriority, EventPriority
 from jarvis.core.events.contracts import Event
 from jarvis.core.logging import redact_sensitive_data
+
+
+class TaskType(str, Enum):
+    GENERAL = "GENERAL"
+    SYSTEM = "SYSTEM"
+    DEVELOPMENT = "DEVELOPMENT"
+    CYBERSECURITY = "CYBERSECURITY"
+    INTEGRATION = "INTEGRATION"
+    AGENT = "AGENT"
+    MAINTENANCE = "MAINTENANCE"
 
 
 class TaskRecord(BaseModel):
@@ -39,6 +50,13 @@ class TaskRecord(BaseModel):
     error_message: Optional[str] = None
     attempt_count: int = Field(default=0, ge=0)
     max_attempts: int = Field(default=3, ge=1)
+    task_type: TaskType = Field(default=TaskType.GENERAL)
+    idempotency_key: Optional[str] = None
+    deadline_at: Optional[float] = None
+    due_at: Optional[float] = None
+    assigned_agent_id: Optional[str] = None
+    cancellation_requested: bool = Field(default=False)
+    error_summary: Optional[str] = None
 
     @field_validator("title")
     @classmethod
@@ -71,6 +89,16 @@ class AwaitableList(list):
     def __await__(self):
         async def _res():
             return self
+
+        return _res().__await__()
+
+
+class AwaitableNone:
+    """None wrapper that can be awaited in async contexts."""
+
+    def __await__(self):
+        async def _res():
+            return None
 
         return _res().__await__()
 
@@ -110,6 +138,27 @@ class TaskHistoryEntry(BaseModel):
             return self
 
         return _res().__await__()
+
+
+class TaskQueryFilter(BaseModel):
+    status: Optional[TaskStatus] = None
+    priority: Optional[TaskPriority] = None
+    owner: Optional[str] = None
+    task_type: Optional[TaskType] = None
+    parent_task_id: Optional[str] = None
+    assigned_agent_id: Optional[str] = None
+    correlation_id: Optional[str] = None
+    limit: int = Field(default=100, ge=1, le=1000)
+    offset: int = Field(default=0, ge=0)
+
+
+class TaskRecoveryReport(BaseModel):
+    total_inspected: int = 0
+    recovered_count: int = 0
+    interrupted_marked_retry: int = 0
+    interrupted_marked_failed: int = 0
+    cancellation_confirmed: int = 0
+    recovered_tasks: List[TaskRecord] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -156,3 +205,19 @@ class TaskBlockedEvent(Event):
 
 class TaskUpdatedEvent(Event):
     event_type: str = "TaskUpdated"
+
+
+class TaskCancellationRequestedEvent(Event):
+    event_type: str = "TaskCancellationRequested"
+
+
+class TaskRetryScheduledEvent(Event):
+    event_type: str = "TaskRetryScheduled"
+
+
+class TaskRecoveryRequiredEvent(Event):
+    event_type: str = "TaskRecoveryRequired"
+
+
+class TaskRecoveredEvent(Event):
+    event_type: str = "TaskRecovered"
