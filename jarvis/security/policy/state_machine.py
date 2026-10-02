@@ -108,18 +108,12 @@ class ApprovalStateMachine:
         """
         if current_status == target_status:
             if current_status in {ApprovalStatus.APPROVED, ApprovalStatus.REJECTED}:
-                raise DuplicateDecisionError(
-                    f"Approval is already in terminal decision state '{current_status.value}'."
-                )
-            raise InvalidStateTransitionError(
-                f"Cannot transition approval from '{current_status.value}' to itself."
-            )
+                raise DuplicateDecisionError(f"Approval is already in terminal decision state '{current_status.value}'.")
+            raise InvalidStateTransitionError(f"Cannot transition approval from '{current_status.value}' to itself.")
 
         allowed = cls.ALLOWED_TRANSITIONS.get(current_status, set())
         if target_status not in allowed:
-            raise InvalidStateTransitionError(
-                f"Invalid approval transition from '{current_status.value}' to '{target_status.value}'."
-            )
+            raise InvalidStateTransitionError(f"Invalid approval transition from '{current_status.value}' to '{target_status.value}'.")
 
     @classmethod
     def validate_not_expired(cls, approval: ApprovalRequest, now: Optional[float] = None) -> None:
@@ -131,9 +125,7 @@ class ApprovalStateMachine:
         """
         current_time = now if now is not None else time.time()
         if current_time >= approval.expires_at:
-            raise ApprovalExpiredError(
-                f"Approval '{approval.approval_id}' expired at {approval.expires_at} (current: {current_time})."
-            )
+            raise ApprovalExpiredError(f"Approval '{approval.approval_id}' expired at {approval.expires_at} (current: {current_time}).")
 
     @classmethod
     def validate_fingerprint(cls, approval: ApprovalRequest, expected_fingerprint: str) -> None:
@@ -146,6 +138,5 @@ class ApprovalStateMachine:
         stored_fp = approval.request_fingerprint or approval.operation_fingerprint
         if stored_fp and expected_fingerprint and stored_fp != expected_fingerprint:
             raise FingerprintMismatchError(
-                f"Action fingerprint mismatch for approval '{approval.approval_id}': "
-                f"expected '{expected_fingerprint}', stored '{stored_fp}'."
+                f"Action fingerprint mismatch for approval '{approval.approval_id}': expected '{expected_fingerprint}', stored '{stored_fp}'."
             )

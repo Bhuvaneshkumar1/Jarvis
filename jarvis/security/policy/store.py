@@ -9,7 +9,7 @@ import sqlite3
 import threading
 import time
 from contextlib import contextmanager
-from typing import List, Optional, Any, Generator, Dict
+from typing import List, Optional, Any, Generator
 
 from jarvis.database.settings import DatabaseSettings
 from jarvis.database.migrations.runner import MigrationRunner
@@ -259,9 +259,7 @@ class PolicyRepository:
 
                 # Version check
                 if expected_version is not None and expected_version != current_version:
-                    raise StaleApprovalVersionError(
-                        f"Stale version for approval '{approval_id}': expected {expected_version}, current {current_version}."
-                    )
+                    raise StaleApprovalVersionError(f"Stale version for approval '{approval_id}': expected {expected_version}, current {current_version}.")
 
                 # State machine transition check
                 ApprovalStateMachine.validate_transition(current_status, new_status)

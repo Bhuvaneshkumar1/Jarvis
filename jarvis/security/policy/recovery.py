@@ -40,9 +40,7 @@ class ApprovalRecoveryService:
             logger.info("Approval recovery completed: 0 expired approvals found.")
             return []
 
-        logger.warning(
-            f"Approval recovery: processed {len(expired_requests)} overdue approval requests."
-        )
+        logger.warning(f"Approval recovery: processed {len(expired_requests)} overdue approval requests.")
 
         # Notify task manager if linked tasks exist
         if self.task_manager:
@@ -51,18 +49,19 @@ class ApprovalRecoveryService:
                     try:
                         self._handle_task_approval_expired(req.task_id, req.approval_id)
                     except Exception as e:
-                        logger.error(
-                            f"Failed to sync task '{req.task_id}' for expired approval '{req.approval_id}': {e}"
-                        )
+                        logger.error(f"Failed to sync task '{req.task_id}' for expired approval '{req.approval_id}': {e}")
 
         return expired_requests
 
     def _handle_task_approval_expired(self, task_id: str, approval_id: str) -> None:
         """Helper to inform task manager about approval expiry."""
-        if hasattr(self.task_manager, "on_approval_expired"):
-            self.task_manager.on_approval_expired(task_id=task_id, approval_id=approval_id)
-        elif hasattr(self.task_manager, "handle_approval_decision"):
-            self.task_manager.handle_approval_decision(
+        tm = self.task_manager
+        if tm is None:
+            return
+        if hasattr(tm, "on_approval_expired"):
+            tm.on_approval_expired(task_id=task_id, approval_id=approval_id)
+        elif hasattr(tm, "handle_approval_decision"):
+            tm.handle_approval_decision(
                 task_id=task_id,
                 approval_id=approval_id,
                 decision=ApprovalStatus.EXPIRED,

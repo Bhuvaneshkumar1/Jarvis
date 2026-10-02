@@ -169,6 +169,22 @@ class JarvisApplication:
             self._safe_publish(RuntimeFailedEvent(source="runtime", correlation_id=self.context.app_id, payload={"error": str(e)}))
             raise
 
+        # 1.5 Execute Persistent State Recovery
+        try:
+            from jarvis.core.recovery.coordinator import RecoveryCoordinator
+
+            coordinator = RecoveryCoordinator(
+                task_manager=self.task_manager,
+                event_bus=self.event_bus,
+                db_path=getattr(self.task_manager.repository, "db_path", "data/jarvis.db"),
+            )
+            coordinator.execute_recovery()
+        except Exception as e:
+            self.logger.error(f"Startup persistent state recovery failed: {str(e)}")
+            self._transition_to(RuntimeState.FAILED)
+            self._safe_publish(RuntimeFailedEvent(source="runtime", correlation_id=self.context.app_id, payload={"error": str(e)}))
+            raise
+
         # 2. Initialize components
         self._transition_to(RuntimeState.INITIALIZING)
         init_order = self.registry.get_initialization_order()

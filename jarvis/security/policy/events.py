@@ -52,7 +52,6 @@ class PolicyApprovalConsumedEvent(Event):
     event_type: str = "PolicyApprovalConsumed"
 
 
-
 class PolicyScopeViolationEvent(Event):
     event_type: str = "PolicyScopeViolation"
 

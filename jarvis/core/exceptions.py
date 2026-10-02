@@ -262,3 +262,27 @@ class QueueOverflowError(EventBusError):
     """Raised when event bus queue capacity is exceeded and backpressure policy rejects event."""
 
     pass
+
+
+class RecoveryError(JarvisError):
+    """Base exception class for all recovery subsystem errors."""
+
+    pass
+
+
+class RecoveryLockError(RecoveryError):
+    """Raised when recovery lock acquisition, renewal, or fencing validation fails."""
+
+    pass
+
+
+class RecoveryIntegrityError(RecoveryError):
+    """Raised when mandatory database integrity checks fail during recovery."""
+
+    pass
+
+
+class RecoveryAuthorizationError(RecoveryError):
+    """Raised when unauthorized component or principal attempts restricted recovery."""
+
+    pass

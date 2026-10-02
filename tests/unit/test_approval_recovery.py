@@ -69,7 +69,6 @@ def test_approval_state_persists_across_restart(temp_db_path):
 
 def test_overdue_approval_expiry_recovery(temp_db_path):
     repo = PolicyRepository(db_path=temp_db_path)
-    engine = ApprovalEngine(repository=repo)
     task_mgr = TaskManager(db_path=temp_db_path)
 
     # Create task
@@ -78,7 +77,7 @@ def test_overdue_approval_expiry_recovery(temp_db_path):
 
     # Create overdue approval request (expires in past)
     now = time.time()
-    req = repo.save_approval_request(
+    repo.save_approval_request(
         ApprovalRequest(
             approval_id="appr-overdue",
             principal_id="user-1",

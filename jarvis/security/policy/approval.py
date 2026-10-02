@@ -26,13 +26,9 @@ from jarvis.security.policy.exceptions import (
     ApprovalExpiredError,
     ApprovalInvalidError,
     AuthorizationDeniedError,
-    DuplicateDecisionError,
-    FingerprintMismatchError,
-    StaleApprovalVersionError,
 )
 from jarvis.security.policy.events import (
     PolicyAuditIntegrator,
-    PolicyApprovalCreatedEvent,
     PolicyApprovalRequestedEvent,
     PolicyApprovalApprovedEvent,
     PolicyApprovalRejectedEvent,
@@ -135,23 +131,15 @@ class ApprovalEngine:
     def get_approval(self, approval_id: str) -> Optional[ApprovalRequest]:
         return self.repository.get_approval_request(approval_id)
 
-    def list_pending_approvals(
-        self, principal_id: Optional[str] = None, task_id: Optional[str] = None
-    ) -> List[ApprovalRequest]:
+    def list_pending_approvals(self, principal_id: Optional[str] = None, task_id: Optional[str] = None) -> List[ApprovalRequest]:
         self.expire_approvals()
         return self.repository.list_pending_approvals(principal_id=principal_id, task_id=task_id)
 
-    def list_approvals_by_status(
-        self, status: ApprovalStatus, limit: int = 100, offset: int = 0
-    ) -> List[ApprovalRequest]:
+    def list_approvals_by_status(self, status: ApprovalStatus, limit: int = 100, offset: int = 0) -> List[ApprovalRequest]:
         return self.repository.list_approvals_by_status(status=status, limit=limit, offset=offset)
 
-    def list_approvals_in_time_range(
-        self, start_time: float, end_time: float, limit: int = 100, offset: int = 0
-    ) -> List[ApprovalRequest]:
-        return self.repository.list_approvals_in_time_range(
-            start_time=start_time, end_time=end_time, limit=limit, offset=offset
-        )
+    def list_approvals_in_time_range(self, start_time: float, end_time: float, limit: int = 100, offset: int = 0) -> List[ApprovalRequest]:
+        return self.repository.list_approvals_in_time_range(start_time=start_time, end_time=end_time, limit=limit, offset=offset)
 
     def get_approval_history(self, approval_id: str) -> List[ApprovalHistoryEntry]:
         return self.repository.get_approval_history(approval_id)
@@ -203,13 +191,9 @@ class ApprovalEngine:
         # Agent Self-Approval Check
         if approver_principal.principal_type == PrincipalType.AGENT:
             if approver_principal.principal_id == req.principal_id:
-                raise AuthorizationDeniedError(
-                    f"Agent '{approver_principal.principal_id}' cannot approve its own operation."
-                )
+                raise AuthorizationDeniedError(f"Agent '{approver_principal.principal_id}' cannot approve its own operation.")
             if req.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
-                raise AuthorizationDeniedError(
-                    f"Agent '{approver_principal.principal_id}' cannot approve {req.risk_level.value} risk operation."
-                )
+                raise AuthorizationDeniedError(f"Agent '{approver_principal.principal_id}' cannot approve {req.risk_level.value} risk operation.")
 
         updated = self.repository.update_approval_status(
             approval_id=approval_id,
@@ -244,7 +228,7 @@ class ApprovalEngine:
                         approval_id=updated.approval_id,
                         decision=ApprovalStatus.APPROVED,
                     )
-            except Exception as e:
+            except Exception:
                 # Log error, do not reverse committed decision
                 pass
 
@@ -409,27 +393,19 @@ class ApprovalEngine:
 
         # Re-verify action & resource binding
         if req.requested_action.lower() != request.action.lower():
-            raise ApprovalInvalidError(
-                f"Approval action mismatch: approved '{req.requested_action}', requested '{request.action}'."
-            )
+            raise ApprovalInvalidError(f"Approval action mismatch: approved '{req.requested_action}', requested '{request.action}'.")
 
         if not is_path_in_scope(request.resource, req.target_resource):
-            raise ApprovalInvalidError(
-                f"Approval resource mismatch: requested '{request.resource}' outside approved scope '{req.target_resource}'."
-            )
+            raise ApprovalInvalidError(f"Approval resource mismatch: requested '{request.resource}' outside approved scope '{req.target_resource}'.")
 
         if req.task_id and request.task_id and req.task_id != request.task_id:
-            raise ApprovalInvalidError(
-                f"Approval task binding mismatch: approved for task '{req.task_id}', requested by '{request.task_id}'."
-            )
+            raise ApprovalInvalidError(f"Approval task binding mismatch: approved for task '{req.task_id}', requested by '{request.task_id}'.")
 
         # TOCTOU protection: Re-evaluate policy if function provided
         if policy_evaluator_fn:
             current_decision = policy_evaluator_fn(request, skip_approval_check=True)
             if current_decision.decision == "DENY":
-                raise AuthorizationDeniedError(
-                    f"TOCTOU Policy Check Failed: Policy has changed since approval creation. Reason: {current_decision.reason}"
-                )
+                raise AuthorizationDeniedError(f"TOCTOU Policy Check Failed: Policy has changed since approval creation. Reason: {current_decision.reason}")
 
         # Atomically consume
         consumed = self.repository.consume_approval_atomically(

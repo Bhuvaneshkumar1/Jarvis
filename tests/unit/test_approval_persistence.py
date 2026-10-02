@@ -2,7 +2,6 @@
 Database Integration & Persistence Tests for Approval Subsystem (Batch 18).
 """
 
-import os
 import time
 import pytest
 from jarvis.security.policy.models import (
@@ -13,7 +12,6 @@ from jarvis.security.policy.models import (
 )
 from jarvis.security.policy.store import PolicyRepository
 from jarvis.security.policy.exceptions import (
-    ApprovalNotFoundError,
     StaleApprovalVersionError,
     ApprovalAlreadyConsumedError,
 )

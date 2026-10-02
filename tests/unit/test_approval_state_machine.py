@@ -4,7 +4,7 @@ Unit Tests for Approval State Machine & Action Fingerprinting (Batch 18).
 
 import pytest
 import time
-from jarvis.security.policy.models import ApprovalRequest, ApprovalStatus, RiskLevel
+from jarvis.security.policy.models import ApprovalRequest, ApprovalStatus
 from jarvis.security.policy.state_machine import (
     ApprovalStateMachine,
     compute_request_fingerprint,

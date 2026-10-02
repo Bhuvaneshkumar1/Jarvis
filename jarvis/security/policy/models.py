@@ -202,4 +202,3 @@ class ScopedApproval(BaseModel):
     used_count: int = Field(default=0, ge=0)
     created_at: float = Field(default_factory=time.time)
     metadata: Dict[str, Any] = Field(default_factory=dict)
-

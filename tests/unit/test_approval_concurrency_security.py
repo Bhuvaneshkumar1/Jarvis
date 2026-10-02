@@ -2,11 +2,9 @@
 Concurrency and Security Unit Tests for Approval Subsystem (Batch 18).
 """
 
-import time
 import pytest
 import concurrent.futures
 from jarvis.security.policy.models import (
-    ApprovalRequest,
     ApprovalStatus,
     Principal,
     PrincipalType,
@@ -19,9 +17,6 @@ from jarvis.security.policy.exceptions import (
     AuthorizationDeniedError,
     FingerprintMismatchError,
     ApprovalInvalidError,
-    StaleApprovalVersionError,
-    DuplicateDecisionError,
-    InvalidStateTransitionError,
 )
 
 
@@ -42,7 +37,6 @@ def test_concurrent_approval_decisions(engine):
     Verifies that optimistic locking and database constraints guarantee deterministic execution:
     exactly ONE decision succeeds, while the other fails.
     """
-    now = time.time()
     req = engine.create_approval_request(
         principal_id="user-requester",
         principal_type=PrincipalType.USER,

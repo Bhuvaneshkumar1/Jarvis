@@ -29,7 +29,6 @@ from jarvis.core.tasks.exceptions import (
 from jarvis.security.policy import PolicyEngine, ApprovalEngine, PolicyRepository, AuthorizationRequest, Principal
 
 
-
 class TaskManager(LifecycleComponent):
     """
     Authoritative Central Task Manager.
@@ -47,11 +46,8 @@ class TaskManager(LifecycleComponent):
     ) -> None:
         self.repository = repository or TaskRepository(db_path=db_path)
         self.event_bus = event_bus
-        self.policy_engine = policy_engine or PolicyEngine(
-            approval_engine=ApprovalEngine(repository=PolicyRepository(db_path=db_path))
-        )
+        self.policy_engine = policy_engine or PolicyEngine(approval_engine=ApprovalEngine(repository=PolicyRepository(db_path=db_path)))
         self.logger = logger or JarvisLogger(component="TaskManager")
-
 
         self.event_publisher = TaskEventPublisher(event_bus=self.event_bus)
         self.recovery_service = TaskRecoveryService(
@@ -370,8 +366,17 @@ class TaskManager(LifecycleComponent):
                     actor_id="approval_engine",
                 )
         elif dec_val in ("REJECTED", "EXPIRED", "CANCELLED"):
-            if task.status in (TaskStatus.WAITING_APPROVAL, TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING):
-                target_status = TaskStatus.CANCELLED if dec_val == "CANCELLED" else TaskStatus.BLOCKED
+            if task.status in (TaskStatus.WAITING_APPROVAL, TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING, TaskStatus.INTERRUPTED):
+                if task.status in (TaskStatus.RUNNING, TaskStatus.PAUSED):
+                    self.transition_task(
+                        task_id=task_id,
+                        to_status=TaskStatus.INTERRUPTED,
+                        reason=f"Approval '{approval_id}' {dec_val.lower()} during execution",
+                        actor_id="approval_engine",
+                    )
+                target_status = (
+                    TaskStatus.CANCELLED if dec_val == "CANCELLED" else (TaskStatus.FAILED if task.status == TaskStatus.INTERRUPTED else TaskStatus.BLOCKED)
+                )
                 return self.transition_task(
                     task_id=task_id,
                     to_status=target_status,

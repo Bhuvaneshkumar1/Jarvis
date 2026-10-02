@@ -77,7 +77,6 @@ class FingerprintMismatchError(ApprovalInvalidError):
     pass
 
 
-
 class ScopeViolationError(PolicyError):
     """Raised when an action or path violates the allowed authorization scope."""
 
