@@ -17,8 +17,8 @@ TERMINAL_STATES: Set[TaskStatus] = {
 
 # Permitted state transition map
 PERMITTED_TRANSITIONS: Dict[TaskStatus, Set[TaskStatus]] = {
-    TaskStatus.CREATED: {TaskStatus.QUEUED, TaskStatus.PENDING, TaskStatus.READY, TaskStatus.RUNNING, TaskStatus.CANCELLED},
-    TaskStatus.PENDING: {TaskStatus.QUEUED, TaskStatus.READY, TaskStatus.RUNNING, TaskStatus.WAITING_DEPENDENCY, TaskStatus.CANCELLED},
+    TaskStatus.CREATED: {TaskStatus.QUEUED, TaskStatus.PENDING, TaskStatus.READY, TaskStatus.RUNNING, TaskStatus.WAITING_APPROVAL, TaskStatus.CANCELLED},
+    TaskStatus.PENDING: {TaskStatus.QUEUED, TaskStatus.READY, TaskStatus.RUNNING, TaskStatus.WAITING_DEPENDENCY, TaskStatus.WAITING_APPROVAL, TaskStatus.CANCELLED},
     TaskStatus.QUEUED: {TaskStatus.READY, TaskStatus.RUNNING, TaskStatus.WAITING_DEPENDENCY, TaskStatus.WAITING_APPROVAL, TaskStatus.CANCELLED},
     TaskStatus.READY: {
         TaskStatus.QUEUED,
@@ -26,9 +26,11 @@ PERMITTED_TRANSITIONS: Dict[TaskStatus, Set[TaskStatus]] = {
         TaskStatus.RUNNING,
         TaskStatus.PAUSED,
         TaskStatus.WAITING_DEPENDENCY,
+        TaskStatus.WAITING_APPROVAL,
         TaskStatus.CANCELLING,
         TaskStatus.CANCELLED,
     },
+
     TaskStatus.RUNNING: {
         TaskStatus.COMPLETED,
         TaskStatus.FAILED,

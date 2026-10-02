@@ -20577,3 +20577,863 @@ If the repository, database or state machine cannot safely support a required op
 
 **Success means persistent, transaction-safe, restart-recoverable task state integrated with the existing JARVIS architecture—not merely CRUD methods that work in a single process.**
 
+# ANTIGRAVITY IMPLEMENTATION PROMPT
+
+## JARVIS — BATCH 18: APPROVAL PERSISTENCE & LIFECYCLE INTEGRATION
+
+### ROLE
+
+Act as a senior Python backend engineer, database architect, application security engineer, and software test engineer.
+
+You are continuing the development of JARVIS, an autonomous, security-conscious personal AI operating system.
+
+This is Batch 18 of a planned 60-batch implementation.
+
+Your task is to implement durable approval persistence and integrate it with the existing approval engine, authorization engine, database infrastructure, task manager, event bus, and audit interfaces.
+
+This is an implementation task, not a design-only exercise.
+
+Do not create a demo, mock approval workflow, disconnected database module, or superficial implementation.
+
+---
+
+# 1. FIRST: INSPECT THE EXISTING PROJECT
+
+Before modifying anything, inspect the actual repository.
+
+Read and understand:
+
+* Batch 15: Centralized Authorization, Policy & Approval Engine.
+* Batch 16: Database Schema & Persistence Foundation.
+* Batch 17: Persistent Task Repository & State Management.
+* Existing approval contracts and interfaces.
+* Existing database migrations and transaction management.
+* Existing task repository and task lifecycle.
+* Existing event bus and audit contracts.
+* Existing security and authorization policies.
+* Existing tests, configuration, and logging.
+
+Identify the actual implementation of each component.
+
+Do not assume that previous batches were implemented correctly merely because their reports say they were completed.
+
+Verify the source code and run the existing relevant tests before making changes.
+
+Record:
+
+1. Existing approval architecture.
+2. Existing approval-related database tables.
+3. Existing database migration version.
+4. Existing approval state transitions.
+5. Existing integration points.
+6. Existing test results.
+7. Any defects or missing components discovered.
+
+Do not silently repair unrelated architecture during this batch.
+
+If a prerequisite is missing or broken, document it and implement only the minimum compatible correction needed for this batch. If the missing prerequisite makes safe implementation impossible, stop and report the blocker.
+
+---
+
+# 2. PRIMARY OBJECTIVE
+
+Implement a production-oriented, persistent approval lifecycle.
+
+Every approval request must be durably stored and recoverable after application restarts.
+
+The system must support:
+
+* Creating approval requests.
+* Persisting approval requests.
+* Retrieving pending approvals.
+* Approving requests.
+* Rejecting requests.
+* Expiring requests.
+* Cancelling requests.
+* Recording approval decisions.
+* Preventing duplicate decisions.
+* Handling concurrent decisions.
+* Linking approvals to tasks and actions.
+* Recovering approval state after restart.
+* Maintaining a complete approval history.
+* Auditing approval lifecycle events.
+
+The existing Batch 15 policy engine remains the authority for authorization decisions.
+
+The existing Batch 16 database infrastructure remains the authority for database connections and transactions.
+
+The existing Batch 17 task repository remains the authority for task persistence.
+
+Do not create competing implementations of these components.
+
+---
+
+# 3. APPROVAL DATA MODEL
+
+Inspect the existing contracts before designing the schema.
+
+Reuse existing models whenever possible. Extend them through backward-compatible migrations where necessary.
+
+The persistent approval record should support the following fields, where appropriate:
+
+* approval_id: unique, immutable identifier.
+* task_id: associated task identifier, if applicable.
+* requester_id: identity requesting approval.
+* approver_id: identity making the decision, if applicable.
+* action_type: operation requiring approval.
+* resource_type: affected resource category.
+* resource_id: affected resource identifier.
+* description: human-readable explanation.
+* risk_level: risk classification from the existing policy model.
+* approval_scope: permitted scope of the approval.
+* status: current approval lifecycle status.
+* requested_at: UTC creation timestamp.
+* expires_at: optional UTC expiry timestamp.
+* decided_at: optional UTC decision timestamp.
+* cancelled_at: optional UTC cancellation timestamp.
+* decision_reason: optional explanation.
+* policy_version: applicable policy version, if available.
+* request_fingerprint: integrity identifier for the requested action.
+* version: optimistic concurrency version.
+* metadata: validated, non-sensitive structured metadata.
+
+Do not store secrets, PINs, raw credentials, authentication tokens, or unnecessary sensitive content in approval records.
+
+Do not use unrestricted serialization such as pickle for persistent approval data.
+
+Use explicit schemas and validated serialization.
+
+If the existing approval contract differs, preserve its established semantics and document any necessary changes.
+
+---
+
+# 4. DATABASE MIGRATIONS
+
+Implement the required database schema using the existing Batch 16 migration engine.
+
+Requirements:
+
+1. Use versioned, deterministic migrations.
+2. Preserve all existing data.
+3. Never silently drop existing tables or columns.
+4. Use appropriate foreign keys and indexes.
+5. Enforce uniqueness for approval identifiers.
+6. Add indexes for common queries:
+
+   * Pending approvals.
+   * Approvals by task.
+   * Approvals by requester.
+   * Approvals by status.
+   * Expired approvals.
+   * Approval history by timestamp.
+7. Use appropriate CHECK constraints for supported statuses.
+8. Use UTC timestamps consistently.
+9. Support migration rollback only where the existing migration architecture safely supports it.
+10. Ensure a partially failed migration cannot leave the database in an inconsistent state.
+
+Do not manually edit migration history or fake migration versions.
+
+Test migrations against both a fresh database and a database containing representative existing records.
+
+If the current schema already provides these capabilities, reuse it instead of creating duplicate tables.
+
+---
+
+# 5. APPROVAL REPOSITORY
+
+Implement a dedicated approval persistence repository using the existing database interfaces.
+
+The repository must support the following operations:
+
+### Create
+
+* Insert a new approval request.
+* Validate required fields.
+* Reject duplicate approval IDs.
+* Ensure valid initial status.
+* Persist creation metadata.
+* Return the canonical stored record.
+
+### Read
+
+* Retrieve an approval by ID.
+* Retrieve approvals by task ID.
+* Retrieve approvals by requester.
+* Retrieve pending approvals.
+* Retrieve approvals by status.
+* Retrieve approvals within a specified time range.
+* Retrieve the complete decision history for an approval.
+
+### Update
+
+* Update approval lifecycle state through controlled transitions.
+* Record decision metadata.
+* Update the concurrency version.
+* Prevent unauthorized or invalid status changes.
+* Ensure all changes are transactional.
+
+### Delete
+
+Approval records must not be physically deleted through ordinary application workflows.
+
+Use lifecycle states and archival mechanisms, if required by the existing architecture.
+
+Retain historical decisions for auditability.
+
+### Repository requirements
+
+* Type annotations.
+* Structured validation.
+* Parameterized SQL queries.
+* Explicit transaction boundaries.
+* Appropriate exception handling.
+* No database connections created at import time.
+* No unbounded queries for large histories.
+* Pagination for approval history and large result sets.
+* Deterministic ordering for paginated results.
+
+Do not introduce a second database connection manager.
+
+---
+
+# 6. APPROVAL LIFECYCLE
+
+Implement and enforce a clear approval state machine.
+
+Use the existing Batch 15 state names if they are already defined. Do not introduce incompatible duplicate states.
+
+The lifecycle must support these conceptual states:
+
+* PENDING
+* APPROVED
+* REJECTED
+* EXPIRED
+* CANCELLED
+
+Define and validate all permitted transitions.
+
+At minimum:
+
+| Current state | Requested transition | Expected result                        |
+| ------------- | -------------------- | -------------------------------------- |
+| PENDING       | APPROVED             | Allowed after authorization            |
+| PENDING       | REJECTED             | Allowed after authorization            |
+| PENDING       | EXPIRED              | Allowed when expiry conditions are met |
+| PENDING       | CANCELLED            | Allowed for an authorized cancellation |
+| APPROVED      | APPROVED             | Reject duplicate decision              |
+| REJECTED      | APPROVED             | Reject invalid transition              |
+| EXPIRED       | APPROVED             | Reject invalid transition              |
+| CANCELLED     | APPROVED             | Reject invalid transition              |
+
+Terminal states must not be silently reopened.
+
+If a new approval is needed after rejection, cancellation, or expiry, create a new approval request with a new ID.
+
+Do not let callers directly change database status fields without passing through the lifecycle service.
+
+---
+
+# 7. APPROVAL SERVICE INTEGRATION
+
+Integrate the repository with the existing approval service from Batch 15.
+
+Do not create a second policy engine or a competing approval manager.
+
+The service must:
+
+1. Validate the approval request.
+2. Verify the requesting principal.
+3. Consult the existing authorization and policy engine.
+4. Determine whether approval is required.
+5. Create and persist the request.
+6. Publish the relevant lifecycle event.
+7. Return the persisted approval record.
+
+When a decision is submitted:
+
+1. Authenticate the acting principal using the existing security interfaces.
+2. Check whether the principal is permitted to decide this request.
+3. Verify that the approval is still pending.
+4. Validate that the request has not expired.
+5. Validate the approval scope.
+6. Verify that the action fingerprint still matches the action being authorized.
+7. Apply the decision transactionally.
+8. Record the decision and timestamp.
+9. Persist the new state.
+10. Record the audit event.
+11. Publish the relevant event only after the transaction commits.
+12. Return the canonical updated record.
+
+The decision service must not trust a caller-provided status value.
+
+It must calculate and validate the transition itself.
+
+If authorization fails, the decision must not be persisted.
+
+---
+
+# 8. APPROVAL SCOPE AND ACTION INTEGRITY
+
+Approval must authorize only the operation that was actually reviewed.
+
+An approval must not become a general-purpose permission token.
+
+Preserve the existing Batch 15 scoped approval model.
+
+Enforce the following:
+
+* Approval must be bound to its intended action.
+* Approval must be bound to its intended resource or task, where applicable.
+* Approval must not authorize unrelated operations.
+* Approval must not be reused for a different action.
+* Changes to critical action parameters must invalidate the original authorization when they alter the approved operation.
+* Expired or cancelled approvals must never authorize execution.
+* An approval must not bypass current mandatory security policies.
+
+Implement or reuse a stable request fingerprint mechanism.
+
+The fingerprint must be deterministic for equivalent approved actions.
+
+Exclude non-semantic fields such as display-only timestamps if they do not affect the authorized action.
+
+Do not include credentials or secrets in the fingerprint.
+
+If the action changes after approval, require a new approval whenever the change affects the authorization scope or risk.
+
+Document the exact fields covered by the fingerprint.
+
+---
+
+# 9. CONCURRENCY AND DUPLICATE DECISIONS
+
+Approval decisions can arrive simultaneously from multiple sources, such as the desktop interface, Telegram, or an autonomous agent.
+
+Implement concurrency-safe decision processing.
+
+Requirements:
+
+* Use transactions and the existing database transaction facilities.
+* Use optimistic concurrency or appropriate database-level locking.
+* Enforce a single successful terminal decision for each approval.
+* Detect stale approval versions.
+* Reject duplicate or conflicting decisions.
+* Prevent two concurrent requests from both successfully deciding the same approval.
+* Ensure a retry cannot create duplicate decision history.
+* Ensure database constraints provide an additional integrity boundary.
+
+Test concurrent approval and rejection attempts against the same pending approval.
+
+The outcome must be deterministic: no more than one decision may succeed.
+
+Do not claim concurrency safety based solely on sequential unit tests.
+
+---
+
+# 10. EXPIRY AND RECOVERY
+
+Implement durable approval expiry.
+
+Requirements:
+
+1. Store expiration timestamps in UTC.
+2. Compare expiry using a reliable UTC clock abstraction where available.
+3. Reject approval decisions received after expiry.
+4. Transition eligible pending requests to EXPIRED.
+5. Persist expiry transitions.
+6. Record the reason and timestamp.
+7. Make expiry processing idempotent.
+8. Recover pending approvals after restart.
+9. Detect approvals that expired while JARVIS was offline.
+10. Expire overdue approvals during startup recovery or the existing scheduled maintenance mechanism.
+
+Do not introduce unnecessary background schedulers if the project already has a scheduler interface.
+
+If no scheduler exists, implement only a small, testable expiry service that can later be connected to the scheduler.
+
+A restart must never turn an expired approval back into a valid pending approval.
+
+---
+
+# 11. TASK MANAGER INTEGRATION
+
+Integrate approval state with the Batch 17 persistent task repository.
+
+When a task requires approval:
+
+* Persist the approval request.
+* Link it to the relevant task.
+* Move the task into the existing waiting-for-approval state, if supported.
+* Preserve the task's previous state or required resume information.
+* Ensure restart recovery retains the approval dependency.
+
+When an approval is granted:
+
+* Notify the task manager.
+* Resume the task only if its current state and authorization permit it.
+* Revalidate the approved action before execution.
+* Never execute an action solely because an approval record says APPROVED.
+
+When an approval is rejected, cancelled, or expired:
+
+* Notify the task manager.
+* Apply the existing task failure, cancellation, or waiting policy.
+* Persist the resulting task transition.
+* Do not silently continue the task.
+
+If task and approval updates must be atomic, use the existing database transaction and unit-of-work architecture where available.
+
+If a cross-component transaction cannot be guaranteed, use a durable, idempotent event/outbox approach if supported by the current architecture. Do not pretend that an ordinary in-memory event guarantees atomicity.
+
+Avoid circular dependencies between the approval service and task manager.
+
+---
+
+# 12. EVENT BUS INTEGRATION
+
+Use the existing Batch 5 event bus.
+
+Add or reuse typed approval events, such as:
+
+* ApprovalRequested
+* ApprovalApproved
+* ApprovalRejected
+* ApprovalExpired
+* ApprovalCancelled
+
+Follow the existing event naming and contract conventions.
+
+Requirements:
+
+* Include the approval ID.
+* Include the associated task ID when available.
+* Include an event ID or equivalent idempotency identifier.
+* Include the UTC event timestamp.
+* Avoid including secrets or unnecessary sensitive information.
+* Publish lifecycle events only after successful persistence.
+* Prevent duplicate event processing from causing duplicate task transitions.
+* Handle subscriber failures without reversing an already committed decision.
+
+If the existing event bus cannot guarantee durable delivery, document that limitation and use the existing persistence/outbox capabilities where appropriate.
+
+Do not implement a new event bus.
+
+---
+
+# 13. AUDIT INTEGRATION
+
+Use the existing audit interface and security logging conventions.
+
+Every significant approval operation must be auditable.
+
+Record at least:
+
+* Approval requested.
+* Approval created.
+* Approval viewed, if required by existing policy.
+* Approval granted.
+* Approval rejected.
+* Approval expired.
+* Approval cancelled.
+* Duplicate decision attempt.
+* Unauthorized decision attempt.
+* Invalid state transition.
+* Scope or fingerprint mismatch.
+* Persistence failure.
+* Recovery of overdue approvals.
+
+Each audit event should include:
+
+* Event ID.
+* Approval ID, where available.
+* Task ID, where applicable.
+* Actor identity.
+* Operation.
+* Previous state.
+* New state.
+* UTC timestamp.
+* Outcome.
+* Reason or error category.
+* Correlation ID, where available.
+
+Do not store PINs, passwords, API keys, tokens, or full secret-bearing payloads.
+
+Do not log sensitive approval metadata.
+
+Audit failure must not be silently ignored.
+
+Define and test the behavior when the audit subsystem is unavailable. For security-sensitive decisions, follow the existing fail-closed policy if available. Never claim an action is fully audited if its audit record was not successfully persisted.
+
+Do not create a parallel audit framework.
+
+---
+
+# 14. SECURITY REQUIREMENTS
+
+Apply the following controls:
+
+* Authenticate all approval decisions.
+* Authorize every decision using the existing policy engine.
+* Enforce scoped permissions.
+* Enforce ownership or designated approver restrictions where applicable.
+* Prevent privilege escalation through forged approval IDs.
+* Prevent approval replay.
+* Prevent approval reuse.
+* Prevent unauthorized state mutation.
+* Validate all external inputs.
+* Use parameterized database queries.
+* Protect against race conditions.
+* Avoid leaking internal database errors to external interfaces.
+* Keep secrets out of approval records, logs, and exceptions.
+* Preserve the existing PIN and session security model.
+* Respect lockout and session revocation rules.
+* Reject decisions from revoked or expired sessions.
+
+Agents must not gain approval privileges merely because they created an approval request.
+
+An agent cannot approve its own high-risk operation unless the existing policy explicitly permits it and the relevant policy conditions are satisfied.
+
+Do not weaken any existing security boundary to make tests pass.
+
+---
+
+# 15. ERROR HANDLING AND TRANSACTION SAFETY
+
+Use the existing exception hierarchy.
+
+Handle, at minimum:
+
+* Approval not found.
+* Invalid approval state.
+* Duplicate decision.
+* Stale approval version.
+* Unauthorized approver.
+* Expired approval.
+* Invalid action fingerprint.
+* Invalid approval scope.
+* Database unavailable.
+* Transaction failure.
+* Migration failure.
+* Event publication failure.
+* Audit persistence failure.
+* Task synchronization failure.
+
+Every error must have a clear and testable outcome.
+
+For a failed decision transaction:
+
+* Do not partially update the approval.
+* Do not report success.
+* Do not publish a success event.
+* Do not allow the task to resume.
+* Preserve sufficient diagnostic information without exposing secrets.
+
+For a failure after the approval transaction commits, use the established recovery mechanism rather than pretending the transaction was rolled back.
+
+Avoid unbounded automatic retries.
+
+Retry only operations that are safe and idempotent.
+
+---
+
+# 16. TESTING REQUIREMENTS
+
+Create real tests using the existing test framework and conventions.
+
+Do not replace existing tests or weaken assertions to make the suite pass.
+
+### A. Unit tests
+
+Test:
+
+* Approval record validation.
+* Repository input validation.
+* Initial approval creation.
+* Every permitted state transition.
+* Every prohibited state transition.
+* Decision authorization.
+* Approval expiry.
+* Request fingerprint validation.
+* Approval scope enforcement.
+* Duplicate decision detection.
+* Version conflict detection.
+* Idempotency behavior.
+
+### B. Database integration tests
+
+Use a real temporary SQLite database or the project's established database test fixture.
+
+Test:
+
+* Fresh database migration.
+* Migration from the existing schema.
+* Approval insertion.
+* Approval retrieval.
+* Approval updates.
+* Decision history.
+* Transaction rollback.
+* Foreign-key enforcement.
+* Unique constraints.
+* Index-backed query behavior where practical.
+* Database reopen and recovery.
+* Data integrity after restart.
+
+Do not substitute in-memory dictionaries for database integration tests.
+
+### C. Authorization and security tests
+
+Test:
+
+* Unauthorized users cannot approve.
+* Unauthorized users cannot reject.
+* A requester cannot bypass required approval.
+* Revoked sessions cannot decide approvals.
+* Expired sessions cannot decide approvals.
+* A forged approval ID does not reveal protected information.
+* An approval cannot be reused for a different action.
+* An approval cannot authorize a changed action.
+* Agents cannot bypass approval requirements.
+* High-risk operations retain their existing confirmation requirements.
+
+### D. Concurrency tests
+
+Test concurrent approval and rejection requests.
+
+Use actual concurrent execution and a shared database.
+
+Verify that only one valid terminal decision is persisted.
+
+Test duplicate retries and stale-version requests.
+
+### E. Recovery tests
+
+Test:
+
+* Pending approvals survive restart.
+* Approved approvals remain approved after restart.
+* Rejected approvals remain rejected after restart.
+* Cancelled approvals remain cancelled after restart.
+* Overdue pending approvals become expired.
+* Expiry processing is idempotent.
+* Interrupted processing does not create inconsistent states.
+* Task approval dependencies are recovered correctly.
+
+### F. Integration tests
+
+Test approval integration with:
+
+* Batch 15 authorization and approval service.
+* Batch 16 database infrastructure.
+* Batch 17 task repository.
+* Existing event bus.
+* Existing audit interface.
+
+Use real component integrations wherever possible. Explicitly label any unavoidable mocks.
+
+### G. Failure injection tests
+
+Test:
+
+* Database unavailable during request creation.
+* Database unavailable during decision processing.
+* Transaction commit failure.
+* Audit subsystem failure.
+* Event subscriber failure.
+* Task synchronization failure.
+* Duplicate event delivery.
+* Invalid stored approval data.
+* Startup recovery failure.
+
+Verify that no failed operation is falsely reported as successful.
+
+---
+
+# 17. CODE QUALITY AND ARCHITECTURE
+
+Follow the repository's established architecture and coding standards.
+
+Requirements:
+
+* Python type annotations.
+* Clear separation of repository and service responsibilities.
+* Dependency injection consistent with the existing project.
+* No circular imports.
+* No duplicate approval managers.
+* No direct SQL scattered throughout unrelated services.
+* No import-time database initialization.
+* No hardcoded secrets.
+* No unexplained broad exception suppression.
+* No placeholder methods presented as complete.
+* No fake test results.
+* No unnecessary dependencies.
+
+Use existing libraries and interfaces whenever possible.
+
+Do not introduce a new ORM, workflow engine, database, or policy framework without demonstrating a genuine requirement and obtaining approval.
+
+Keep the implementation compatible with the existing Windows deployment target.
+
+Respect the established RAM limit of 8 GB and avoid unnecessary background workers.
+
+---
+
+# 18. MCP RESTRICTION
+
+Do not implement MCP in this batch.
+
+Do not add MCP servers, clients, adapters, configuration, or dependencies.
+
+MCP will be implemented in its designated later phase.
+
+The approval system must remain independent of MCP. No future MCP integration may bypass authentication, authorization, approval, audit, or verification.
+
+---
+
+# 19. DOCUMENTATION
+
+Update the relevant technical documentation.
+
+Document:
+
+1. Approval persistence architecture.
+2. Approval schema and migration.
+3. Approval lifecycle and permitted transitions.
+4. Repository and service responsibilities.
+5. Decision authorization flow.
+6. Action fingerprint and scope enforcement.
+7. Expiry and restart recovery.
+8. Task manager integration.
+9. Event and audit integration.
+10. Concurrency guarantees and limitations.
+11. Known limitations.
+12. Test commands and actual results.
+
+Update the README only if it contains information directly affected by this batch.
+
+Do not rewrite unrelated documentation.
+
+---
+
+# 20. VERIFICATION AND EXECUTION
+
+After implementation, execute the actual available checks.
+
+At minimum:
+
+1. Run the relevant existing tests before and after changes.
+2. Run all new unit tests.
+3. Run database integration tests.
+4. Run approval security tests.
+5. Run concurrency tests.
+6. Run restart and recovery tests.
+7. Run task integration tests.
+8. Run the project's linting and formatting checks.
+9. Run static type checking if configured.
+10. Run the established quality gate.
+
+Use the exact commands configured in the repository.
+
+Do not claim that a test passed if it was skipped, mocked, or never executed.
+
+If a test cannot run because of missing dependencies or environment limitations, report it as BLOCKED, not PASSED.
+
+Do not change test expectations merely to achieve a green test suite.
+
+Do not claim production readiness based on this batch alone.
+
+---
+
+# 21. FINAL IMPLEMENTATION REPORT
+
+At the end, produce a factual implementation report with these sections:
+
+### A. Baseline
+
+* Existing approval implementation.
+* Existing database schema and migration version.
+* Baseline test results.
+* Existing defects.
+
+### B. Implementation
+
+* Files created.
+* Files modified.
+* Database migrations added.
+* Interfaces reused.
+* Approval lifecycle functionality implemented.
+
+### C. Integration
+
+Report separately on:
+
+* Batch 15 authorization integration.
+* Batch 16 database integration.
+* Batch 17 task integration.
+* Event bus integration.
+* Audit integration.
+
+### D. Tests
+
+For each test category, provide:
+
+* Exact command.
+* Tests collected.
+* Tests executed.
+* Passed.
+* Failed.
+* Skipped.
+* Blocked.
+
+Include relevant error messages for failures.
+
+### E. Security Verification
+
+Report the actual results of:
+
+* Unauthorized decision tests.
+* Scope and fingerprint tests.
+* Duplicate decision tests.
+* Concurrency tests.
+* Session and lockout tests.
+* Sensitive data exposure checks.
+
+### F. Known Limitations
+
+List all remaining:
+
+* STUB components.
+* MOCK integrations.
+* PARTIAL implementations.
+* UNIMPLEMENTED requirements.
+* BROKEN components.
+* BLOCKED tests.
+* Unresolved security issues.
+
+Do not omit known failures.
+
+### G. Final Status
+
+Choose exactly one:
+
+* IMPLEMENTED AND VERIFIED
+* IMPLEMENTED, VERIFICATION INCOMPLETE
+* PARTIALLY IMPLEMENTED
+* BLOCKED
+* FAILED
+
+A status of IMPLEMENTED AND VERIFIED is allowed only if all mandatory requirements have been implemented and the corresponding tests have actually passed.
+
+Do not use percentages or unsupported confidence scores.
+
+Do not proceed to Batch 19 automatically.
+
+Wait for explicit instructions before starting the next batch.
+
+---
+
+# FINAL ENGINEERING RULE
+
+The objective is a reliable approval system that survives restarts, rejects unauthorized decisions, prevents duplicate approvals, and preserves a verifiable history.
+
+A successful import, a green unit-test subset, or a well-written implementation report is not sufficient evidence of correctness.
+
+Implement the actual functionality, test the real persistence and integration paths, report the evidence, and disclose every unresolved issue.

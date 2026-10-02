@@ -121,17 +121,70 @@ class ApprovalRequest(BaseModel):
     target_resource: str = Field(..., min_length=1)
     exact_scope: str = Field(..., min_length=1)
     risk_level: RiskLevel = RiskLevel.MEDIUM
-    reason: str = Field(..., min_length=1)
+    reason: str = Field(default="Approval required", min_length=1)
     task_id: Optional[str] = None
+
     correlation_id: str = Field(default_factory=lambda: f"corr-{uuid.uuid4().hex[:12]}")
     created_at: float = Field(default_factory=time.time)
     expires_at: float
     status: ApprovalStatus = ApprovalStatus.PENDING
     approver_id: Optional[str] = None
     decision_timestamp: Optional[float] = None
+    decided_at: Optional[float] = None
+    cancelled_at: Optional[float] = None
+    decision_reason: Optional[str] = None
     consumed_at: Optional[float] = None
     consumed_by_task_id: Optional[str] = None
     operation_fingerprint: Optional[str] = None
+    request_fingerprint: Optional[str] = None
+    policy_version: Optional[str] = "1.0.0"
+    version: int = Field(default=1, ge=1)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def requester_id(self) -> str:
+        return self.principal_id
+
+    @property
+    def action_type(self) -> str:
+        return self.requested_action
+
+    @property
+    def resource_type(self) -> str:
+        return self.target_resource
+
+    @property
+    def description(self) -> str:
+        return self.reason
+
+    @property
+    def approval_scope(self) -> str:
+        return self.exact_scope
+
+    @property
+    def requested_at(self) -> float:
+        return self.created_at
+
+
+class ApprovalDecisionRecord(BaseModel):
+    decision_id: str = Field(default_factory=lambda: f"decrec-{uuid.uuid4().hex[:12]}")
+    approval_id: str = Field(..., min_length=1)
+    approver_id: str = Field(..., min_length=1)
+    decision: ApprovalStatus
+    decision_reason: Optional[str] = None
+    decided_at: float = Field(default_factory=time.time)
+    version_at_decision: int = Field(default=1, ge=1)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ApprovalHistoryEntry(BaseModel):
+    history_id: str = Field(default_factory=lambda: f"hist-{uuid.uuid4().hex[:12]}")
+    approval_id: str = Field(..., min_length=1)
+    previous_status: Optional[ApprovalStatus] = None
+    new_status: ApprovalStatus
+    transition_reason: str = Field(..., min_length=1)
+    actor_id: Optional[str] = None
+    timestamp: float = Field(default_factory=time.time)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -149,3 +202,4 @@ class ScopedApproval(BaseModel):
     used_count: int = Field(default=0, ge=0)
     created_at: float = Field(default_factory=time.time)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+

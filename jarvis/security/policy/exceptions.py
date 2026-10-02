@@ -53,6 +53,31 @@ class ApprovalInvalidError(ApprovalError):
     pass
 
 
+class InvalidStateTransitionError(ApprovalInvalidError):
+    """Raised when an illegal status transition is requested for an approval."""
+
+    pass
+
+
+class DuplicateDecisionError(ApprovalInvalidError):
+    """Raised when a decision is submitted for an approval that already has a decision."""
+
+    pass
+
+
+class StaleApprovalVersionError(ApprovalInvalidError):
+    """Raised when an optimistic concurrency version check fails."""
+
+    pass
+
+
+class FingerprintMismatchError(ApprovalInvalidError):
+    """Raised when an action fingerprint does not match the approved request."""
+
+    pass
+
+
+
 class ScopeViolationError(PolicyError):
     """Raised when an action or path violates the allowed authorization scope."""
 

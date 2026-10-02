@@ -26,7 +26,8 @@ from jarvis.core.tasks.exceptions import (
     TaskDuplicateIdempotencyError,
     TaskAuthorizationError,
 )
-from jarvis.security.policy import PolicyEngine, AuthorizationRequest, Principal
+from jarvis.security.policy import PolicyEngine, ApprovalEngine, PolicyRepository, AuthorizationRequest, Principal
+
 
 
 class TaskManager(LifecycleComponent):
@@ -46,8 +47,11 @@ class TaskManager(LifecycleComponent):
     ) -> None:
         self.repository = repository or TaskRepository(db_path=db_path)
         self.event_bus = event_bus
-        self.policy_engine = policy_engine or PolicyEngine()
+        self.policy_engine = policy_engine or PolicyEngine(
+            approval_engine=ApprovalEngine(repository=PolicyRepository(db_path=db_path))
+        )
         self.logger = logger or JarvisLogger(component="TaskManager")
+
 
         self.event_publisher = TaskEventPublisher(event_bus=self.event_bus)
         self.recovery_service = TaskRecoveryService(
@@ -337,10 +341,51 @@ class TaskManager(LifecycleComponent):
     def get_history(self, task_id: str) -> List[TaskHistoryEntry]:
         return self.get_task_history(task_id)
 
+    def handle_approval_decision(
+        self,
+        task_id: str,
+        approval_id: str,
+        decision: Any,
+    ) -> Optional[TaskRecord]:
+        """
+        Synchronize task state when an approval decision (APPROVED, REJECTED, EXPIRED, CANCELLED) is recorded.
+        """
+        task = self.repository.get_task(task_id)
+        if not task:
+            return None
+
+        if task.status in (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED):
+            return task
+
+        dec_val = decision.value if hasattr(decision, "value") else str(decision)
+
+        if dec_val == "APPROVED":
+            if task.status in (TaskStatus.WAITING_APPROVAL, TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING):
+                dep_state = self.recovery_service.check_dependencies_satisfied(task_id)
+                to_status = TaskStatus.READY if dep_state == "SATISFIED" else TaskStatus.WAITING_DEPENDENCY
+                return self.transition_task(
+                    task_id=task_id,
+                    to_status=to_status,
+                    reason=f"Approval '{approval_id}' granted",
+                    actor_id="approval_engine",
+                )
+        elif dec_val in ("REJECTED", "EXPIRED", "CANCELLED"):
+            if task.status in (TaskStatus.WAITING_APPROVAL, TaskStatus.PENDING, TaskStatus.QUEUED, TaskStatus.RUNNING):
+                target_status = TaskStatus.CANCELLED if dec_val == "CANCELLED" else TaskStatus.BLOCKED
+                return self.transition_task(
+                    task_id=task_id,
+                    to_status=target_status,
+                    reason=f"Approval '{approval_id}' {dec_val.lower()}",
+                    actor_id="approval_engine",
+                )
+
+        return task
+
     def recover_tasks(self) -> TaskRecoveryReport:
         return self.recovery_service.recover_tasks()
 
     async def health(self) -> HealthStatusContract:
+
         from jarvis.core.enums import HealthState
 
         return HealthStatusContract(

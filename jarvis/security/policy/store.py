@@ -1,5 +1,6 @@
 """
-SQLite Persistent Repository for JARVIS Approvals and Policy State (Batch 15).
+SQLite Persistent Repository for JARVIS Approvals and Policy State (Batch 15 & Batch 18).
+Thread-safe, transaction-safe SQLite database integration using DatabaseManager / DatabaseSettings foundation.
 """
 
 import json
@@ -8,30 +9,43 @@ import sqlite3
 import threading
 import time
 from contextlib import contextmanager
-from typing import List, Optional, Any, Generator
+from typing import List, Optional, Any, Generator, Dict
+
+from jarvis.database.settings import DatabaseSettings
+from jarvis.database.migrations.runner import MigrationRunner
 from jarvis.security.policy.models import (
     ApprovalRequest,
     ApprovalStatus,
     ScopedApproval,
     PrincipalType,
     RiskLevel,
+    ApprovalDecisionRecord,
+    ApprovalHistoryEntry,
 )
 from jarvis.security.policy.exceptions import (
     ApprovalNotFoundError,
     ApprovalAlreadyConsumedError,
     ApprovalExpiredError,
     ApprovalInvalidError,
+    StaleApprovalVersionError,
+    DuplicateDecisionError,
 )
+from jarvis.security.policy.state_machine import ApprovalStateMachine
 
 
 class PolicyRepository:
     """
-    Thread-safe SQLite persistent repository for approvals, scoped approvals, and policy audit logs.
-    Enforces atomic state transitions and single-use approval consumption.
+    Thread-safe SQLite persistent repository for approvals, approval decisions,
+    approval history, scoped approvals, and policy state.
+
+    Enforces atomic state transitions, optimistic concurrency versioning,
+    deterministic queries with pagination, and restart-safe recovery.
     """
 
-    def __init__(self, db_path: str = "data/jarvis_policy.db") -> None:
+    def __init__(self, db_path: str = "data/jarvis.db", db_manager: Optional[Any] = None) -> None:
         self.db_path = db_path
+        self.db_manager = db_manager
+        self.settings = DatabaseSettings(db_path=self.db_path)
         self._lock = threading.Lock()
 
         if self.db_path != ":memory:":
@@ -59,67 +73,19 @@ class PolicyRepository:
     def _init_db(self) -> None:
         with self._lock:
             with self._connection_scope() as conn:
-                conn.executescript(
-                    """
-                    CREATE TABLE IF NOT EXISTS approvals (
-                        approval_id TEXT PRIMARY KEY,
-                        principal_id TEXT NOT NULL,
-                        principal_type TEXT NOT NULL,
-                        requested_action TEXT NOT NULL,
-                        target_resource TEXT NOT NULL,
-                        exact_scope TEXT NOT NULL,
-                        risk_level TEXT NOT NULL,
-                        reason TEXT NOT NULL,
-                        task_id TEXT,
-                        correlation_id TEXT NOT NULL,
-                        created_at REAL NOT NULL,
-                        expires_at REAL NOT NULL,
-                        status TEXT NOT NULL,
-                        approver_id TEXT,
-                        decision_timestamp REAL,
-                        consumed_at REAL,
-                        consumed_by_task_id TEXT,
-                        operation_fingerprint TEXT,
-                        metadata TEXT NOT NULL
-                    );
+                runner = MigrationRunner(settings=self.settings)
+                runner.discover_and_apply_pending(conn)
 
-                    CREATE TABLE IF NOT EXISTS scoped_approvals (
-                        approval_id TEXT PRIMARY KEY,
-                        principal_id TEXT NOT NULL,
-                        principal_type_class TEXT,
-                        task_id TEXT,
-                        allowed_actions TEXT NOT NULL,
-                        allowed_resources TEXT NOT NULL,
-                        max_risk_level TEXT NOT NULL,
-                        expires_at REAL NOT NULL,
-                        delegation_permitted INTEGER NOT NULL DEFAULT 0,
-                        max_uses INTEGER,
-                        used_count INTEGER NOT NULL DEFAULT 0,
-                        created_at REAL NOT NULL,
-                        metadata TEXT NOT NULL
-                    );
-
-                    CREATE TABLE IF NOT EXISTS approval_audit_history (
-                        history_id TEXT PRIMARY KEY,
-                        approval_id TEXT NOT NULL,
-                        from_status TEXT NOT NULL,
-                        to_status TEXT NOT NULL,
-                        actor_id TEXT NOT NULL,
-                        timestamp REAL NOT NULL,
-                        reason TEXT,
-                        metadata TEXT NOT NULL
-                    );
-
-                    CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(status);
-                    CREATE INDEX IF NOT EXISTS idx_approvals_principal ON approvals(principal_id);
-                    CREATE INDEX IF NOT EXISTS idx_approvals_task ON approvals(task_id);
-                    CREATE INDEX IF NOT EXISTS idx_scoped_principal ON scoped_approvals(principal_id);
-                    CREATE INDEX IF NOT EXISTS idx_scoped_task ON scoped_approvals(task_id);
-                    """
-                )
-                conn.commit()
+    def _row_to_approval(self, row: sqlite3.Row) -> ApprovalRequest:
+        d = dict(row)
+        d["principal_type"] = PrincipalType(d["principal_type"])
+        d["risk_level"] = RiskLevel(d["risk_level"])
+        d["status"] = ApprovalStatus(d["status"])
+        d["metadata"] = json.loads(d["metadata"]) if d.get("metadata") else {}
+        return ApprovalRequest(**d)
 
     def save_approval_request(self, req: ApprovalRequest) -> ApprovalRequest:
+        """Persist a new approval request."""
         with self._lock:
             with self._connection_scope() as conn:
                 cursor = conn.cursor()
@@ -127,15 +93,19 @@ class PolicyRepository:
                 if cursor.fetchone():
                     raise ValueError(f"Approval with ID '{req.approval_id}' already exists.")
 
+                req_fingerprint = req.request_fingerprint or req.operation_fingerprint
+                now = req.created_at or time.time()
+
                 cursor.execute(
                     """
                     INSERT INTO approvals (
                         approval_id, principal_id, principal_type, requested_action,
                         target_resource, exact_scope, risk_level, reason, task_id,
                         correlation_id, created_at, expires_at, status, approver_id,
-                        decision_timestamp, consumed_at, consumed_by_task_id,
-                        operation_fingerprint, metadata
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        decision_timestamp, decided_at, cancelled_at, decision_reason,
+                        consumed_at, consumed_by_task_id, operation_fingerprint,
+                        request_fingerprint, policy_version, version, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         req.approval_id,
@@ -148,17 +118,45 @@ class PolicyRepository:
                         req.reason,
                         req.task_id,
                         req.correlation_id,
-                        req.created_at,
+                        now,
                         req.expires_at,
                         req.status.value,
                         req.approver_id,
-                        req.decision_timestamp,
+                        req.decision_timestamp or req.decided_at,
+                        req.decided_at or req.decision_timestamp,
+                        req.cancelled_at,
+                        req.decision_reason,
                         req.consumed_at,
                         req.consumed_by_task_id,
                         req.operation_fingerprint,
+                        req_fingerprint,
+                        req.policy_version or "1.0.0",
+                        req.version,
                         json.dumps(req.metadata),
                     ),
                 )
+
+                # Record initial history
+                hist_id = f"hist-{os.urandom(6).hex()}"
+                cursor.execute(
+                    """
+                    INSERT INTO approval_history (
+                        history_id, approval_id, previous_status, new_status,
+                        transition_reason, actor_id, timestamp, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        hist_id,
+                        req.approval_id,
+                        None,
+                        req.status.value,
+                        "Approval request created",
+                        req.principal_id,
+                        now,
+                        json.dumps({"task_id": req.task_id}),
+                    ),
+                )
+
                 conn.commit()
                 return req
 
@@ -168,16 +166,27 @@ class PolicyRepository:
                 cursor = conn.cursor()
                 cursor.execute("SELECT * FROM approvals WHERE approval_id = ?", (approval_id,))
                 row = cursor.fetchone()
-                if not row:
-                    return None
-                d = dict(row)
-                d["principal_type"] = PrincipalType(d["principal_type"])
-                d["risk_level"] = RiskLevel(d["risk_level"])
-                d["status"] = ApprovalStatus(d["status"])
-                d["metadata"] = json.loads(d["metadata"]) if d.get("metadata") else {}
-                return ApprovalRequest(**d)
+                return self._row_to_approval(row) if row else None
 
-    def list_pending_approvals(self, principal_id: Optional[str] = None, task_id: Optional[str] = None) -> List[ApprovalRequest]:
+    def get_approvals_by_task_id(self, task_id: str) -> List[ApprovalRequest]:
+        with self._lock:
+            with self._connection_scope() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM approvals WHERE task_id = ? ORDER BY created_at ASC", (task_id,))
+                return [self._row_to_approval(row) for row in cursor.fetchall()]
+
+    def get_approvals_by_requester(self, principal_id: str) -> List[ApprovalRequest]:
+        with self._lock:
+            with self._connection_scope() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM approvals WHERE principal_id = ? ORDER BY created_at ASC", (principal_id,))
+                return [self._row_to_approval(row) for row in cursor.fetchall()]
+
+    def list_pending_approvals(
+        self,
+        principal_id: Optional[str] = None,
+        task_id: Optional[str] = None,
+    ) -> List[ApprovalRequest]:
         with self._lock:
             with self._connection_scope() as conn:
                 query = "SELECT * FROM approvals WHERE status = ?"
@@ -192,15 +201,38 @@ class PolicyRepository:
                 query += " ORDER BY created_at ASC"
                 cursor = conn.cursor()
                 cursor.execute(query, params)
-                res = []
-                for row in cursor.fetchall():
-                    d = dict(row)
-                    d["principal_type"] = PrincipalType(d["principal_type"])
-                    d["risk_level"] = RiskLevel(d["risk_level"])
-                    d["status"] = ApprovalStatus(d["status"])
-                    d["metadata"] = json.loads(d["metadata"]) if d.get("metadata") else {}
-                    res.append(ApprovalRequest(**d))
-                return res
+                return [self._row_to_approval(row) for row in cursor.fetchall()]
+
+    def list_approvals_by_status(
+        self,
+        status: ApprovalStatus,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[ApprovalRequest]:
+        with self._lock:
+            with self._connection_scope() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT * FROM approvals WHERE status = ? ORDER BY created_at DESC, approval_id ASC LIMIT ? OFFSET ?",
+                    (status.value, limit, offset),
+                )
+                return [self._row_to_approval(row) for row in cursor.fetchall()]
+
+    def list_approvals_in_time_range(
+        self,
+        start_time: float,
+        end_time: float,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[ApprovalRequest]:
+        with self._lock:
+            with self._connection_scope() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT * FROM approvals WHERE created_at >= ? AND created_at <= ? ORDER BY created_at ASC, approval_id ASC LIMIT ? OFFSET ?",
+                    (start_time, end_time, limit, offset),
+                )
+                return [self._row_to_approval(row) for row in cursor.fetchall()]
 
     def update_approval_status(
         self,
@@ -208,7 +240,11 @@ class PolicyRepository:
         new_status: ApprovalStatus,
         approver_id: Optional[str] = None,
         reason: Optional[str] = None,
+        expected_version: Optional[int] = None,
     ) -> ApprovalRequest:
+        """
+        Transactional status update with state machine validation and optimistic concurrency control.
+        """
         with self._lock:
             with self._connection_scope() as conn:
                 cursor = conn.cursor()
@@ -217,25 +253,102 @@ class PolicyRepository:
                 if not row:
                     raise ApprovalNotFoundError(f"Approval request '{approval_id}' not found.")
 
-                current_status = ApprovalStatus(row["status"])
-                now = time.time()
+                current_approval = self._row_to_approval(row)
+                current_status = current_approval.status
+                current_version = current_approval.version
 
-                if current_status in [ApprovalStatus.REJECTED, ApprovalStatus.EXPIRED, ApprovalStatus.CANCELLED, ApprovalStatus.CONSUMED]:
-                    raise ApprovalInvalidError(f"Cannot transition approval from terminal state '{current_status.value}'.")
+                # Version check
+                if expected_version is not None and expected_version != current_version:
+                    raise StaleApprovalVersionError(
+                        f"Stale version for approval '{approval_id}': expected {expected_version}, current {current_version}."
+                    )
+
+                # State machine transition check
+                ApprovalStateMachine.validate_transition(current_status, new_status)
+
+                now = time.time()
+                new_version = current_version + 1
+                decided_at = current_approval.decided_at
+                cancelled_at = current_approval.cancelled_at
+
+                if new_status in (ApprovalStatus.APPROVED, ApprovalStatus.REJECTED):
+                    decided_at = now
+                elif new_status == ApprovalStatus.CANCELLED:
+                    cancelled_at = now
 
                 cursor.execute(
                     """
-                    UPDATE approvals SET status = ?, approver_id = ?, decision_timestamp = ?
-                    WHERE approval_id = ?
+                    UPDATE approvals SET
+                        status = ?, approver_id = ?, decision_timestamp = ?,
+                        decided_at = ?, cancelled_at = ?, decision_reason = ?,
+                        version = ?
+                    WHERE approval_id = ? AND version = ?
                     """,
-                    (new_status.value, approver_id, now, approval_id),
+                    (
+                        new_status.value,
+                        approver_id or current_approval.approver_id,
+                        decided_at,
+                        decided_at,
+                        cancelled_at,
+                        reason or current_approval.decision_reason,
+                        new_version,
+                        approval_id,
+                        current_version,
+                    ),
                 )
+
+                if cursor.rowcount == 0:
+                    raise StaleApprovalVersionError(f"Optimistic lock conflict updating approval '{approval_id}'.")
+
+                # Insert decision record if terminal decision
+                if new_status in (ApprovalStatus.APPROVED, ApprovalStatus.REJECTED, ApprovalStatus.CANCELLED):
+                    dec_id = f"decrec-{os.urandom(6).hex()}"
+                    cursor.execute(
+                        """
+                        INSERT INTO approval_decisions (
+                            decision_id, approval_id, approver_id, decision,
+                            decision_reason, decided_at, version_at_decision, metadata
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            dec_id,
+                            approval_id,
+                            approver_id or "system",
+                            new_status.value,
+                            reason,
+                            now,
+                            new_version,
+                            json.dumps({}),
+                        ),
+                    )
+
+                # Insert history entry
+                hist_id = f"hist-{os.urandom(6).hex()}"
+                cursor.execute(
+                    """
+                    INSERT INTO approval_history (
+                        history_id, approval_id, previous_status, new_status,
+                        transition_reason, actor_id, timestamp, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        hist_id,
+                        approval_id,
+                        current_status.value,
+                        new_status.value,
+                        reason or f"Transitioned to {new_status.value}",
+                        approver_id or "system",
+                        now,
+                        json.dumps({}),
+                    ),
+                )
+
                 conn.commit()
 
-        req = self.get_approval_request(approval_id)
-        if not req:
-            raise ApprovalNotFoundError(f"Approval request '{approval_id}' not found after update.")
-        return req
+        updated = self.get_approval_request(approval_id)
+        if not updated:
+            raise ApprovalNotFoundError(f"Approval request '{approval_id}' missing post update.")
+        return updated
 
     def consume_approval_atomically(
         self,
@@ -243,8 +356,7 @@ class PolicyRepository:
         consumer_task_id: Optional[str] = None,
     ) -> ApprovalRequest:
         """
-        Atomically consume an APPROVED request in a single atomic SQL transaction.
-        Fails if status is not APPROVED, or if already consumed/expired/rejected.
+        Atomically consume an APPROVED request.
         """
         with self._lock:
             with self._connection_scope() as conn:
@@ -254,37 +366,187 @@ class PolicyRepository:
                 if not row:
                     raise ApprovalNotFoundError(f"Approval request '{approval_id}' not found.")
 
-                d = dict(row)
-                status = ApprovalStatus(d["status"])
-                expires_at = d["expires_at"]
+                curr = self._row_to_approval(row)
                 now = time.time()
 
-                if now > expires_at:
-                    cursor.execute("UPDATE approvals SET status = ? WHERE approval_id = ?", (ApprovalStatus.EXPIRED.value, approval_id))
-                    conn.commit()
-                    raise ApprovalExpiredError(f"Approval '{approval_id}' expired at {expires_at}.")
+                if now >= curr.expires_at:
+                    self.update_approval_status(approval_id, ApprovalStatus.EXPIRED, reason="Expired prior to consumption")
+                    raise ApprovalExpiredError(f"Approval '{approval_id}' expired at {curr.expires_at}.")
 
-                if status == ApprovalStatus.CONSUMED:
+                if curr.status == ApprovalStatus.CONSUMED:
                     raise ApprovalAlreadyConsumedError(f"Approval '{approval_id}' has already been consumed.")
 
-                if status != ApprovalStatus.APPROVED:
-                    raise ApprovalInvalidError(f"Cannot consume approval '{approval_id}' in state '{status.value}'. Must be APPROVED.")
+                if curr.status != ApprovalStatus.APPROVED:
+                    raise ApprovalInvalidError(f"Cannot consume approval '{approval_id}' in state '{curr.status.value}'. Must be APPROVED.")
+
+                new_version = curr.version + 1
+                cursor.execute(
+                    """
+                    UPDATE approvals SET status = ?, consumed_at = ?, consumed_by_task_id = ?, version = ?
+                    WHERE approval_id = ? AND version = ? AND status = ?
+                    """,
+                    (
+                        ApprovalStatus.CONSUMED.value,
+                        now,
+                        consumer_task_id,
+                        new_version,
+                        approval_id,
+                        curr.version,
+                        ApprovalStatus.APPROVED.value,
+                    ),
+                )
+                if cursor.rowcount == 0:
+                    raise ApprovalAlreadyConsumedError(f"Concurrent consumption lock failed for approval '{approval_id}'.")
+
+                hist_id = f"hist-{os.urandom(6).hex()}"
+                cursor.execute(
+                    """
+                    INSERT INTO approval_history (
+                        history_id, approval_id, previous_status, new_status,
+                        transition_reason, actor_id, timestamp, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        hist_id,
+                        approval_id,
+                        ApprovalStatus.APPROVED.value,
+                        ApprovalStatus.CONSUMED.value,
+                        "Consumed by task execution",
+                        consumer_task_id or "task",
+                        now,
+                        json.dumps({"consumed_by_task_id": consumer_task_id}),
+                    ),
+                )
+                conn.commit()
+
+        updated = self.get_approval_request(approval_id)
+        if not updated:
+            raise ApprovalNotFoundError(f"Approval request '{approval_id}' missing post consumption.")
+        return updated
+
+    def get_approval_history(self, approval_id: str) -> List[ApprovalHistoryEntry]:
+        with self._lock:
+            with self._connection_scope() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT * FROM approval_history WHERE approval_id = ? ORDER BY timestamp ASC",
+                    (approval_id,),
+                )
+                res = []
+                for row in cursor.fetchall():
+                    d = dict(row)
+                    d["previous_status"] = ApprovalStatus(d["previous_status"]) if d.get("previous_status") else None
+                    d["new_status"] = ApprovalStatus(d["new_status"])
+                    d["metadata"] = json.loads(d["metadata"]) if d.get("metadata") else {}
+                    res.append(ApprovalHistoryEntry(**d))
+                return res
+
+    def get_approval_decisions(self, approval_id: str) -> List[ApprovalDecisionRecord]:
+        with self._lock:
+            with self._connection_scope() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT * FROM approval_decisions WHERE approval_id = ? ORDER BY decided_at ASC",
+                    (approval_id,),
+                )
+                res = []
+                for row in cursor.fetchall():
+                    d = dict(row)
+                    d["decision"] = ApprovalStatus(d["decision"])
+                    d["metadata"] = json.loads(d["metadata"]) if d.get("metadata") else {}
+                    res.append(ApprovalDecisionRecord(**d))
+                return res
+
+    def record_decision(self, record: ApprovalDecisionRecord) -> ApprovalDecisionRecord:
+        with self._lock:
+            with self._connection_scope() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT decision_id FROM approval_decisions WHERE decision_id = ?", (record.decision_id,))
+                if cursor.fetchone():
+                    raise DuplicateDecisionError(f"Decision record '{record.decision_id}' already exists.")
 
                 cursor.execute(
                     """
-                    UPDATE approvals SET status = ?, consumed_at = ?, consumed_by_task_id = ?
-                    WHERE approval_id = ? AND status = ?
+                    INSERT INTO approval_decisions (
+                        decision_id, approval_id, approver_id, decision,
+                        decision_reason, decided_at, version_at_decision, metadata
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (ApprovalStatus.CONSUMED.value, now, consumer_task_id, approval_id, ApprovalStatus.APPROVED.value),
+                    (
+                        record.decision_id,
+                        record.approval_id,
+                        record.approver_id,
+                        record.decision.value,
+                        record.decision_reason,
+                        record.decided_at,
+                        record.version_at_decision,
+                        json.dumps(record.metadata),
+                    ),
                 )
-                if cursor.rowcount == 0:
-                    raise ApprovalAlreadyConsumedError(f"Concurrent consumption failed for approval '{approval_id}'.")
                 conn.commit()
+                return record
 
-        req = self.get_approval_request(approval_id)
-        if not req:
-            raise ApprovalNotFoundError(f"Approval request '{approval_id}' missing post consumption.")
-        return req
+    def expire_outdated_approvals(self, now: Optional[float] = None) -> List[ApprovalRequest]:
+        """
+        Idempotent expiry of overdue pending approvals.
+        Returns the list of approval requests transitioned to EXPIRED.
+        """
+        current_time = now if now is not None else time.time()
+        expired_records: List[ApprovalRequest] = []
+
+        with self._lock:
+            with self._connection_scope() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT * FROM approvals WHERE status = ? AND expires_at <= ?",
+                    (ApprovalStatus.PENDING.value, current_time),
+                )
+                pending_expired_rows = cursor.fetchall()
+
+                for row in pending_expired_rows:
+                    appr = self._row_to_approval(row)
+                    new_version = appr.version + 1
+                    cursor.execute(
+                        """
+                        UPDATE approvals SET status = ?, decision_reason = ?, version = ?
+                        WHERE approval_id = ? AND version = ? AND status = ?
+                        """,
+                        (
+                            ApprovalStatus.EXPIRED.value,
+                            f"Expired at threshold {appr.expires_at}",
+                            new_version,
+                            appr.approval_id,
+                            appr.version,
+                            ApprovalStatus.PENDING.value,
+                        ),
+                    )
+                    if cursor.rowcount > 0:
+                        hist_id = f"hist-{os.urandom(6).hex()}"
+                        cursor.execute(
+                            """
+                            INSERT INTO approval_history (
+                                history_id, approval_id, previous_status, new_status,
+                                transition_reason, actor_id, timestamp, metadata
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                hist_id,
+                                appr.approval_id,
+                                ApprovalStatus.PENDING.value,
+                                ApprovalStatus.EXPIRED.value,
+                                "Automatic expiry during maintenance/startup recovery",
+                                "system",
+                                current_time,
+                                json.dumps({"expires_at": appr.expires_at}),
+                            ),
+                        )
+                        appr_dict = appr.model_dump()
+                        appr_dict["status"] = ApprovalStatus.EXPIRED
+                        appr_dict["version"] = new_version
+                        expired_records.append(ApprovalRequest(**appr_dict))
+
+                conn.commit()
+        return expired_records
 
     def save_scoped_approval(self, scoped: ScopedApproval) -> ScopedApproval:
         with self._lock:
@@ -344,16 +606,3 @@ class PolicyRepository:
             with self._connection_scope() as conn:
                 conn.execute("UPDATE scoped_approvals SET used_count = used_count + 1 WHERE approval_id = ?", (approval_id,))
                 conn.commit()
-
-    def expire_outdated_approvals(self) -> int:
-        now = time.time()
-        with self._lock:
-            with self._connection_scope() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE approvals SET status = ? WHERE status = ? AND expires_at <= ?",
-                    (ApprovalStatus.EXPIRED.value, ApprovalStatus.PENDING.value, now),
-                )
-                count = cursor.rowcount
-                conn.commit()
-                return count

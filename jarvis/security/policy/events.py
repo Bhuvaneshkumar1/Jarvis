@@ -28,6 +28,10 @@ class PolicyApprovalCreatedEvent(Event):
     event_type: str = "PolicyApprovalCreated"
 
 
+class PolicyApprovalRequestedEvent(Event):
+    event_type: str = "PolicyApprovalRequested"
+
+
 class PolicyApprovalApprovedEvent(Event):
     event_type: str = "PolicyApprovalApproved"
 
@@ -40,8 +44,13 @@ class PolicyApprovalExpiredEvent(Event):
     event_type: str = "PolicyApprovalExpired"
 
 
+class PolicyApprovalCancelledEvent(Event):
+    event_type: str = "PolicyApprovalCancelled"
+
+
 class PolicyApprovalConsumedEvent(Event):
     event_type: str = "PolicyApprovalConsumed"
+
 
 
 class PolicyScopeViolationEvent(Event):
