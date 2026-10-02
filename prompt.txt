@@ -23192,3 +23192,578 @@ It must support real providers without forcing the orchestrator to understand ve
 It must preserve security, privacy, cancellation, capability validation and error semantics across providers.
 
 A set of interfaces with empty methods is not an implementation. Build the functional provider infrastructure, validate it with executable tests, and report precisely what is and is not complete.
+
+ANTIGRAVITY IMPLEMENTATION PROMPT
+JARVIS — BATCH 21: NVIDIA NIM PROVIDER INTEGRATION
+ROLE
+Act as a senior Python AI infrastructure engineer, API integration specialist, security engineer and reliability engineer.
+You are implementing the NVIDIA NIM provider for JARVIS, a production-oriented autonomous personal AI operating system.
+This is Batch 21 of the planned 60-batch implementation.
+Your task is to implement a real, operational NVIDIA NIM provider using the unified LLM abstraction developed in Batch 20.
+The implementation must communicate with NVIDIA's actual API, securely retrieve credentials, discover available models, perform inference, support streaming and handle real API failures.
+Do not create a simulated NVIDIA client or claim that a provider works merely because its classes import successfully.
+1. INSPECT THE EXISTING PROJECT
+Before modifying anything, inspect the actual repository.
+Inspect:
+Batch 20: LLM Provider Abstraction.
+LLM provider contracts and registry.
+LLM request and response schemas.
+Model capability contracts.
+LLM exception hierarchy.
+Configuration loader.
+Secrets manager.
+Environment variable registry.
+Runtime lifecycle.
+Event bus.
+Logging and audit infrastructure.
+Existing tests and quality gates.
+Check the existing .env and .env.example configuration structure without printing secret values.
+Verify whether an NVIDIA API key is already configured.
+Do not assume the variable name. Inspect the existing configuration and preserve its established naming if appropriate.
+Run the existing relevant tests before making changes.
+Document the baseline results and any defects that could prevent integration.
+Do not create a competing provider registry, HTTP client manager, configuration manager or secrets manager.
+2. PRIMARY OBJECTIVE
+Implement a functional NVIDIA NIM provider with these capabilities:
+Secure API authentication.
+Actual NVIDIA API communication.
+Model discovery.
+Model selection and validation.
+Text generation.
+Streaming generation.
+Structured response handling where supported.
+Tool-call response parsing where supported.
+Usage and latency reporting.
+Provider health checks.
+Timeout and cancellation handling.
+Normalized error handling.
+Runtime lifecycle integration.
+Automated tests using both deterministic fixtures and real API tests when credentials and connectivity permit.
+Use NVIDIA's documented API endpoints and validate their current behavior during implementation.
+Official API references:
+[https://docs.api.nvidia.com/nim/reference/llm-apis](https://docs.api.nvidia.com/nim/reference/llm-apis)
+[https://docs.nvidia.com/nim/large-language-models/latest/get-started/quickstart.html](https://docs.nvidia.com/nim/large-language-models/latest/get-started/quickstart.html)
+The NVIDIA hosted inference API uses the following base URL:
+https://integrate.api.nvidia.com
+The standard chat completion endpoint is:
+POST /v1/chat/completions
+The model discovery endpoint is:
+GET /v1/models
+Use the actual configured API endpoint and model identifiers. Do not assume every NVIDIA-hosted model has identical capabilities.
+3. IMPLEMENT THE NVIDIA PROVIDER
+Create the NVIDIA provider within the existing LLM package.
+Follow the repository's naming conventions. A suitable conceptual structure is:
+llm/ ├── contracts/ ├── providers/ │ ├── base.py │ ├── nvidia.py │ └── __init__.py ├── registry.py ├── factory.py └── exceptions.py
+This is a conceptual layout. Follow the actual repository architecture if it differs.
+Implement a real NVIDIAProvider that satisfies the Batch 20 provider interface.
+It must implement all mandatory provider methods supported by the existing abstraction.
+Do not duplicate common validation or provider lifecycle logic unnecessarily.
+Use dependency injection for the HTTP client and secrets access.
+Avoid module-level API calls and import-time initialization.
+4. API CREDENTIAL MANAGEMENT
+Use the NVIDIA API key already configured in the local .env file, if present.
+Inspect the existing variable registry before adding a new variable.
+If a compatible variable already exists, reuse it.
+Otherwise, introduce a clearly named variable, such as:
+NVIDIA_API_KEY
+Add its name to .env.example without including an actual secret.
+Example:
+NVIDIA_API_KEY= NVIDIA_BASE_URL=https://integrate.api.nvidia.com NVIDIA_DEFAULT_MODEL= NVIDIA_TIMEOUT_SECONDS=60 NVIDIA_ENABLED=false
+Adapt these names to the existing configuration conventions. Do not create duplicate variables.
+Requirements:
+Retrieve the key through the established secrets or configuration mechanism.
+Never hardcode the key.
+Never print the key.
+Never include it in exception messages.
+Never expose it in HTTP debug logs.
+Never include it in test snapshots.
+Never write it to the database as plaintext.
+Do not overwrite an existing valid key.
+Validate missing credentials when the provider is enabled.
+Do not require NVIDIA credentials when the provider is disabled.
+Use the required authentication header:
+Authorization: Bearer <NVIDIA_API_KEY>
+Ensure HTTPS is mandatory for the hosted NVIDIA endpoint.
+If custom endpoints are supported for self-hosted NIM deployments, validate them through the existing endpoint security policy. Do not allow arbitrary insecure remote endpoints.
+5. REAL NVIDIA API CLIENT
+Implement the actual HTTP integration.
+Use the project's existing asynchronous HTTP client if one exists. Otherwise, select a suitable maintained asynchronous HTTP library compatible with the project.
+Do not introduce multiple competing HTTP client implementations.
+Requirements:
+Explicit connection timeout.
+Explicit read timeout.
+Explicit overall request timeout.
+Connection pooling.
+Bounded concurrent requests.
+TLS certificate verification.
+Clean resource shutdown.
+Cancellation propagation.
+Safe response parsing.
+Bounded error-body processing.
+Do not disable TLS verification to make requests succeed.
+Do not retry non-idempotent operations indiscriminately.
+Keep transport logic separate from response normalization.
+The HTTP client must be injectable so that tests can use deterministic transports without sending real API requests.
+6. NVIDIA MODEL DISCOVERY
+Implement actual model discovery using:
+GET /v1/models
+Parse the returned model list according to the real response schema.
+For each model, capture available fields such as:
+Model ID.
+Object type.
+Provider or ownership information, when supplied.
+Creation metadata, when supplied.
+Other useful documented fields.
+Do not assume optional fields are always present.
+Validate the response before updating the internal model catalogue.
+Requirements:
+Retrieve the actual available models.
+Validate the response structure.
+Reject malformed responses.
+Normalize model identifiers.
+Deduplicate model entries.
+Preserve the provider's original model identifier.
+Report unavailable or inaccessible model listings accurately.
+Cache successful model discovery using a configurable TTL.
+Avoid unnecessary repeated API requests.
+Allow an explicit refresh.
+Do not present stale cached results as freshly verified results.
+Do not fabricate a model catalogue when the API is unavailable.
+If model discovery fails but a configured model ID exists, report the discovery failure separately. Allow a direct inference attempt only if the established policy permits it.
+Do not assume that every model shown by a catalogue is accessible using the user's current account.
+7. MODEL CAPABILITY DETECTION
+Integrate the NVIDIA models with the Batch 20 capability contract.
+Track capabilities such as:
+Text generation.
+Streaming.
+Structured JSON output.
+Tool calling.
+Vision input.
+Reasoning-related options, when supported.
+Context window.
+Maximum output tokens.
+Use documented NVIDIA model information and verified API behavior.
+Do not infer capabilities solely from a model name.
+For capabilities that cannot be reliably discovered, use UNKNOWN.
+Maintain a separation between:
+Provider-level supported capabilities.
+Model-specific capabilities.
+Features verified through actual inference tests.
+Before sending a request, validate the requested features against the selected model's known capabilities.
+Reject unsupported requests with a normalized UnsupportedCapabilityError.
+Do not silently discard unsupported parameters.
+8. TEXT GENERATION
+Implement real chat completion requests through:
+POST /v1/chat/completions
+Use the Batch 20 LLMRequest and LLMResponse contracts.
+Map the supported fields appropriately, including:
+Model.
+Messages.
+Temperature.
+Top-p.
+Maximum output tokens.
+Stop sequences.
+Streaming flag.
+Supported response format.
+Supported tool definitions.
+Only send fields supported by the selected NVIDIA endpoint and model.
+Do not send every possible OpenAI parameter blindly.
+Requirements:
+Validate the request before transmission.
+Serialize messages according to the documented API format.
+Preserve the request ID and correlation ID internally.
+Parse the actual response.
+Validate the response structure.
+Extract the assistant message.
+Extract the finish reason.
+Extract usage when returned.
+Record latency.
+Return the normalized response.
+Do not manufacture an answer when the API returns an empty, malformed or failed response.
+Handle empty assistant content according to the response contract and finish reason.
+9. STREAMING GENERATION
+Implement real streaming using NVIDIA's supported server-sent event response.
+Use the stream: true request parameter.
+Handle the streaming protocol correctly.
+Requirements:
+Parse SSE events incrementally.
+Handle multiple chunks.
+Extract incremental content deltas.
+Preserve the request ID.
+Emit normalized Batch 20 stream events.
+Handle [DONE] correctly.
+Detect interrupted streams.
+Handle malformed event payloads.
+Support cancellation.
+Close the HTTP response and release resources.
+Avoid buffering the entire response.
+Prevent duplicate terminal events.
+Record usage if the provider supplies it.
+Do not treat a disconnected stream as a successfully completed generation.
+Test empty chunks, malformed JSON, network interruptions and cancellation.
+10. STRUCTURED OUTPUT
+Support NVIDIA structured-output functionality only when it is actually available for the selected model and endpoint.
+Inspect the current API documentation and the model's supported request parameters.
+Implement the appropriate request mapping for supported JSON response formats.
+Requirements:
+Validate the requested output schema using the Batch 20 contract.
+Check model capability before transmission.
+Parse the returned JSON.
+Validate the result against the requested schema.
+Distinguish malformed output from an HTTP/API error.
+Preserve safe diagnostic information.
+Never fabricate valid JSON to conceal an invalid response.
+If a model does not support the requested response format, reject the request before making the API call.
+Do not claim that all NVIDIA models support constrained JSON generation.
+11. TOOL-CALL RESPONSE HANDLING
+Implement NVIDIA tool-call response normalization where the selected model supports it.
+Map actual tool-call responses into the Batch 20 normalized tool-call contract.
+Validate:
+Tool call ID.
+Function name.
+Argument JSON.
+Argument schema.
+Duplicate tool call IDs.
+Response completion status.
+Do not execute returned tool calls.
+All execution must remain within the existing JARVIS tool registry, authorization engine, approval workflow and verification infrastructure.
+Treat all model-generated tool arguments as untrusted input.
+A model response must never grant itself permission to perform an action.
+12. ERROR NORMALIZATION
+Map NVIDIA API and transport failures to the Batch 20 exception hierarchy.
+Handle, at minimum:
+Failure
+Required behavior
+HTTP 400
+Invalid request or provider response error
+HTTP 401
+Authentication error
+HTTP 403
+Authorization or access error
+HTTP 404
+Model or endpoint not found
+HTTP 408
+Timeout
+HTTP 413
+Request too large
+HTTP 422
+Validation or unsupported request
+HTTP 429
+Rate-limit error
+HTTP 500
+Provider internal error
+HTTP 502
+Provider gateway error
+HTTP 503
+Provider unavailable
+HTTP 504
+Provider timeout
+DNS failure
+Connection error
+TLS failure
+Secure connection error
+Invalid JSON
+Provider response error
+Incomplete SSE stream
+Stream interrupted error
+Use the actual HTTP status and response details.
+Do not assume every provider error uses the same JSON schema.
+Extract safe provider error codes and messages when available.
+Never expose credentials or sensitive prompts in exceptions.
+Do not automatically retry authentication errors, invalid requests or unsupported models.
+Respect Retry-After when appropriate, but leave overall provider routing and cross-provider fallback to Batch 24.
+13. RATE LIMITS AND RETRY SAFETY
+Implement accurate rate-limit handling.
+Requirements:
+Recognize HTTP 429.
+Extract documented retry information where available.
+Avoid tight retry loops.
+Respect request cancellation.
+Use bounded waiting.
+Record rate-limit events.
+Preserve rate-limit diagnostics without exposing secrets.
+Do not build a second LLM router.
+Do not implement automatic fallback to OpenRouter or local models in this batch.
+For retryable requests, follow the existing reliability contracts.
+Do not retry a request when the original result may already have been generated and the operation is not safely idempotent.
+14. HEALTH CHECK AND PROVIDER LIFECYCLE
+Integrate NVIDIA with the Batch 20 provider lifecycle.
+Implement:
+Initialization.
+Readiness assessment.
+Model catalogue refresh.
+Health checks.
+Graceful shutdown.
+Health states must distinguish:
+Not initialized.
+Missing credentials.
+Network unavailable.
+Authentication failure.
+Ready.
+Degraded.
+Closing.
+Closed.
+Do not report the provider as healthy merely because an API key is configured.
+Use an appropriate lightweight connectivity check. Where appropriate, use model discovery, but do not unnecessarily trigger expensive inference requests.
+If connectivity has not been verified, report UNKNOWN or the equivalent existing state.
+Ensure shutdown closes the underlying HTTP client.
+15. PERFORMANCE AND RESOURCE CONTROL
+JARVIS runs on a Windows PC with 16 GB RAM.
+Preserve the existing limits:
+Target idle memory: approximately 2–3 GB.
+Maximum JARVIS memory: 8 GB.
+Implement:
+Bounded concurrent NVIDIA requests.
+Bounded connection pools.
+Configurable timeouts.
+Limited model catalogue cache size.
+Incremental streaming.
+Proper client reuse.
+Clean shutdown.
+Do not create a new HTTP client for every token or stream chunk.
+Do not download NVIDIA models as part of the hosted API integration.
+Measure local provider overhead separately from remote model latency.
+Record actual latency for real API tests, if available. Never invent performance results.
+16. SECURITY AND PRIVACY
+Apply the existing JARVIS security policies.
+Mandatory requirements:
+Use the existing secrets infrastructure.
+Require HTTPS for hosted NVIDIA API requests.
+Keep credentials out of logs.
+Keep credentials out of exception messages.
+Avoid logging complete prompts by default.
+Enforce request size limits.
+Validate model identifiers.
+Validate all response payloads.
+Enforce the existing data-classification policy.
+Reject confidential or restricted requests from external providers where the existing policy prohibits them.
+Prevent arbitrary endpoint redirection.
+Do not disable TLS certificate verification.
+Do not leak API keys in HTTP traces.
+Do not let NVIDIA tool calls bypass local authorization.
+If the existing privacy policy does not clearly permit a request to be sent to NVIDIA, fail closed.
+Do not treat NVIDIA API authentication as a replacement for JARVIS authentication.
+17. LOGGING AND AUDIT
+Use the existing logging and audit infrastructure.
+Record safe operational events:
+NVIDIA provider initialization.
+Credential availability status, without exposing the credential.
+Model discovery.
+Model cache refresh.
+Inference request started.
+Inference request completed.
+Streaming started and completed.
+Request timeout.
+Rate limit.
+Authentication failure.
+Provider unavailable.
+Provider shutdown.
+Include:
+Request ID.
+Correlation ID.
+Provider ID.
+Model ID.
+Timestamp.
+Latency.
+Result status.
+Safe error classification.
+Do not log full prompts or model responses by default.
+Do not log API keys, authorization headers or raw HTTP request objects.
+Follow the existing daily logging convention:
+YYYYMMDD_log.txt
+Use the established audit policy for security-relevant events.
+18. TESTING REQUIREMENTS
+Create real automated tests using the existing test framework.
+Do not weaken previous tests or fabricate successful results.
+A. Unit tests
+Test:
+Provider initialization.
+Configuration validation.
+Credential resolution.
+Request mapping.
+Response normalization.
+Model catalogue parsing.
+Capability validation.
+Usage normalization.
+Error classification.
+Lifecycle transitions.
+B. HTTP integration tests
+Use an injectable HTTP transport or local test server.
+Test:
+Valid chat completion.
+Authentication failure.
+Rate limiting.
+Invalid model.
+Invalid response JSON.
+Server errors.
+Timeouts.
+Connection errors.
+Malformed responses.
+Ensure these tests exercise the real NVIDIA adapter and HTTP request/response handling without requiring live credentials.
+Do not describe simulated transport tests as live API tests.
+C. Streaming tests
+Test:
+Multiple SSE chunks.
+Correct incremental output.
+[DONE] handling.
+Malformed SSE.
+Empty chunks.
+Connection interruption.
+Cancellation.
+Duplicate terminal events.
+Resource cleanup.
+D. Model discovery tests
+Test:
+Valid model list.
+Empty model list.
+Malformed model list.
+Duplicate model identifiers.
+API failure.
+Cache hit.
+Cache expiration.
+Explicit refresh.
+Unavailable model.
+E. Security tests
+Test:
+Missing API key.
+Invalid credentials.
+Secret redaction.
+HTTPS enforcement.
+Unsafe endpoint rejection.
+Restricted-data rejection.
+Malformed tool-call rejection.
+Request size limits.
+F. Real NVIDIA API tests
+Create a separate opt-in live integration test suite.
+Run real API tests only when:
+A valid NVIDIA API key is available.
+Network access is available.
+The required model is accessible.
+The test has been explicitly enabled.
+Live tests should include:
+Actual authentication.
+Actual model discovery.
+A minimal real text-generation request.
+Streaming, if the selected model supports it.
+Use a small output limit to minimize unnecessary usage.
+Do not run expensive or uncontrolled requests.
+Do not print credentials or sensitive responses.
+If live tests cannot run, mark them BLOCKED or NOT RUN. Do not count them as passing.
+G. Regression tests
+Run the existing LLM abstraction and project regression tests.
+Run linting, formatting, type checking and the configured quality gate.
+Report all failures.
+19. DOCUMENTATION
+Update the technical documentation with:
+NVIDIA provider architecture.
+API base URL and endpoint configuration.
+Credential configuration.
+Model discovery.
+Model selection.
+Text generation.
+Streaming.
+Structured-output support and limitations.
+Tool-call response handling.
+Error mapping.
+Rate-limit behavior.
+Timeout and cancellation behavior.
+Health checks.
+Privacy and security.
+Test commands.
+Live integration-test instructions.
+Known limitations.
+Document how to enable the provider through the existing configuration system.
+Do not place a real API key in documentation or example files.
+20. STRICT RESTRICTIONS
+Do not implement OpenRouter in this batch.
+Do not implement the local model provider in this batch.
+Do not implement intelligent routing or cross-provider fallback in this batch.
+Do not add MCP.
+Do not create fake NVIDIA responses.
+Do not hardcode API keys.
+Do not claim that a mocked request proves real API connectivity.
+Do not download large model weights.
+Do not add an unnecessary GPU dependency.
+Do not create a second provider registry.
+Do not create a second secrets manager.
+Do not bypass the Batch 20 LLM contracts.
+Do not modify unrelated modules.
+Do not proceed to Batch 22 automatically.
+Preserve the existing architecture and all working functionality.
+21. FINAL VERIFICATION
+After implementation, run:
+Baseline regression tests.
+NVIDIA provider unit tests.
+HTTP adapter tests.
+Streaming tests.
+Model discovery tests.
+Error-handling tests.
+Security tests.
+Runtime integration tests.
+Live API tests, if explicitly enabled and possible.
+Linting and formatting.
+Static type checking.
+The established project quality gate.
+Use actual commands from the repository.
+Report the exact number of tests collected, executed, passed, failed, skipped and blocked.
+Distinguish between:
+Unit-test success.
+Simulated HTTP integration success.
+Actual NVIDIA API connectivity.
+Actual inference success.
+Do not conflate them.
+22. FINAL IMPLEMENTATION REPORT
+Produce the following report.
+A. Baseline
+Existing LLM abstraction.
+Existing NVIDIA-related code.
+Credential configuration status, without disclosing secrets.
+Baseline test results.
+B. Implementation
+Files created.
+Files modified.
+API integration details.
+Model discovery implementation.
+Streaming implementation.
+Security controls.
+C. NVIDIA Connectivity
+Report separately:
+Credential availability.
+Authentication verification.
+Model discovery verification.
+Text-generation verification.
+Streaming verification.
+Never disclose the API key.
+D. Test Results
+For each category, report:
+Exact command.
+Tests collected.
+Tests executed.
+Passed.
+Failed.
+Skipped.
+Blocked.
+E. Limitations
+List all remaining:
+STUB.
+MOCK.
+PARTIAL.
+UNIMPLEMENTED.
+BROKEN.
+BLOCKED.
+Unresolved security issues.
+F. Final Status
+Choose exactly one:
+IMPLEMENTED AND VERIFIED
+IMPLEMENTED, VERIFICATION INCOMPLETE
+PARTIALLY IMPLEMENTED
+BLOCKED
+FAILED
+Use IMPLEMENTED AND VERIFIED only if the provider implementation and all mandatory tests have actually passed.
+If live NVIDIA connectivity was unavailable, explicitly state that limitation and do not claim live API verification.
+Do not use unsupported readiness percentages.
+Do not proceed to Batch 22 until explicitly instructed.
+FINAL ENGINEERING REQUIREMENT
+The NVIDIA provider must perform genuine inference through NVIDIA's API using the existing JARVIS LLM abstraction.
+A successful import, a mocked response, or a passing unit-test suite alone is not proof of live NVIDIA connectivity.
+Implement the actual integration, execute all feasible tests, preserve security boundaries and report exactly what has been verified.

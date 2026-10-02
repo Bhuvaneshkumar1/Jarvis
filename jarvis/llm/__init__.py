@@ -43,6 +43,7 @@ from jarvis.llm.factory import (
     LLMProviderFactory,
 )
 from jarvis.llm.test_provider import TestDeterministicLLMProvider
+from jarvis.llm.providers.nvidia import NVIDIAProvider
 
 __all__ = [
     "LLMError",
@@ -80,4 +81,5 @@ __all__ = [
     "LLMSubsystemConfig",
     "LLMProviderFactory",
     "TestDeterministicLLMProvider",
+    "NVIDIAProvider",
 ]

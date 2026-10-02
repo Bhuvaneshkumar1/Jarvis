@@ -51,6 +51,11 @@ class LLMProviderFactory:
         self.secrets_manager = secrets_manager
         self._provider_classes: Dict[str, Type[AbstractLLMProvider]] = {}
 
+        # Register standard provider classes
+        from jarvis.llm.providers.nvidia import NVIDIAProvider
+
+        self.register_provider_class("nvidia", NVIDIAProvider)
+
     def register_provider_class(self, provider_id: str, provider_cls: Type[AbstractLLMProvider]) -> None:
         """Registers a provider class for factory instantiation."""
         pid = provider_id.strip()
