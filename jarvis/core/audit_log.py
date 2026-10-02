@@ -10,6 +10,7 @@ DEFAULT_REDACTION_PATTERNS = [
     r"token\s*=\s*['\"]?([a-zA-Z0-9_\-]+)['\"]?",
     r"password\s*=\s*['\"]?([^'\"\s]+)['\"]?",
     r"secret\s*=\s*['\"]?([^'\"\s]+)['\"]?",
+    r"pin\s*=\s*['\"]?([^'\"\s]+)['\"]?",
 ]
 
 
@@ -42,7 +43,7 @@ class AuditLogger:
         cleaned: Dict[str, Any] = {}
         for key, value in data.items():
             key_lower = key.lower()
-            if any(k in key_lower for k in ["key", "secret", "password", "token", "auth", "credential"]):
+            if any(k in key_lower for k in ["key", "secret", "password", "token", "auth", "credential", "pin"]):
                 cleaned[key] = "[REDACTED_SENSITIVE_DATA]"
             elif isinstance(value, str):
                 cleaned[key] = self.redact_text(value)

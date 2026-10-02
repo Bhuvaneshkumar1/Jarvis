@@ -33,6 +33,42 @@ class AuthenticationError(JarvisError):
     pass
 
 
+class PinPolicyValidationError(AuthenticationError, ValueError):
+    """Raised when PIN fails policy length, digit, or confirmation rules."""
+
+    pass
+
+
+class PinNotEnrolledError(AuthenticationError):
+    """Raised when authentication is requested but no PIN credential has been enrolled."""
+
+    pass
+
+
+class CredentialCorruptedError(AuthenticationError):
+    """Raised when a stored PIN credential record is missing, invalid, or corrupted."""
+
+    pass
+
+
+class SessionExpiredError(AuthenticationError):
+    """Raised when an authenticated session has expired."""
+
+    pass
+
+
+class SessionRevokedError(AuthenticationError):
+    """Raised when an authenticated session has been explicitly revoked."""
+
+    pass
+
+
+class AuthenticationUnavailableError(AuthenticationError):
+    """Raised when authentication storage or security primitives are unavailable."""
+
+    pass
+
+
 class AuthorizationError(JarvisError):
     """Raised when an operation violates security policy or lacks required user approval."""
 
