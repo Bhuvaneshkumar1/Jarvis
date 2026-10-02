@@ -11,4 +11,7 @@ htmlcov/
 dist/
 build/
 *.db
+*.db-wal
+*.db-shm
 data/
+backups/
