@@ -22299,3 +22299,896 @@ The objective is a reliable approval system that survives restarts, rejects unau
 A successful import, a green unit-test subset, or a well-written implementation report is not sufficient evidence of correctness.
 
 Implement the actual functionality, test the real persistence and integration paths, report the evidence, and disclose every unresolved issue.
+
+
+# ANTIGRAVITY IMPLEMENTATION PROMPT
+
+# JARVIS — BATCH 20: LLM PROVIDER ABSTRACTION & UNIFIED MODEL INTERFACE
+
+## ROLE
+
+Act as a senior AI infrastructure architect, Python backend engineer, LLM integration engineer and reliability engineer.
+
+You are developing JARVIS, a production-oriented autonomous personal AI operating system.
+
+This is Batch 20 of the planned 60-batch implementation.
+
+Your responsibility is to build the foundational LLM provider abstraction layer. It must support multiple cloud and local model providers through one consistent interface, while preserving provider-specific capabilities, security boundaries, error handling and observability.
+
+This is a real engineering task. Do not create a chatbot demo, hardcoded model responses, fake API implementations or placeholder provider classes presented as completed functionality.
+
+The architecture must support the later implementation of NVIDIA, OpenRouter, local models and intelligent model routing.
+
+---
+
+# 1. INSPECT THE EXISTING PROJECT
+
+Before modifying anything, inspect the repository and verify the actual implementation from previous batches.
+
+Inspect:
+
+* Batch 1: Repository Initialization & Engineering Foundation.
+* Batch 2: Architectural Contracts & Core Interfaces.
+* Batch 3: CI Baseline.
+* Batch 4: Runtime Lifecycle.
+* Batch 5: Event Bus.
+* Batch 6: Task Manager.
+* Batch 7: Core Orchestrator.
+* Batch 8–11: Configuration and Secrets.
+* Batch 12–15: Authentication, Authorization and Approval.
+* Batch 16–19: Database, Task Persistence, Approval Persistence and Recovery.
+
+Pay particular attention to:
+
+* Existing LLM contracts, if any.
+* Configuration loader.
+* Environment variable registry.
+* Secrets manager.
+* Runtime component registry.
+* Event bus.
+* Logging and audit interfaces.
+* Exception hierarchy.
+* Test fixtures and quality gates.
+
+Run the existing relevant tests before making changes.
+
+Record the baseline test results and identify existing LLM-related implementations.
+
+Do not blindly overwrite existing contracts or introduce a second provider abstraction.
+
+If an existing interface is already adequate, reuse it. If it is incomplete, extend it compatibly.
+
+---
+
+# 2. PRIMARY OBJECTIVE
+
+Build one authoritative LLM provider abstraction layer.
+
+The abstraction must allow JARVIS to interact with different language models through a consistent, typed interface.
+
+The architecture must support:
+
+1. Cloud-based LLM providers.
+2. OpenAI-compatible APIs.
+3. Provider-specific APIs.
+4. Local model servers.
+5. Text generation.
+6. Structured responses.
+7. Streaming responses.
+8. Tool/function calling where supported.
+9. Token usage reporting.
+10. Provider health checks.
+11. Timeout and error handling.
+12. Model capability discovery.
+13. Provider lifecycle management.
+
+Do not implement NVIDIA, OpenRouter, OpenAI or a local model client in this batch. Their actual integrations belong to their designated later batches.
+
+This batch must provide a functional and testable foundation that those integrations can implement without changing the core orchestrator.
+
+---
+
+# 3. ARCHITECTURE
+
+Implement or extend the following conceptual architecture, adapting it to the actual repository:
+
+```text
+                 JARVIS CORE
+                      |
+                      v
+              LLM INTERFACE
+                      |
+          +-----------+-----------+
+          |           |           |
+          v           v           v
+     Provider      Provider     Provider
+     Registry      Factory      Contracts
+          |           |           |
+          +-----------+-----------+
+                      |
+          +-----------+-----------+
+          |           |           |
+          v           v           v
+       NVIDIA     OpenRouter     Local
+       Adapter     Adapter       Adapter
+        (B21)       (B22)         (B23)
+                      |
+                      v
+               LLM ROUTER (B24)
+```
+
+The diagram describes the intended architecture, not a requirement to implement future adapters now.
+
+The provider abstraction must be independent of:
+
+* Agent implementations.
+* Task planning.
+* Task persistence.
+* Approval persistence.
+* UI and voice interfaces.
+* Individual model vendor SDKs.
+* MCP.
+
+The central LLM interface must not contain provider-specific branching throughout its methods.
+
+Keep the architecture modular, typed and testable.
+
+---
+
+# 4. CORE LLM CONTRACTS
+
+Inspect Batch 2 contracts before creating new ones.
+
+Reuse and extend the existing contracts where possible.
+
+Define the following conceptual interfaces, using the project's established naming conventions.
+
+### A. LLMProvider
+
+A provider must expose the operations appropriate to its supported capabilities:
+
+* initialize()
+* close()
+* health_check()
+* list_models(), if supported
+* generate()
+* stream(), if supported
+* get_capabilities()
+
+Use asynchronous methods if consistent with the existing runtime architecture.
+
+Avoid maintaining both synchronous and asynchronous implementations without a demonstrated need.
+
+Every provider must have a stable provider ID and explicit lifecycle state.
+
+### B. LLMRequest
+
+Create a validated request contract containing, where applicable:
+
+* request_id
+* model_id
+* messages
+* system instructions
+* temperature
+* top_p
+* max output tokens
+* stop sequences
+* response format
+* tool definitions
+* timeout
+* streaming preference
+* metadata
+* correlation ID
+
+Requirements:
+
+* Validate numeric ranges.
+* Reject invalid message structures.
+* Reject negative token limits.
+* Reject unsupported parameters rather than silently ignoring them.
+* Prevent arbitrary metadata from carrying secrets.
+* Avoid logging full prompts by default.
+* Support a bounded request size.
+
+Use the existing shared ID and timestamp conventions.
+
+### C. LLMResponse
+
+Create a typed response contract supporting:
+
+* request_id
+* provider_id
+* model_id
+* generated content
+* finish reason
+* token usage
+* latency
+* structured output, when requested
+* tool calls, when returned
+* response timestamp
+* provider request ID, when available
+* warnings, if applicable
+
+The response must distinguish between successful completion, incomplete output and provider-reported failure.
+
+Do not fabricate token counts when the provider does not supply them.
+
+### D. LLMStreamEvent
+
+Define typed streaming events for:
+
+* Stream started.
+* Text delta.
+* Structured content delta, if supported.
+* Tool-call delta, if supported.
+* Usage update, if available.
+* Stream completed.
+* Stream failed.
+
+Support explicit termination and cancellation.
+
+Ensure that consumers can distinguish a completed stream from one that was interrupted.
+
+### E. LLMUsage
+
+Define a normalized usage contract where available:
+
+* Input tokens.
+* Output tokens.
+* Total tokens.
+* Cached input tokens, if available.
+* Reasoning tokens, if available.
+* Provider-reported cost, if available.
+
+Do not invent usage values or assume that tokenization is identical across providers.
+
+---
+
+# 5. PROVIDER REGISTRY
+
+Implement a centralized provider registry.
+
+The registry must:
+
+* Register providers using unique IDs.
+* Reject duplicate registrations.
+* Retrieve providers by ID.
+* List registered providers.
+* Track provider lifecycle state.
+* Unregister providers safely.
+* Close providers during shutdown.
+* Prevent requests to unavailable providers.
+* Expose provider capabilities.
+
+Use the existing dependency injection and runtime registration architecture.
+
+Avoid global mutable registries.
+
+The registry must not automatically initialize external services during module import.
+
+Provider initialization must be explicit and lifecycle-controlled.
+
+Support deterministic test registration and cleanup.
+
+---
+
+# 6. PROVIDER FACTORY AND CONFIGURATION
+
+Implement a provider factory or equivalent mechanism that can instantiate providers from validated configuration.
+
+Use the existing configuration system.
+
+Support the following conceptual configuration structure:
+
+```yaml
+llm:
+  default_timeout_seconds: 60
+  default_max_output_tokens: 2048
+  providers:
+    nvidia:
+      enabled: false
+      # Provider-specific configuration added in B21.
+    openrouter:
+      enabled: false
+      # Provider-specific configuration added in B22.
+    local:
+      enabled: false
+      # Local server configuration added in B23.
+```
+
+Treat this as a conceptual example. Follow the existing configuration format and conventions if they differ.
+
+Requirements:
+
+* Validate provider configuration before initialization.
+* Do not require credentials for disabled providers.
+* Do not instantiate disabled providers.
+* Resolve secrets through the existing secrets manager or approved environment configuration.
+* Do not embed API keys in configuration files.
+* Reject unknown security-sensitive configuration fields.
+* Provide actionable validation errors.
+* Keep configuration immutable after startup unless the existing architecture explicitly supports safe runtime updates.
+
+Do not populate fake API keys or example credentials that could be mistaken for real credentials.
+
+---
+
+# 7. MODEL CAPABILITY CONTRACT
+
+Implement a normalized model capability representation.
+
+Each model may declare supported capabilities such as:
+
+* Text generation.
+* Streaming.
+* Structured JSON output.
+* Tool calling.
+* Vision input.
+* Reasoning support.
+* Embeddings.
+* Context window.
+* Maximum output tokens.
+* Supported modalities.
+
+Use an explicit representation for unknown capabilities.
+
+Do not assume that every provider supports every capability.
+
+Do not infer that a model supports vision or tool calling merely because its provider supports those features.
+
+Capabilities must be validated against the selected model before sending a request.
+
+This batch must implement the capability contract and validation mechanism. Real model discovery and capability verification will be completed in the provider-specific batches.
+
+---
+
+# 8. NORMALIZED ERROR HANDLING
+
+Create or extend the existing LLM exception hierarchy.
+
+At minimum, distinguish these error categories:
+
+* ProviderNotFoundError
+* ProviderUnavailableError
+* ProviderAuthenticationError
+* ProviderRateLimitError
+* ProviderTimeoutError
+* ProviderConnectionError
+* ProviderResponseError
+* InvalidLLMRequestError
+* UnsupportedCapabilityError
+* ContextLengthExceededError
+* ContentFilteredError
+* LLMStreamInterruptedError
+* LLMConfigurationError
+* LLMInternalError
+
+Reuse equivalent existing exceptions instead of duplicating them.
+
+Normalize provider errors into these categories without discarding useful provider-specific diagnostic codes.
+
+Every exception should include appropriate safe context, such as provider ID, model ID and request ID.
+
+Do not include API keys, authorization headers, raw credentials or unnecessarily sensitive prompts in exception messages.
+
+Distinguish retryable from non-retryable errors.
+
+Do not automatically retry every error. Retry policy belongs to the appropriate higher-level reliability or routing layer.
+
+---
+
+# 9. TIMEOUTS AND CANCELLATION
+
+Implement consistent timeout and cancellation behavior.
+
+Requirements:
+
+* Enforce request-level timeouts.
+* Apply configured default timeouts.
+* Prevent unbounded waits.
+* Support cancellation of in-flight asynchronous requests.
+* Propagate cancellation correctly.
+* Close streaming generators when consumers cancel.
+* Release associated resources.
+* Record timeout and cancellation outcomes.
+* Prevent cancelled requests from being reported as successful.
+
+Do not swallow cancellation exceptions to make the application appear stable.
+
+Use the cancellation conventions supported by the Python version and async framework already selected in the repository.
+
+Test cancellation during both ordinary generation and streaming.
+
+---
+
+# 10. STREAMING FOUNDATION
+
+Implement the provider-neutral streaming interface.
+
+The interface must support incremental output without buffering the entire response in memory.
+
+Requirements:
+
+* Use asynchronous iteration if consistent with the project.
+* Define event ordering.
+* Preserve the request and correlation IDs.
+* Support explicit completion events.
+* Propagate failures.
+* Support consumer cancellation.
+* Handle malformed or incomplete streams.
+* Avoid duplicate terminal events.
+* Close underlying resources.
+
+Create a functional deterministic test provider for testing the streaming contract only.
+
+This test provider must be explicitly identified as a test fixture, not a real production provider.
+
+Do not claim that real provider streaming is implemented in this batch.
+
+---
+
+# 11. STRUCTURED OUTPUT
+
+Establish a provider-neutral structured-output contract.
+
+Support validated JSON responses where the selected provider and model advertise the necessary capability.
+
+Requirements:
+
+* Validate JSON syntax.
+* Support schema validation using an existing project dependency if available.
+* Distinguish malformed output from provider failure.
+* Reject unsupported schema features explicitly.
+* Preserve the original response safely for diagnostics where appropriate.
+* Never treat invalid structured output as valid.
+* Never silently replace invalid output with a fabricated response.
+
+Do not add unnecessary dependencies.
+
+Do not claim universal structured-output compatibility across providers.
+
+---
+
+# 12. TOOL-CALLING CONTRACT
+
+Establish a normalized contract for model-requested tool calls.
+
+Represent, at minimum:
+
+* Tool call ID.
+* Tool name.
+* Validated arguments.
+* Call index, if needed.
+* Call status.
+* Provider-specific metadata, where necessary.
+
+Requirements:
+
+* Validate tool-call structure.
+* Validate arguments against the supplied tool schema.
+* Reject malformed tool calls.
+* Preserve tool-call IDs for response correlation.
+* Prevent duplicate tool-call IDs within a response.
+* Keep model-generated tool calls separate from actual tool execution.
+
+**Critical security requirement:**
+
+The LLM provider abstraction must never execute tools directly.
+
+A model's request to execute a tool is untrusted input.
+
+All tool execution must go through the existing tool registry, authorization policy, approval workflow and verification architecture.
+
+The LLM abstraction must not bypass the existing permission system.
+
+Actual tool execution integration belongs to later batches.
+
+---
+
+# 13. PRIVACY AND DATA CLASSIFICATION
+
+Integrate with the existing security and data-classification architecture.
+
+The provider abstraction must support the following request classifications, reusing existing enum values if available:
+
+* PUBLIC
+* INTERNAL
+* CONFIDENTIAL
+* RESTRICTED
+
+Do not create conflicting classifications if the existing project already defines them.
+
+The provider abstraction must enforce the established privacy policy:
+
+* Sensitive data must not be sent to external LLM providers.
+* Restricted requests must use an explicitly permitted local processing path.
+* Unknown data classifications must fail closed.
+* Providers must declare whether they are local or external.
+* The abstraction must expose the data classification to the authorization and routing layers.
+* No provider may override a privacy restriction.
+
+Do not build a second privacy policy engine.
+
+If the existing policy engine cannot enforce the necessary checks, report the blocker rather than weakening the restriction.
+
+---
+
+# 14. OBSERVABILITY
+
+Integrate with the existing logging, audit and event systems.
+
+Record safe operational metrics such as:
+
+* Provider ID.
+* Model ID.
+* Request ID.
+* Request start time.
+* Request completion time.
+* Latency.
+* Success or failure.
+* Timeout occurrence.
+* Cancellation occurrence.
+* Usage information, when available.
+* Streaming completion status.
+
+Do not log full prompts or generated content by default.
+
+Do not log secrets, tokens or authorization headers.
+
+Use structured logs and existing correlation IDs.
+
+Emit typed lifecycle events through the existing event bus when appropriate.
+
+Do not introduce a second logging or metrics framework without a demonstrated need.
+
+---
+
+# 15. PROVIDER HEALTH AND LIFECYCLE
+
+Implement a provider health interface.
+
+Distinguish between:
+
+* NOT_INITIALIZED
+* INITIALIZING
+* READY
+* DEGRADED
+* UNAVAILABLE
+* CLOSING
+* CLOSED
+* FAILED
+
+Reuse the existing health-state conventions if available.
+
+A health check must not automatically make an expensive model-generation request.
+
+Separate local initialization status from actual remote reachability.
+
+Do not report an external provider as healthy solely because its API key exists.
+
+Where a provider-specific connectivity check is not yet implemented, report its reachability as UNKNOWN rather than HEALTHY.
+
+Ensure providers are closed cleanly during runtime shutdown.
+
+A provider failure must not crash the entire runtime unless the existing dependency policy explicitly requires it.
+
+---
+
+# 16. SECURITY REQUIREMENTS
+
+Apply the existing security model.
+
+Mandatory requirements:
+
+* Resolve secrets through the established secrets infrastructure.
+* Never hardcode credentials.
+* Never expose credentials in logs or exception messages.
+* Validate model and provider configuration.
+* Enforce data-classification restrictions.
+* Do not allow arbitrary external endpoint overrides without the established security validation.
+* Prevent unsafe deserialization.
+* Bound request and response sizes.
+* Validate tool-call arguments.
+* Support request cancellation and timeouts.
+* Avoid leaking sensitive information in error diagnostics.
+* Prevent disabled providers from receiving requests.
+* Respect existing authorization and session restrictions.
+
+Do not add a generic fallback that sends confidential requests to a cloud provider.
+
+Do not weaken security to simplify integration.
+
+---
+
+# 17. TESTING REQUIREMENTS
+
+Create real tests using the repository's established testing framework.
+
+Do not weaken existing tests.
+
+### A. Contract tests
+
+Test:
+
+* Valid and invalid LLM requests.
+* Response validation.
+* Usage normalization.
+* Model capability validation.
+* Structured output validation.
+* Tool-call schema validation.
+* Error classification.
+* Provider lifecycle transitions.
+
+### B. Provider registry tests
+
+Test:
+
+* Provider registration.
+* Duplicate registration.
+* Provider lookup.
+* Provider removal.
+* Disabled provider behavior.
+* Provider lifecycle.
+* Shutdown cleanup.
+* Concurrent registration and lookup, if supported.
+
+### C. Timeout and cancellation tests
+
+Test:
+
+* Successful completion before timeout.
+* Request timeout.
+* Provider connection timeout.
+* Streaming timeout.
+* Generation cancellation.
+* Streaming cancellation.
+* Resource cleanup after cancellation.
+
+### D. Streaming tests
+
+Use a deterministic test provider.
+
+Test:
+
+* Multiple incremental events.
+* Correct event ordering.
+* Successful completion.
+* Stream interruption.
+* Malformed events.
+* Consumer cancellation.
+* Duplicate terminal-event prevention.
+* Resource cleanup.
+
+### E. Error tests
+
+Test all normalized error categories.
+
+Verify retryability classification and ensure sensitive provider diagnostics are redacted.
+
+### F. Privacy and security tests
+
+Test:
+
+* Restricted data cannot be sent to external providers.
+* Unknown classification fails closed.
+* Local and external provider classification.
+* Invalid provider configuration.
+* Missing credentials for enabled providers.
+* No credential leakage in logs or exceptions.
+* Malformed model tool calls are rejected.
+* Tool calls cannot directly execute tools.
+
+### G. Integration tests
+
+Integrate the new abstraction with the existing:
+
+* Configuration loader.
+* Secrets manager.
+* Runtime lifecycle.
+* Logging.
+* Event bus.
+* Security and authorization contracts.
+
+Use deterministic test fixtures where real external providers are not yet implemented.
+
+Clearly label all mocks and test fixtures.
+
+Do not claim real provider connectivity in this batch.
+
+### H. Regression tests
+
+Run all relevant existing tests.
+
+Run the established project quality gate.
+
+Report every failure, including pre-existing failures.
+
+---
+
+# 18. PERFORMANCE AND RESOURCE REQUIREMENTS
+
+Maintain the existing deployment constraints:
+
+* Windows desktop deployment.
+* Approximately 2–3 GB target idle memory.
+* Maximum JARVIS memory: 8 GB.
+
+The provider abstraction must not:
+
+* Load every model into memory.
+* Create an unbounded number of HTTP clients.
+* Buffer unlimited streaming responses.
+* Create unnecessary background threads.
+* Keep unused connections open indefinitely.
+
+Use the project's existing HTTP client or connection-pooling strategy if available.
+
+Use bounded concurrency and explicit resource cleanup.
+
+Measure the overhead of the abstraction independently of external model latency.
+
+Do not invent performance figures.
+
+---
+
+# 19. DOCUMENTATION
+
+Update the relevant technical documentation.
+
+Document:
+
+1. Provider abstraction architecture.
+2. LLM request and response contracts.
+3. Provider registry.
+4. Provider factory and configuration.
+5. Model capability representation.
+6. Normalized error hierarchy.
+7. Streaming contract.
+8. Structured-output contract.
+9. Tool-call security boundary.
+10. Data classification and privacy.
+11. Provider health and lifecycle.
+12. Testing and verification commands.
+13. Known limitations.
+14. Integration requirements for B21–B24.
+
+Clearly identify which capabilities are fully implemented and which are only contracts for future providers.
+
+Update the README only if directly necessary.
+
+---
+
+# 20. STRICT RESTRICTIONS
+
+* Do not implement the NVIDIA adapter in this batch.
+* Do not implement the OpenRouter adapter in this batch.
+* Do not implement the local model client in this batch.
+* Do not implement intelligent routing in this batch.
+* Do not add MCP.
+* Do not create fake API responses.
+* Do not mark test providers as production providers.
+* Do not create duplicate LLM interfaces.
+* Do not create a second configuration manager.
+* Do not create a second secrets manager.
+* Do not create a second authorization engine.
+* Do not allow LLM tool calls to bypass the tool registry.
+* Do not send sensitive data to external services.
+* Do not automatically proceed to Batch 21.
+
+Preserve existing working functionality and follow the actual project architecture.
+
+---
+
+# 21. FINAL VERIFICATION
+
+Execute the actual available checks after implementation.
+
+At minimum:
+
+1. Relevant baseline tests.
+2. New contract tests.
+3. Registry tests.
+4. Streaming tests.
+5. Timeout and cancellation tests.
+6. Error-handling tests.
+7. Privacy and security tests.
+8. Runtime integration tests.
+9. Regression tests.
+10. Linting and formatting.
+11. Static type checking, if configured.
+12. The established quality gate.
+
+Use exact repository commands.
+
+Report the exact number of tests collected, executed, passed, failed, skipped and blocked.
+
+Do not count unexecuted tests as passed.
+
+If external connectivity is unavailable, do not claim external integration success.
+
+---
+
+# 22. FINAL IMPLEMENTATION REPORT
+
+Produce a factual report with these sections.
+
+## A. Baseline
+
+* Existing LLM implementation.
+* Existing interfaces reused.
+* Existing architecture and dependencies.
+* Baseline test results.
+
+## B. Implementation
+
+* Files created.
+* Files modified.
+* Contracts implemented.
+* Registry functionality.
+* Provider factory.
+* Error hierarchy.
+* Streaming and structured-output contracts.
+* Security controls.
+
+## C. Integration
+
+Report actual results for:
+
+* Configuration.
+* Secrets.
+* Runtime.
+* Event bus.
+* Logging and audit.
+* Authorization and privacy contracts.
+
+## D. Tests
+
+For each test category, provide:
+
+* Exact command.
+* Tests collected.
+* Tests executed.
+* Passed.
+* Failed.
+* Skipped.
+* Blocked.
+
+## E. Limitations
+
+List all remaining:
+
+* STUB.
+* MOCK.
+* PARTIAL.
+* UNIMPLEMENTED.
+* BROKEN.
+* BLOCKED.
+* Unresolved security issues.
+
+## F. Final Status
+
+Choose exactly one:
+
+* IMPLEMENTED AND VERIFIED
+* IMPLEMENTED, VERIFICATION INCOMPLETE
+* PARTIALLY IMPLEMENTED
+* BLOCKED
+* FAILED
+
+IMPLEMENTED AND VERIFIED is permitted only if every mandatory requirement for this batch is implemented and its required tests have actually passed.
+
+Do not use unsupported readiness percentages.
+
+Do not proceed to Batch 21 without explicit instructions.
+
+---
+
+# FINAL ENGINEERING REQUIREMENT
+
+This abstraction is the foundation for all subsequent LLM integrations.
+
+It must support real providers without forcing the orchestrator to understand vendor-specific APIs.
+
+It must preserve security, privacy, cancellation, capability validation and error semantics across providers.
+
+A set of interfaces with empty methods is not an implementation. Build the functional provider infrastructure, validate it with executable tests, and report precisely what is and is not complete.
