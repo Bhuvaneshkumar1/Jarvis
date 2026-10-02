@@ -11,9 +11,10 @@ def test_config_redacted_dict():
 
 def test_privacy_filter():
     engine = PrivacyEngine()
-    prompt = "Here is my secret TOKEN_PLACEHOLDER and email john@example.com"
+    test_key = "sk-" + "dummytestapikey12345678"
+    prompt = f"Here is my secret {test_key} and email john@example.com"
     clean, was_redacted = engine.filter_text(prompt)
     assert was_redacted is True
-    assert "TOKEN_PLACEHOLDER" not in clean
+    assert test_key not in clean
     assert "[REDACTED_API_KEY]" in clean
     assert "[REDACTED_EMAIL]" in clean

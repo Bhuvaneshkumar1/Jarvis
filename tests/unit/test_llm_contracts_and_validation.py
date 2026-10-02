@@ -52,11 +52,12 @@ def test_llm_request_empty_id_rejection():
 
 def test_llm_request_secret_metadata_anti_leakage():
     msg = ChatMessage(role=MessageRole.USER, content="Hello")
+    test_key = "sk-" + "a" * 25
     with pytest.raises(ValidationError, match="secret patterns"):
         LLMRequest(
             model_id="model-1",
             messages=[msg],
-            metadata={"secret_key": "TOKEN_PLACEHOLDER"},
+            metadata={"secret_key": test_key},
         )
 
 

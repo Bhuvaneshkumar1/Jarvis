@@ -8,7 +8,7 @@ def test_secret_scanner_clean_repo():
 
 
 def test_secret_scanner_regex_matching():
-    sample_key = "TOKEN_PLACEHOLDER"
+    sample_key = "sk-or-v1-" + "a" * 45
     regex, secret_type = SECRET_REGEXES[0]
     import re
 

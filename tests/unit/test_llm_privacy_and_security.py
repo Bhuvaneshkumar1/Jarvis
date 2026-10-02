@@ -59,7 +59,8 @@ async def test_internal_data_sanitized_for_cloud_providers():
     cloud_provider = TestDeterministicLLMProvider(provider_id="cloud_llm", is_local=False)
     await cloud_provider.initialize()
 
-    msg = ChatMessage(role=MessageRole.USER, content="Contact me at testuser@example.com with key TOKEN_PLACEHOLDER")
+    test_key = "sk-" + "dummytestapikey12345678"
+    msg = ChatMessage(role=MessageRole.USER, content=f"Contact me at testuser@example.com with key {test_key}")
     req = LLMRequest(
         model_id="test-model-v1",
         messages=[msg],
@@ -99,8 +100,9 @@ async def test_tool_calling_security_boundary():
 
 
 def test_exception_secret_redaction():
-    secret_msg = "Error connecting with key TOKEN_PLACEHOLDER and bearer token bearer 123456789012345678901234567890"
+    test_key = "sk-" + "a" * 25
+    secret_msg = f"Error connecting with key {test_key} and bearer token bearer 123456789012345678901234567890"
     err = LLMError(secret_msg)
 
-    assert "TOKEN_PLACEHOLDER" not in str(err)
+    assert test_key not in str(err)
     assert "[REDACTED_SECRET]" in str(err)
