@@ -10,14 +10,14 @@
 [![Database](https://img.shields.io/badge/database-SQLite%20WAL-003B57.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Security](https://img.shields.io/badge/security-Zero--Trust%20%7C%20Hardened-red.svg?style=for-the-badge&logo=shield&logoColor=white)](#security--governance)
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](LICENSE)
-[![Batch Progress](https://img.shields.io/badge/roadmap-Batch%2021%20of%2060%20Complete-brightgreen.svg?style=for-the-badge)](#-60-batch-implementation-roadmap)
+[![Batch Progress](https://img.shields.io/badge/roadmap-Batch%2022%20of%2060%20Complete-brightgreen.svg?style=for-the-badge)](#-60-batch-implementation-roadmap)
 
 <p align="center">
   <a href="#-key-features">Key Features</a> •
   <a href="#-system-architecture">Architecture</a> •
   <a href="#-quickstart">Quickstart</a> •
   <a href="#-60-batch-implementation-roadmap">Roadmap</a> •
-  <a href="#-llm-provider-subsystem">NVIDIA NIM Integration</a> •
+  <a href="#-llm-provider-subsystem">LLM Subsystem</a> •
   <a href="#-quality-gate--testing">Quality Gate</a>
 </p>
 
@@ -27,7 +27,7 @@
 
 ## 🌟 Overview
 
-**JARVIS** is a production-oriented, autonomous personal AI operating system engineered from the ground up for Windows environments. Built with enterprise-grade software architecture, JARVIS delivers zero-trust security governance, a centralized policy approval engine, multi-provider LLM intelligence (including hosted NVIDIA NIM inference), transactional SQLite task persistence, and crash recovery resilience.
+**JARVIS** is a production-oriented, autonomous personal AI operating system engineered from the ground up for Windows environments. Built with enterprise-grade software architecture, JARVIS delivers zero-trust security governance, a centralized policy approval engine, multi-provider LLM intelligence (including hosted NVIDIA NIM inference and OpenRouter multi-model gateway), transactional SQLite task persistence, and crash recovery resilience.
 
 Unlike prototype AI scripts or basic chatbot wrappers, JARVIS is architected as a long-running, fault-tolerant operating OS kernel capable of managing tools, background tasks, memory, system controls, and autonomous agent workflows safely.
 
@@ -44,9 +44,10 @@ Unlike prototype AI scripts or basic chatbot wrappers, JARVIS is architected as 
 * **Rule-Based Access Control**: Decoupled policy engine evaluating risk levels, user permissions, path traversal safety, and explicit user approvals before executing any tool or OS operation.
 * **State Machine Approvals**: Multi-state durable approval lifecycle (`PENDING`, `APPROVED`, `REJECTED`, `EXPIRED`, `CANCELLED`) backed by SQLite WAL persistence.
 
-### ⚡ 3. Unified LLM Provider Subsystem & NVIDIA NIM
+### ⚡ 3. Unified LLM Provider Subsystem (NVIDIA NIM & OpenRouter)
 * **Provider Abstraction Layer**: Generic `AbstractLLMProvider` contract standardizing chat completions, token usage tracking, latency benchmarking, and error handling across cloud and local providers.
 * **NVIDIA NIM Integration (`NVIDIAProvider`)**: Direct hosted API connectivity to NVIDIA's OpenAPI endpoints (`POST /v1/chat/completions`, `GET /v1/models`), featuring Server-Sent Events (SSE) streaming, structured tool calling, and HTTP error normalization.
+* **OpenRouter Gateway Integration (`OpenRouterProvider`)**: Multi-model cloud gateway provider supporting models from OpenAI, Anthropic, Meta, and Google via unified OpenAPI endpoints with streaming, tool-call parsing, and rate-limit backoff.
 * **Model Capability Validation**: Enforces text generation, streaming, tool-calling, and structured output capability constraints at request time.
 
 ### 💾 4. Transactional SQLite Persistence & Crash Recovery
@@ -239,7 +240,7 @@ JARVIS is built through a rigorous 60-batch engineering blueprint.
 | **19** | Persistent State Recovery | `COMPLETED` | Crash recovery coordinator, outbox queue replay |
 | **20** | Unified LLM Provider Abstraction | `COMPLETED` | `AbstractLLMProvider`, LLM contracts, Factory |
 | **21** | NVIDIA NIM Provider Integration | `COMPLETED` | `NVIDIAProvider`, Hosted OpenAPI, SSE streaming |
-| **22** | OpenRouter Provider Integration | `PLANNED` | Multi-model cloud gateway integration |
+| **22** | OpenRouter Provider Integration | `COMPLETED` | `OpenRouterProvider`, OpenAPI multi-model gateway, SSE streaming |
 | **23** | Local LLM Engine (Ollama / Llama.cpp) | `PLANNED` | Offline local model inference execution |
 | **24** | Intelligent Model Router | `PLANNED` | Cost & capability aware LLM routing |
 | **25-60** | Agents, Tools, Vision, Cyber & OS | `PLANNED` | Autonomous desktop agent OS capabilities |

@@ -167,3 +167,6 @@ class AbstractLLMProvider(ABC):
 
         async for event in self._do_stream(sanitized_request):
             yield event
+
+    # Backward compatibility alias
+    generate_stream = stream

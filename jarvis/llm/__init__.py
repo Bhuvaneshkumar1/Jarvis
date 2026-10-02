@@ -44,6 +44,7 @@ from jarvis.llm.factory import (
 )
 from jarvis.llm.test_provider import TestDeterministicLLMProvider
 from jarvis.llm.providers.nvidia import NVIDIAProvider
+from jarvis.llm.providers.openrouter import OpenRouterProvider
 
 __all__ = [
     "LLMError",
@@ -82,4 +83,5 @@ __all__ = [
     "LLMProviderFactory",
     "TestDeterministicLLMProvider",
     "NVIDIAProvider",
+    "OpenRouterProvider",
 ]
