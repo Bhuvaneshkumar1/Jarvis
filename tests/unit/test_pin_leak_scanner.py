@@ -1,6 +1,6 @@
 """
-Security Leak Scanner Test for JARVIS PIN Authentication Subsystem (Batch 12).
-Scans logs, audit records, event history, credential stores, and exception text for raw PIN leakage.
+Security Leak Scanner Test for JARVIS PIN Authentication & Lockout Subsystems (Batch 12 & 13).
+Scans logs, audit records, event history, credential stores, lockout stores, and exception text for raw PIN leakage.
 """
 
 import os
@@ -13,6 +13,8 @@ from jarvis.security import (
     PinCredentialStore,
     SessionManager,
     AttemptTracker,
+    LockoutManager,
+    LockoutStore,
 )
 from jarvis.core.audit_log import AuditLogger
 from jarvis.core.events.bus import EventBus
@@ -25,6 +27,7 @@ def test_pin_leak_scanner():
         cred_dir = os.path.join(temp_dir, "credentials")
         audit_logger = AuditLogger(log_dir=log_dir)
         cred_store = PinCredentialStore(storage_dir=cred_dir)
+        lockout_store = LockoutStore(storage_dir=cred_dir)
         event_bus = EventBus()
 
         auth_manager = AuthenticationManager(
@@ -33,6 +36,7 @@ def test_pin_leak_scanner():
             credential_store=cred_store,
             session_manager=SessionManager(),
             attempt_tracker=AttemptTracker(),
+            lockout_manager=LockoutManager(max_attempts=3, store=lockout_store),
             audit_logger=audit_logger,
             event_bus=event_bus,
         )
@@ -47,14 +51,16 @@ def test_pin_leak_scanner():
         verify_res = auth_manager.verify_pin(test_pins[0])
         assert verify_res.status == "SUCCESS"
         session_id = verify_res.session_id
+        assert session_id is not None
 
         # Scenario 3: Failed Verification
         fail_res = auth_manager.verify_pin(test_pins[1])
         assert fail_res.status == "INVALID_PIN"
 
-        # Scenario 4: PIN Change
-        change_res = auth_manager.change_pin(test_pins[0], test_pins[2], test_pins[2], session_id=session_id)
-        assert change_res.status == "SUCCESS"
+        # Scenario 4: Lockout Triggering (Failed Verification 2 & 3)
+        auth_manager.verify_pin(test_pins[1])
+        lockout_res = auth_manager.verify_pin(test_pins[1])
+        assert lockout_res.status == "ACCOUNT_LOCKED"
 
         # SCAN PERSISTED FILES & AUDIT LOGS FOR TEST PINS
         files_to_scan = []

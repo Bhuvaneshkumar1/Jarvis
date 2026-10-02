@@ -18,12 +18,18 @@ from jarvis.security.pin_crypto import PINHasher
 from jarvis.security.credential_store import PinCredentialStore
 from jarvis.security.session_manager import SessionManager
 from jarvis.security.rate_limit import AttemptTracker
+from jarvis.security.lockout_manager import LockoutManager, LockoutRecoveryService
 from jarvis.security.events import (
     AuthenticationSucceededEvent,
     AuthenticationFailedEvent,
     SessionCreatedEvent,
     SessionRevokedEvent,
     PinChangedEvent,
+    PinAttemptFailedEvent,
+    PinAttemptSucceededEvent,
+    PinLockoutTriggeredEvent,
+    PinAuthenticationBlockedEvent,
+    SessionRevokedDueToLockoutEvent,
 )
 from jarvis.core.audit_log import AuditLogger
 from jarvis.core.events.bus import EventBus
@@ -49,6 +55,8 @@ class AuthenticationManager:
         credential_store: Optional[PinCredentialStore] = None,
         session_manager: Optional[SessionManager] = None,
         attempt_tracker: Optional[AttemptTracker] = None,
+        lockout_manager: Optional[LockoutManager] = None,
+        recovery_service: Optional[LockoutRecoveryService] = None,
         audit_logger: Optional[AuditLogger] = None,
         event_bus: Optional[EventBus] = None,
     ):
@@ -57,7 +65,10 @@ class AuthenticationManager:
         self.credential_store = credential_store or PinCredentialStore()
         self.session_manager = session_manager or SessionManager()
         self.attempt_tracker = attempt_tracker or AttemptTracker()
+        self.lockout_manager = lockout_manager or LockoutManager()
+        self.recovery_service = recovery_service or LockoutRecoveryService()
         self.audit_logger = audit_logger or AuditLogger()
+        self.event_bus = event_bus
         self.event_bus = event_bus
 
     def is_enrolled(self, principal: str = "user") -> bool:
@@ -165,10 +176,60 @@ class AuthenticationManager:
     def verify_pin(self, pin: str, principal: str = "user") -> AuthenticationResult:
         """
         Verifies PIN candidate against stored credential and creates authenticated session on success.
+        Enforces 3-attempt lockout policy, atomic lockout transitions, and session revocation.
         """
         correlation_id = f"corr-{uuid.uuid4().hex[:12]}"
         timestamp = time.time()
 
+        # 1. Check lockout status prior to PIN verification
+        try:
+            lockout_state = self.lockout_manager.check_lockout(principal)
+        except CredentialCorruptedError as e:
+            self.audit_logger.log_event(
+                component="auth_manager",
+                action="PIN_AUTHENTICATION_BLOCKED",
+                result="LOCKOUT_STATE_CORRUPTED",
+                correlation_id=correlation_id,
+                error=str(e),
+                details={"principal": principal},
+            )
+            return AuthenticationResult(
+                status=AuthenticationStatus.CREDENTIAL_CORRUPTED,
+                authenticated=False,
+                timestamp=timestamp,
+                correlation_id=correlation_id,
+                safe_error_code="LOCKOUT_STATE_CORRUPTED",
+            )
+
+        if lockout_state.locked:
+            self.audit_logger.log_event(
+                component="auth_manager",
+                action="PIN_AUTHENTICATION_BLOCKED",
+                result="ACCOUNT_LOCKED",
+                correlation_id=correlation_id,
+                details={"principal": principal, "consecutive_failures": lockout_state.consecutive_failures},
+            )
+            if self.event_bus:
+                try:
+                    self.event_bus.publish_sync(
+                        PinAuthenticationBlockedEvent(
+                            correlation_id=correlation_id,
+                            payload={"principal": principal, "reason": "ACCOUNT_LOCKED"},
+                        )
+                    )
+                except Exception:
+                    pass
+
+            return AuthenticationResult(
+                status=AuthenticationStatus.ACCOUNT_LOCKED,
+                authenticated=False,
+                timestamp=timestamp,
+                correlation_id=correlation_id,
+                safe_error_code="ACCOUNT_LOCKED",
+                metadata={"consecutive_failures": lockout_state.consecutive_failures, "locked": True},
+            )
+
+        # 2. Load credential record
         try:
             cred = self.credential_store.load_credential(principal)
         except CredentialCorruptedError as e:
@@ -204,9 +265,8 @@ class AuthenticationManager:
                 safe_error_code="NOT_ENROLLED",
             )
 
-        # Basic input structure check
+        # 3. Basic input structure check
         if pin is None or not isinstance(pin, str) or len(pin) == 0:
-            self.attempt_tracker.record_failure(principal)
             self.audit_logger.log_event(
                 component="auth_manager",
                 action="AUTHENTICATION_FAILURE",
@@ -222,6 +282,7 @@ class AuthenticationManager:
                 safe_error_code="MALFORMED_INPUT",
             )
 
+        # 4. Perform PIN verification
         try:
             is_valid = self.hasher.verify_pin(
                 candidate_pin=pin,
@@ -262,18 +323,27 @@ class AuthenticationManager:
                 safe_error_code="AUTH_SYSTEM_ERROR",
             )
 
+        # 5. Process Verification Outcome
         if not is_valid:
-            attempts = self.attempt_tracker.record_failure(principal)
+            updated_state, lockout_triggered = self.lockout_manager.record_failure(principal)
+            self.attempt_tracker.record_failure(principal)
+
             self.audit_logger.log_event(
                 component="auth_manager",
-                action="AUTHENTICATION_FAILURE",
+                action="PIN_ATTEMPT_FAILED",
                 result="INVALID_PIN",
                 correlation_id=correlation_id,
-                details={"principal": principal, "failed_attempts_count": attempts},
+                details={"principal": principal, "failed_attempts_count": updated_state.consecutive_failures},
             )
 
             if self.event_bus:
                 try:
+                    self.event_bus.publish_sync(
+                        PinAttemptFailedEvent(
+                            correlation_id=correlation_id,
+                            payload={"principal": principal, "consecutive_failures": updated_state.consecutive_failures},
+                        )
+                    )
                     self.event_bus.publish_sync(
                         AuthenticationFailedEvent(
                             correlation_id=correlation_id,
@@ -283,18 +353,71 @@ class AuthenticationManager:
                 except Exception:
                     pass
 
+            if lockout_triggered:
+                revoked_count = self.session_manager.revoke_all_sessions()
+
+                self.audit_logger.log_event(
+                    component="auth_manager",
+                    action="PIN_LOCKOUT_TRIGGERED",
+                    result="LOCKED",
+                    correlation_id=correlation_id,
+                    details={"principal": principal, "consecutive_failures": updated_state.consecutive_failures},
+                )
+                self.audit_logger.log_event(
+                    component="auth_manager",
+                    action="SESSION_REVOKED_DUE_TO_LOCKOUT",
+                    result="SUCCESS",
+                    correlation_id=correlation_id,
+                    details={"principal": principal, "revoked_sessions": revoked_count},
+                )
+
+                if self.event_bus:
+                    try:
+                        self.event_bus.publish_sync(
+                            PinLockoutTriggeredEvent(
+                                correlation_id=correlation_id,
+                                payload={"principal": principal, "consecutive_failures": updated_state.consecutive_failures},
+                            )
+                        )
+                        self.event_bus.publish_sync(
+                            SessionRevokedDueToLockoutEvent(
+                                correlation_id=correlation_id,
+                                payload={"principal": principal, "revoked_sessions": revoked_count},
+                            )
+                        )
+                    except Exception:
+                        pass
+
+                return AuthenticationResult(
+                    status=AuthenticationStatus.ACCOUNT_LOCKED,
+                    authenticated=False,
+                    timestamp=timestamp,
+                    correlation_id=correlation_id,
+                    safe_error_code="ACCOUNT_LOCKED",
+                    metadata={"consecutive_failures": updated_state.consecutive_failures, "locked": True},
+                )
+
             return AuthenticationResult(
                 status=AuthenticationStatus.INVALID_PIN,
                 authenticated=False,
                 timestamp=timestamp,
                 correlation_id=correlation_id,
                 safe_error_code="INVALID_PIN",
+                metadata={"consecutive_failures": updated_state.consecutive_failures},
             )
 
-        # Verification Succeeded
+        # 6. Verification Succeeded
+        self.lockout_manager.record_success(principal)
         self.attempt_tracker.record_success(principal)
         session = self.session_manager.create_session(principal)
 
+        self.audit_logger.log_event(
+            component="auth_manager",
+            action="PIN_ATTEMPT_SUCCEEDED",
+            result="SUCCESS",
+            correlation_id=correlation_id,
+            details={"principal": principal},
+        )
         self.audit_logger.log_event(
             component="auth_manager",
             action="AUTHENTICATION_SUCCESS",
@@ -312,6 +435,12 @@ class AuthenticationManager:
 
         if self.event_bus:
             try:
+                self.event_bus.publish_sync(
+                    PinAttemptSucceededEvent(
+                        correlation_id=correlation_id,
+                        payload={"principal": principal},
+                    )
+                )
                 self.event_bus.publish_sync(
                     AuthenticationSucceededEvent(
                         correlation_id=correlation_id,

@@ -24,3 +24,23 @@ class SessionRevokedEvent(Event):
 
 class PinChangedEvent(Event):
     event_type: str = "PinChanged"
+
+
+class PinAttemptFailedEvent(Event):
+    event_type: str = "PinAttemptFailed"
+
+
+class PinAttemptSucceededEvent(Event):
+    event_type: str = "PinAttemptSucceeded"
+
+
+class PinLockoutTriggeredEvent(Event):
+    event_type: str = "PinLockoutTriggered"
+
+
+class PinAuthenticationBlockedEvent(Event):
+    event_type: str = "PinAuthenticationBlocked"
+
+
+class SessionRevokedDueToLockoutEvent(Event):
+    event_type: str = "SessionRevokedDueToLockout"
