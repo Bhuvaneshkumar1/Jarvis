@@ -35,8 +35,8 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument(
         "--duration",
         type=float,
-        default=0.1,
-        help="Run duration in seconds before initiating graceful shutdown",
+        default=None,
+        help="Run duration in seconds before initiating graceful shutdown (default: continuous)",
     )
     parser.add_argument(
         "--test-run",
@@ -46,8 +46,10 @@ def main(argv: Optional[list] = None) -> int:
 
     if argv is not None:
         parsed_args = parser.parse_args(argv)
-    elif len(sys.argv) > 0 and sys.argv[0].endswith("main.py"):
+    elif len(sys.argv) > 1 and sys.argv[0].endswith("main.py"):
         parsed_args = parser.parse_args(sys.argv[1:])
+    elif len(sys.argv) == 1 and sys.argv[0].endswith("main.py"):
+        parsed_args = parser.parse_args([])
     else:
         parsed_args = parser.parse_args(["--test-run"])
 

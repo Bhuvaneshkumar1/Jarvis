@@ -6,7 +6,7 @@ import asyncio
 import inspect
 import time
 from collections import deque
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Callable, Any, Set
 from jarvis.core.enums import RuntimeState, HealthState, EventPriority
 from jarvis.core.contracts.health import HealthStatusContract
 from jarvis.core.logging import JarvisLogger, redact_sensitive_data
@@ -44,6 +44,7 @@ class EventBus(LifecycleComponent):
         self._subscriptions: Dict[str, Dict[str, Subscription]] = {}
         self._history: deque = deque(maxlen=self._history_size)
         self._dispatch_task: Optional[asyncio.Task] = None
+        self._background_tasks: Set[asyncio.Task] = set()
         self._sequence_counter: int = 0
         self._context: Optional[RuntimeContext] = None
         self._lock: asyncio.Lock = asyncio.Lock()
@@ -63,6 +64,20 @@ class EventBus(LifecycleComponent):
     @property
     def state(self) -> RuntimeState:
         return self._state
+
+    def _track_task(self, task: asyncio.Task) -> asyncio.Task:
+        """Track background task and retrieve exception on completion."""
+        self._background_tasks.add(task)
+
+        def _on_done(t: asyncio.Task) -> None:
+            self._background_tasks.discard(t)
+            if not t.cancelled():
+                exc = t.exception()
+                if exc and not isinstance(exc, EventPublishError):
+                    self.logger.error(f"EventBus background task failed: {exc}", exc_info=exc)
+
+        task.add_done_callback(_on_done)
+        return task
 
     async def initialize(self, context: RuntimeContext) -> None:
         """Initialize EventBus component."""
@@ -100,6 +115,14 @@ class EventBus(LifecycleComponent):
                 await self._dispatch_task
             except asyncio.CancelledError:
                 pass
+
+        if self._background_tasks:
+            pending = [t for t in list(self._background_tasks) if not t.done()]
+            for t in pending:
+                t.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
+            self._background_tasks.clear()
 
         self._state = RuntimeState.STOPPED
         self.logger.info("EventBus stopped cleanly.")
@@ -211,7 +234,8 @@ class EventBus(LifecycleComponent):
             return
         try:
             loop = asyncio.get_running_loop()
-            loop.create_task(self.publish(event))
+            task = loop.create_task(self.publish(event))
+            self._track_task(task)
         except RuntimeError:
             if self._queue and not self._queue.full():
                 self._sequence_counter += 1
@@ -248,7 +272,7 @@ class EventBus(LifecycleComponent):
             return
 
         # Execute target handlers concurrently with isolated error handling
-        tasks = [asyncio.create_task(self._dispatch_to_subscriber(sub, event)) for sub in targets]
+        tasks = [self._track_task(asyncio.create_task(self._dispatch_to_subscriber(sub, event))) for sub in targets]
         await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _dispatch_to_subscriber(self, sub: Subscription, event: Event) -> None:

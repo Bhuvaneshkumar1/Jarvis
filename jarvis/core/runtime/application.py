@@ -25,7 +25,6 @@ from jarvis.core.events.contracts import (
     RuntimeStartingEvent,
     RuntimeStartedEvent,
     RuntimeStoppingEvent,
-    RuntimeStoppedEvent,
     RuntimeFailedEvent,
     ComponentRegisteredEvent,
     ComponentInitializingEvent,
@@ -91,6 +90,7 @@ class JarvisApplication:
         self._failed_stop_components: List[str] = []
         self._shutdown_lock: asyncio.Lock = asyncio.Lock()
         self._shutdown_task: Optional[asyncio.Task] = None
+        self._background_tasks: Set[asyncio.Task] = set()
 
         # Automatically register EventBus, TaskManager, and Orchestrator into registry
         self.register_component(self.event_bus)
@@ -101,6 +101,23 @@ class JarvisApplication:
     def state(self) -> RuntimeState:
         """Current runtime state."""
         return self._state
+
+    def _track_task(self, task: asyncio.Task) -> asyncio.Task:
+        """Track background task and retrieve exception on completion."""
+        self._background_tasks.add(task)
+
+        def _on_done(t: asyncio.Task) -> None:
+            self._background_tasks.discard(t)
+            if not t.cancelled():
+                exc = t.exception()
+                if exc:
+                    self.logger.error(
+                        f"Background task '{t.get_name()}' failed with exception: {exc}",
+                        exc_info=exc,
+                    )
+
+        task.add_done_callback(_on_done)
+        return task
 
     def register_component(self, component: LifecycleComponent) -> None:
         """Register a lifecycle component with the application runtime."""
@@ -120,10 +137,11 @@ class JarvisApplication:
     def _safe_publish(self, event: Any) -> None:
         """Helper to publish events safely without throwing when bus is not running."""
         try:
-            if self.event_bus.state == RuntimeState.RUNNING:
-                asyncio.create_task(self.event_bus.publish(event))
-        except Exception:
-            pass
+            if self._state == RuntimeState.RUNNING and self.event_bus.state == RuntimeState.RUNNING:
+                task = asyncio.create_task(self.event_bus.publish(event))
+                self._track_task(task)
+        except Exception as ex:
+            self.logger.info(f"Event publish skipped: {ex}")
 
     def _transition_to(self, new_state: RuntimeState) -> None:
         """Validate and execute state transition."""
@@ -290,14 +308,19 @@ class JarvisApplication:
             self._transition_to(RuntimeState.STOPPING)
             self._safe_publish(RuntimeStoppingEvent(source="runtime", correlation_id=self.context.app_id, payload={"reason": reason}))
 
-            # Components to stop: started ones first, then initialized ones
-            to_stop: List[LifecycleComponent] = []
+            # Components to stop: started ones first, then initialized ones, ensuring EventBus stops LAST
+            all_comps: List[LifecycleComponent] = []
             for comp in reversed(self._started_components):
-                if comp not in to_stop:
-                    to_stop.append(comp)
+                if comp not in all_comps:
+                    all_comps.append(comp)
             for comp in reversed(self._initialized_components):
-                if comp not in to_stop:
-                    to_stop.append(comp)
+                if comp not in all_comps:
+                    all_comps.append(comp)
+
+            # Separate non-EventBus components and EventBus
+            to_stop = [c for c in all_comps if c != self.event_bus]
+            if self.event_bus in all_comps:
+                to_stop.append(self.event_bus)
 
             for comp in to_stop:
                 self.logger.info(f"Stopping component: '{comp.name}'")
@@ -309,9 +332,17 @@ class JarvisApplication:
                     self.logger.error(f"Error stopping component '{comp.name}': {str(e)}")
                     self._failed_stop_components.append(comp.name)
 
+            # Await or cancel remaining application background tasks
+            if self._background_tasks:
+                pending = [t for t in list(self._background_tasks) if not t.done()]
+                for t in pending:
+                    t.cancel()
+                if pending:
+                    await asyncio.gather(*pending, return_exceptions=True)
+                self._background_tasks.clear()
+
             self._transition_to(RuntimeState.STOPPED)
             self.logger.info("JARVIS Application Runtime has STOPPED.")
-            self._safe_publish(RuntimeStoppedEvent(source="runtime", correlation_id=self.context.app_id))
 
     async def get_health(self) -> Dict[str, Any]:
         """Aggregate health statuses across all registered components."""
