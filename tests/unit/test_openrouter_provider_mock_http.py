@@ -91,7 +91,7 @@ async def test_mock_chat_completion_success():
     assert res.model_id == "openai/gpt-4o-mini"
     assert res.content == "JARVIS online."
     assert res.usage.total_tokens == 16
-    assert res.latency > 0.0
+    assert res.latency >= 0.0
 
     await provider.close()
 

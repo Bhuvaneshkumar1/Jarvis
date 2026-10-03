@@ -36,6 +36,8 @@ from jarvis.llm.contracts import (
     ModelCapability,
     DataClassification,
     LLMProviderState,
+    TaskCategory,
+    RoutingProfile,
 )
 from jarvis.llm.privacy import LLMPrivacyEnforcer
 from jarvis.llm.base import AbstractLLMProvider
@@ -49,6 +51,7 @@ from jarvis.llm.test_provider import TestDeterministicLLMProvider
 from jarvis.llm.providers.nvidia import NVIDIAProvider
 from jarvis.llm.providers.openrouter import OpenRouterProvider
 from jarvis.llm.providers.local import LocalLLMProvider
+from jarvis.llm.router import LLMRouter
 
 __all__ = [
     "LLMError",
@@ -82,6 +85,8 @@ __all__ = [
     "ModelCapability",
     "DataClassification",
     "LLMProviderState",
+    "TaskCategory",
+    "RoutingProfile",
     "LLMPrivacyEnforcer",
     "AbstractLLMProvider",
     "LLMProviderRegistry",
@@ -92,4 +97,5 @@ __all__ = [
     "NVIDIAProvider",
     "OpenRouterProvider",
     "LocalLLMProvider",
+    "LLMRouter",
 ]

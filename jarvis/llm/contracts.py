@@ -27,6 +27,28 @@ class DataClassification(str, Enum):
     RESTRICTED = "RESTRICTED"
 
 
+class TaskCategory(str, Enum):
+    SIMPLE_CHAT = "SIMPLE_CHAT"
+    REASONING = "REASONING"
+    CODING = "CODING"
+    DEBUGGING = "DEBUGGING"
+    RESEARCH = "RESEARCH"
+    SUMMARIZATION = "SUMMARIZATION"
+    CLASSIFICATION = "CLASSIFICATION"
+    STRUCTURED_OUTPUT = "STRUCTURED_OUTPUT"
+    VISION = "VISION"
+    TOOL_PLANNING = "TOOL_PLANNING"
+    GENERAL = "GENERAL"
+
+
+class RoutingProfile(str, Enum):
+    LATENCY_FIRST = "LATENCY_FIRST"
+    COST_AWARE = "COST_AWARE"
+    QUALITY_PREFERRED = "QUALITY_PREFERRED"
+    PRIVACY_FIRST = "PRIVACY_FIRST"
+    BALANCED = "BALANCED"
+
+
 class LLMProviderState(str, Enum):
     NOT_INITIALIZED = "NOT_INITIALIZED"
     INITIALIZING = "INITIALIZING"
@@ -128,6 +150,13 @@ class LLMRequest(BaseModel):
     data_classification: DataClassification = Field(default=DataClassification.PUBLIC)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     correlation_id: Optional[str] = None
+    task_category: Optional[TaskCategory] = None
+    preferred_provider: Optional[str] = None
+    required_capabilities: List[str] = Field(default_factory=list)
+    local_only: bool = Field(default=False)
+    max_cost: Optional[float] = Field(default=None, ge=0.0)
+    max_latency: Optional[float] = Field(default=None, ge=0.0)
+    routing_profile: Optional[RoutingProfile] = None
 
     # Backward compatibility alias for Batch 2 contract
     @property
