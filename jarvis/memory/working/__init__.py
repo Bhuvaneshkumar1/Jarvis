@@ -1,13 +1,15 @@
 """
-JARVIS Memory Subsystem Package (Batch 25).
-Exports Working Memory models, manager, repository, retrieval engine, and facade utilities.
+Working Memory Subsystem (Batch 25).
+Exports models, repository, manager, prioritizer, retrieval engine, and exceptions.
 """
 
-from jarvis.memory.working import (
+from jarvis.memory.working.models import (
     WorkingMemoryEntry,
     MemoryStatus,
     MemoryRetrievalFilter,
     MemoryStatistics,
+)
+from jarvis.memory.working.exceptions import (
     WorkingMemoryError,
     MemoryValidationError,
     MemoryNotFoundError,
@@ -15,17 +17,13 @@ from jarvis.memory.working import (
     MemoryQuotaExceededError,
     MemoryBudgetExceededError,
     MemoryConcurrencyError,
-    WorkingMemoryRepository,
-    MemoryPrioritizer,
-    TokenBudgetManager,
-    MemoryExpirationManager,
-    SelectiveMemoryRetrievalEngine,
-    WorkingMemoryManager,
 )
-from jarvis.memory.working_memory import (
-    get_working_memory_manager,
-    reset_working_memory_manager,
-)
+from jarvis.memory.working.repository import WorkingMemoryRepository
+from jarvis.memory.working.prioritizer import MemoryPrioritizer
+from jarvis.memory.working.token_budget import TokenBudgetManager
+from jarvis.memory.working.expiration import MemoryExpirationManager
+from jarvis.memory.working.retrieval import SelectiveMemoryRetrievalEngine
+from jarvis.memory.working.manager import WorkingMemoryManager
 
 __all__ = [
     "WorkingMemoryEntry",
@@ -45,6 +43,4 @@ __all__ = [
     "MemoryExpirationManager",
     "SelectiveMemoryRetrievalEngine",
     "WorkingMemoryManager",
-    "get_working_memory_manager",
-    "reset_working_memory_manager",
 ]

@@ -106,6 +106,10 @@ class ToolResultStatus(str, Enum):
 class MemoryScope(str, Enum):
     WORKING = "WORKING"
     CONVERSATION = "CONVERSATION"
+    TASK = "TASK"
+    AGENT = "AGENT"
+    SESSION = "SESSION"
+    SYSTEM = "SYSTEM"
     EPISODIC = "EPISODIC"
     SEMANTIC = "SEMANTIC"
     PROJECT = "PROJECT"
@@ -192,3 +196,10 @@ class EventPriority(int, Enum):
     HIGH = 1
     NORMAL = 2
     LOW = 3
+
+
+class SecurityLevel(str, Enum):
+    PUBLIC = "PUBLIC"
+    INTERNAL = "INTERNAL"
+    CONFIDENTIAL = "CONFIDENTIAL"
+    RESTRICTED = "RESTRICTED"

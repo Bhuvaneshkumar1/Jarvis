@@ -25,15 +25,16 @@ def test_migration_runner_initial_schema_execution(temp_db_settings):
     runner = MigrationRunner(settings=temp_db_settings)
     with connection_scope(temp_db_settings) as conn:
         applied = runner.discover_and_apply_pending(conn)
-        assert len(applied) == 4
+        assert len(applied) == 5
         assert "001_initial_core_schema" in applied
         assert "002_task_persistence_enhancements" in applied
         assert "003_approval_persistence_enhancements" in applied
         assert "004_state_recovery_outbox" in applied
+        assert "005_working_memory_schema" in applied
 
         # Re-running discovery is idempotent
         re_applied = runner.discover_and_apply_pending(conn)
-        assert len(re_applied) == 4
+        assert len(re_applied) == 5
 
 
 def test_migration_checksum_tamper_detection(temp_db_settings):
